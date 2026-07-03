@@ -2,9 +2,10 @@ import { Request, Response } from "express";
 import { UnauthorizedError, ValidationError } from "../../lib/errors";
 import * as integrationsService from "./integrations.service";
 import * as googleSheetsService from "./googleSheets.service";
-import { IntegrationKey } from "./integrations.schema";
+import { CREDENTIAL_SCHEMAS, IntegrationKey } from "./integrations.schema";
 
-const VALID_KEYS = new Set(["META_ADS", "WHATSAPP", "INSTAGRAM", "GOOGLE_SHEETS"]);
+// Derived from the schema map so adding a new integration can't silently miss this list.
+const VALID_KEYS = new Set(Object.keys(CREDENTIAL_SCHEMAS));
 
 function parseKey(raw: string): IntegrationKey {
   if (!VALID_KEYS.has(raw)) throw new ValidationError(`Unknown integration key: ${raw}`);

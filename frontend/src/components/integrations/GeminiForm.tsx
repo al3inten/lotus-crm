@@ -11,12 +11,11 @@ export function GeminiForm({ onSaved }: { onSaved: () => void }) {
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<GeminiCredentialsFormValues>({ resolver: zodResolver(geminiCredentialsFormSchema) });
 
-  const onSubmit = async (values: GeminiCredentialsFormValues) => {
-    await saveIntegration.mutateAsync({ key: "GEMINI", credentials: values });
-    onSaved();
+  const onSubmit = (values: GeminiCredentialsFormValues) => {
+    saveIntegration.mutate({ key: "GEMINI", credentials: values }, { onSuccess: onSaved });
   };
 
   return (
@@ -25,7 +24,10 @@ export function GeminiForm({ onSaved }: { onSaved: () => void }) {
         Powers the voice agent (Live API) and the WhatsApp/Instagram chatbot replies.
       </p>
       <Input label="Gemini API Key" type="password" error={errors.apiKey?.message} {...register("apiKey")} />
-      <Button type="submit" isLoading={isSubmitting} className="w-fit">
+      {saveIntegration.isError && (
+        <p className="text-sm text-red-600">Failed to save — check the values and try again.</p>
+      )}
+      <Button type="submit" isLoading={saveIntegration.isPending} className="w-fit">
         Save
       </Button>
     </form>

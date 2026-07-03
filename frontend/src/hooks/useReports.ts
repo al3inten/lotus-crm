@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import * as reportsApi from "../api/reports.api";
 
-export function useSummaryReport(filters: reportsApi.ReportFilters) {
+export function useSummaryReport(filters: reportsApi.ReportFilters, enabled = true) {
   return useQuery({
     queryKey: ["reports", "summary", filters],
     queryFn: () => reportsApi.fetchSummary(filters),
+    enabled,
   });
 }
 

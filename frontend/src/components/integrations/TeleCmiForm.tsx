@@ -11,12 +11,11 @@ export function TeleCmiForm({ onSaved }: { onSaved: () => void }) {
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<TelecmiCredentialsFormValues>({ resolver: zodResolver(telecmiCredentialsFormSchema) });
 
-  const onSubmit = async (values: TelecmiCredentialsFormValues) => {
-    await saveIntegration.mutateAsync({ key: "TELECMI", credentials: values });
-    onSaved();
+  const onSubmit = (values: TelecmiCredentialsFormValues) => {
+    saveIntegration.mutate({ key: "TELECMI", credentials: values }, { onSuccess: onSaved });
   };
 
   return (
@@ -30,7 +29,10 @@ export function TeleCmiForm({ onSaved }: { onSaved: () => void }) {
       <Input label="Trunk Username" error={errors.trunkUsername?.message} {...register("trunkUsername")} />
       <Input label="Trunk Password" type="password" error={errors.trunkPassword?.message} {...register("trunkPassword")} />
       <Input label="Caller ID Number" placeholder="+91XXXXXXXXXX" error={errors.callerIdNumber?.message} {...register("callerIdNumber")} />
-      <Button type="submit" isLoading={isSubmitting} className="w-fit">
+      {saveIntegration.isError && (
+        <p className="text-sm text-red-600">Failed to save — check the values and try again.</p>
+      )}
+      <Button type="submit" isLoading={saveIntegration.isPending} className="w-fit">
         Save
       </Button>
     </form>

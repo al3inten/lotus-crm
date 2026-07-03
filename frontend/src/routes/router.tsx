@@ -1,6 +1,7 @@
 import { createBrowserRouter } from "react-router-dom";
 import { AppShell } from "../components/layout/AppShell";
 import { ProtectedRoute } from "./ProtectedRoute";
+import { LandingPage } from "../pages/LandingPage";
 import { LoginPage } from "../pages/LoginPage";
 import { DashboardPage } from "../pages/DashboardPage";
 import { LeadsPage } from "../pages/LeadsPage";
@@ -16,6 +17,7 @@ import { CallCampaignsPage } from "../pages/CallCampaignsPage";
 import { BulkMessagesPage } from "../pages/BulkMessagesPage";
 
 export const router = createBrowserRouter([
+  { path: "/", element: <LandingPage /> },
   { path: "/login", element: <LoginPage /> },
   {
     element: <ProtectedRoute />,
@@ -23,7 +25,7 @@ export const router = createBrowserRouter([
       {
         element: <AppShell />,
         children: [
-          { path: "/", element: <DashboardPage /> },
+          { path: "/dashboard", element: <DashboardPage /> },
           { path: "/leads", element: <LeadsPage /> },
           { path: "/leads/:leadId", element: <LeadDetailPage /> },
           { path: "/leads/:leadId/enquiries/:enquiryId", element: <LeadDetailPage /> },

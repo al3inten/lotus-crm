@@ -12,12 +12,11 @@ export function MetaAdsForm({ onSaved }: { onSaved: () => void }) {
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<MetaAdsCredentialsFormValues>({ resolver: zodResolver(metaAdsCredentialsFormSchema) });
 
-  const onSubmit = async (values: MetaAdsCredentialsFormValues) => {
-    await saveIntegration.mutateAsync({ key: "META_ADS", credentials: values });
-    onSaved();
+  const onSubmit = (values: MetaAdsCredentialsFormValues) => {
+    saveIntegration.mutate({ key: "META_ADS", credentials: values }, { onSuccess: onSaved });
   };
 
   return (
@@ -30,7 +29,10 @@ export function MetaAdsForm({ onSaved }: { onSaved: () => void }) {
       <Input label="Page Access Token" type="password" error={errors.pageAccessToken?.message} {...register("pageAccessToken")} />
       <Input label="App Secret" type="password" error={errors.appSecret?.message} {...register("appSecret")} />
       <Input label="Webhook Verify Token" error={errors.verifyToken?.message} {...register("verifyToken")} />
-      <Button type="submit" isLoading={isSubmitting} className="w-fit">
+      {saveIntegration.isError && (
+        <p className="text-sm text-red-600">Failed to save — check the values and try again.</p>
+      )}
+      <Button type="submit" isLoading={saveIntegration.isPending} className="w-fit">
         Save
       </Button>
     </form>

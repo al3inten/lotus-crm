@@ -11,12 +11,11 @@ export function CloudinaryForm({ onSaved }: { onSaved: () => void }) {
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<CloudinaryCredentialsFormValues>({ resolver: zodResolver(cloudinaryCredentialsFormSchema) });
 
-  const onSubmit = async (values: CloudinaryCredentialsFormValues) => {
-    await saveIntegration.mutateAsync({ key: "CLOUDINARY", credentials: values });
-    onSaved();
+  const onSubmit = (values: CloudinaryCredentialsFormValues) => {
+    saveIntegration.mutate({ key: "CLOUDINARY", credentials: values }, { onSuccess: onSaved });
   };
 
   return (
@@ -28,7 +27,10 @@ export function CloudinaryForm({ onSaved }: { onSaved: () => void }) {
       <Input label="Cloud Name" error={errors.cloudName?.message} {...register("cloudName")} />
       <Input label="API Key" error={errors.apiKey?.message} {...register("apiKey")} />
       <Input label="API Secret" type="password" error={errors.apiSecret?.message} {...register("apiSecret")} />
-      <Button type="submit" isLoading={isSubmitting} className="w-fit">
+      {saveIntegration.isError && (
+        <p className="text-sm text-red-600">Failed to save — check the values and try again.</p>
+      )}
+      <Button type="submit" isLoading={saveIntegration.isPending} className="w-fit">
         Save
       </Button>
     </form>

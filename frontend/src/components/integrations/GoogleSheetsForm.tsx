@@ -11,12 +11,11 @@ export function GoogleSheetsForm({ onSaved }: { onSaved: () => void }) {
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<GoogleSheetsCredentialsFormValues>({ resolver: zodResolver(googleSheetsCredentialsFormSchema) });
 
-  const onSubmit = async (values: GoogleSheetsCredentialsFormValues) => {
-    await saveIntegration.mutateAsync({ key: "GOOGLE_SHEETS", credentials: values });
-    onSaved();
+  const onSubmit = (values: GoogleSheetsCredentialsFormValues) => {
+    saveIntegration.mutate({ key: "GOOGLE_SHEETS", credentials: values }, { onSuccess: onSaved });
   };
 
   return (
@@ -32,7 +31,10 @@ export function GoogleSheetsForm({ onSaved }: { onSaved: () => void }) {
         error={errors.serviceAccountJson?.message}
         {...register("serviceAccountJson")}
       />
-      <Button type="submit" isLoading={isSubmitting} className="w-fit">
+      {saveIntegration.isError && (
+        <p className="text-sm text-red-600">Failed to save — check the values and try again.</p>
+      )}
+      <Button type="submit" isLoading={saveIntegration.isPending} className="w-fit">
         Save
       </Button>
     </form>

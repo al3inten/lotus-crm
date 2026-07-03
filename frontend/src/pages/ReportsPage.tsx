@@ -12,6 +12,7 @@ import {
   useSourcePerformanceReport,
   useLostReasonsReport,
 } from "../hooks/useReports";
+import { ClipboardList, KeyRound, Percent, CircleX, PhoneOutgoing, Download } from "lucide-react";
 import { downloadEnquiriesCsv } from "../api/reports.api";
 import { StatTile } from "../components/reports/StatTile";
 import { FunnelChart } from "../components/reports/FunnelChart";
@@ -128,7 +129,7 @@ export function ReportsPage() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <h1 className="text-2xl font-semibold text-gray-900">Reports</h1>
-        <Button variant="secondary" isLoading={exporting} onClick={handleExport}>
+        <Button variant="secondary" isLoading={exporting} icon={<Download size={15} />} onClick={handleExport}>
           Export CSV
         </Button>
       </div>
@@ -159,17 +160,46 @@ export function ReportsPage() {
 
       {/* KPI row with year-over-year deltas */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-        <StatTile label="Total Enquiries" value={summary?.totalEnquiries ?? 0} delta={yoy?.growth.total} deltaLabel="vs last year" />
-        <StatTile label="Converted" value={summary?.converted ?? 0} delta={yoy?.growth.converted} deltaLabel="vs last year" />
+        <StatTile
+          label="Total Enquiries"
+          value={summary?.totalEnquiries ?? 0}
+          delta={yoy?.growth.total}
+          deltaLabel="vs last year"
+          icon={<ClipboardList size={20} />}
+          iconClassName="bg-blue-50 text-blue-600"
+        />
+        <StatTile
+          label="Converted"
+          value={summary?.converted ?? 0}
+          delta={yoy?.growth.converted}
+          deltaLabel="vs last year"
+          icon={<KeyRound size={20} />}
+          iconClassName="bg-emerald-50 text-emerald-600"
+        />
         <StatTile
           label="Conversion Rate"
           value={yoy?.currentPeriod.conversionRate ?? 0}
           suffix="%"
           delta={yoy?.growth.conversionRate}
           deltaLabel="pts vs last year"
+          icon={<Percent size={20} />}
+          iconClassName="bg-violet-50 text-violet-600"
         />
-        <StatTile label="Lost" value={summary?.lost ?? 0} delta={yoy?.growth.lost} deltaLabel="vs last year" upIsGood={false} />
-        <StatTile label="Follow-up Pending" value={summary?.followUpPending ?? 0} />
+        <StatTile
+          label="Lost"
+          value={summary?.lost ?? 0}
+          delta={yoy?.growth.lost}
+          deltaLabel="vs last year"
+          upIsGood={false}
+          icon={<CircleX size={20} />}
+          iconClassName="bg-red-50 text-red-600"
+        />
+        <StatTile
+          label="Follow-up Pending"
+          value={summary?.followUpPending ?? 0}
+          icon={<PhoneOutgoing size={20} />}
+          iconClassName="bg-amber-50 text-amber-600"
+        />
       </div>
 
       <Section title="Trend" subtitle="Enquiry volume, conversions, and losses over time">

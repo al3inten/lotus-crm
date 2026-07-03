@@ -11,12 +11,11 @@ export function LiveKitForm({ onSaved }: { onSaved: () => void }) {
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<LivekitCredentialsFormValues>({ resolver: zodResolver(livekitCredentialsFormSchema) });
 
-  const onSubmit = async (values: LivekitCredentialsFormValues) => {
-    await saveIntegration.mutateAsync({ key: "LIVEKIT", credentials: values });
-    onSaved();
+  const onSubmit = (values: LivekitCredentialsFormValues) => {
+    saveIntegration.mutate({ key: "LIVEKIT", credentials: values }, { onSuccess: onSaved });
   };
 
   return (
@@ -28,7 +27,10 @@ export function LiveKitForm({ onSaved }: { onSaved: () => void }) {
       <Input label="Server URL" placeholder="wss://your-livekit-host" error={errors.serverUrl?.message} {...register("serverUrl")} />
       <Input label="API Key" error={errors.apiKey?.message} {...register("apiKey")} />
       <Input label="API Secret" type="password" error={errors.apiSecret?.message} {...register("apiSecret")} />
-      <Button type="submit" isLoading={isSubmitting} className="w-fit">
+      {saveIntegration.isError && (
+        <p className="text-sm text-red-600">Failed to save — check the values and try again.</p>
+      )}
+      <Button type="submit" isLoading={saveIntegration.isPending} className="w-fit">
         Save
       </Button>
     </form>
