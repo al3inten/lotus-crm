@@ -1,0 +1,79 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import * as enquiriesApi from "../api/enquiries.api";
+
+export const enquiryKeys = {
+  detail: (enquiryId: string) => ["enquiries", enquiryId] as const,
+};
+
+export function useEnquiry(enquiryId: string | undefined) {
+  return useQuery({
+    queryKey: enquiryKeys.detail(enquiryId ?? ""),
+    queryFn: () => enquiriesApi.fetchEnquiry(enquiryId!),
+    enabled: !!enquiryId,
+  });
+}
+
+function useInvalidateEnquiry(enquiryId: string) {
+  const queryClient = useQueryClient();
+  return () => {
+    queryClient.invalidateQueries({ queryKey: enquiryKeys.detail(enquiryId) });
+    queryClient.invalidateQueries({ queryKey: ["leads"] });
+  };
+}
+
+export function useChangeStatus(enquiryId: string) {
+  const invalidate = useInvalidateEnquiry(enquiryId);
+  return useMutation({
+    mutationFn: (payload: enquiriesApi.ChangeStatusPayload) => enquiriesApi.changeEnquiryStatus(enquiryId, payload),
+    onSuccess: invalidate,
+  });
+}
+
+export function useReassign(enquiryId: string) {
+  const invalidate = useInvalidateEnquiry(enquiryId);
+  return useMutation({
+    mutationFn: ({ toUserId, reason }: { toUserId: string; reason?: string }) =>
+      enquiriesApi.reassignEnquiry(enquiryId, toUserId, reason),
+    onSuccess: invalidate,
+  });
+}
+
+export function useSaveTestDrive(enquiryId: string) {
+  const invalidate = useInvalidateEnquiry(enquiryId);
+  return useMutation({
+    mutationFn: (payload: enquiriesApi.TestDrivePayload) => enquiriesApi.saveTestDrive(enquiryId, payload),
+    onSuccess: invalidate,
+  });
+}
+
+export function useSaveQuotation(enquiryId: string) {
+  const invalidate = useInvalidateEnquiry(enquiryId);
+  return useMutation({
+    mutationFn: (payload: enquiriesApi.QuotationPayload) => enquiriesApi.saveQuotation(enquiryId, payload),
+    onSuccess: invalidate,
+  });
+}
+
+export function useSaveExchangeEvaluation(enquiryId: string) {
+  const invalidate = useInvalidateEnquiry(enquiryId);
+  return useMutation({
+    mutationFn: (payload: enquiriesApi.ExchangeEvaluationPayload) => enquiriesApi.saveExchangeEvaluation(enquiryId, payload),
+    onSuccess: invalidate,
+  });
+}
+
+export function useSaveFinanceApplication(enquiryId: string) {
+  const invalidate = useInvalidateEnquiry(enquiryId);
+  return useMutation({
+    mutationFn: (payload: enquiriesApi.FinanceApplicationPayload) => enquiriesApi.saveFinanceApplication(enquiryId, payload),
+    onSuccess: invalidate,
+  });
+}
+
+export function useSaveDeliveryDetails(enquiryId: string) {
+  const invalidate = useInvalidateEnquiry(enquiryId);
+  return useMutation({
+    mutationFn: (payload: enquiriesApi.DeliveryDetailsPayload) => enquiriesApi.saveDeliveryDetails(enquiryId, payload),
+    onSuccess: invalidate,
+  });
+}

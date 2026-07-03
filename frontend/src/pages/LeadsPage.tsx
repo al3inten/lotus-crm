@@ -1,0 +1,67 @@
+import { useState } from "react";
+import { useLeads } from "../hooks/useLeads";
+import type { LeadFilters as LeadFiltersType } from "../api/leads.api";
+import { LeadFilters } from "../components/leads/LeadFilters";
+import { LeadTable } from "../components/leads/LeadTable";
+import { WalkInLeadForm } from "../components/leads/WalkInLeadForm";
+import { ImportLeadsModal } from "../components/leads/ImportLeadsModal";
+import { Button } from "../components/common/Button";
+
+const PAGE_SIZE = 20;
+
+export function LeadsPage() {
+  const [filters, setFilters] = useState<LeadFiltersType>({ page: 1, pageSize: PAGE_SIZE });
+  const [showWalkInForm, setShowWalkInForm] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+
+  const { data, isLoading } = useLeads(filters);
+  const totalPages = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1;
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold text-gray-900">Leads</h1>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={() => setShowImportModal(true)}>
+            Import from Sheet/Excel
+          </Button>
+          <Button onClick={() => setShowWalkInForm(true)}>+ Add Walk-in Lead</Button>
+        </div>
+      </div>
+
+      <LeadFilters filters={filters} onChange={setFilters} />
+
+      {isLoading || !data ? (
+        <p className="text-sm text-gray-500">Loading leads…</p>
+      ) : (
+        <>
+          <LeadTable enquiries={data.items} />
+          <div className="flex items-center justify-between text-sm text-gray-500">
+            <span>
+              Page {data.page} of {totalPages} · {data.total} total
+            </span>
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                disabled={data.page <= 1}
+                onClick={() => setFilters((f) => ({ ...f, page: (f.page ?? 1) - 1 }))}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="secondary"
+                disabled={data.page >= totalPages}
+                onClick={() => setFilters((f) => ({ ...f, page: (f.page ?? 1) + 1 }))}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        </>
+      )}
+
+      <WalkInLeadForm isOpen={showWalkInForm} onClose={() => setShowWalkInForm(false)} />
+      <ImportLeadsModal isOpen={showImportModal} onClose={() => setShowImportModal(false)} />
+    </div>
+  );
+}

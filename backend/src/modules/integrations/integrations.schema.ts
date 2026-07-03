@@ -1,0 +1,89 @@
+import { z } from "zod";
+
+export const metaAdsCredentialsSchema = z.object({
+  pageId: z.string().min(1),
+  pageAccessToken: z.string().min(1),
+  appSecret: z.string().min(1),
+  verifyToken: z.string().min(1),
+});
+
+export const whatsappCredentialsSchema = z.object({
+  phoneNumberId: z.string().min(1),
+  accessToken: z.string().min(1),
+  appSecret: z.string().min(1),
+  verifyToken: z.string().min(1),
+});
+
+export const instagramCredentialsSchema = z.object({
+  instagramBusinessAccountId: z.string().min(1),
+  accessToken: z.string().min(1),
+  appSecret: z.string().min(1),
+  verifyToken: z.string().min(1),
+});
+
+export const googleSheetsCredentialsSchema = z.object({
+  serviceAccountJson: z.string().min(1, "Paste the full service account JSON key"),
+});
+
+export const livekitCredentialsSchema = z.object({
+  serverUrl: z.string().min(1, "Server URL is required (e.g. wss://your-livekit-host)"),
+  apiKey: z.string().min(1),
+  apiSecret: z.string().min(1),
+});
+
+export const telecmiCredentialsSchema = z.object({
+  sipUri: z.string().min(1, "SIP trunk URI/IP is required"),
+  trunkUsername: z.string().min(1),
+  trunkPassword: z.string().min(1),
+  callerIdNumber: z.string().min(1, "The TeleCMI number to dial out from"),
+});
+
+export const geminiCredentialsSchema = z.object({
+  apiKey: z.string().min(1),
+});
+
+export const openaiCredentialsSchema = z.object({
+  apiKey: z.string().min(1),
+});
+
+export const cloudinaryCredentialsSchema = z.object({
+  cloudName: z.string().min(1),
+  apiKey: z.string().min(1),
+  apiSecret: z.string().min(1),
+});
+
+export const CREDENTIAL_SCHEMAS = {
+  META_ADS: metaAdsCredentialsSchema,
+  WHATSAPP: whatsappCredentialsSchema,
+  INSTAGRAM: instagramCredentialsSchema,
+  GOOGLE_SHEETS: googleSheetsCredentialsSchema,
+  LIVEKIT: livekitCredentialsSchema,
+  TELECMI: telecmiCredentialsSchema,
+  GEMINI: geminiCredentialsSchema,
+  OPENAI: openaiCredentialsSchema,
+  CLOUDINARY: cloudinaryCredentialsSchema,
+} as const;
+
+export type IntegrationKey = keyof typeof CREDENTIAL_SCHEMAS;
+
+export type MetaAdsCredentials = z.infer<typeof metaAdsCredentialsSchema>;
+export type WhatsappCredentials = z.infer<typeof whatsappCredentialsSchema>;
+export type InstagramCredentials = z.infer<typeof instagramCredentialsSchema>;
+export type GoogleSheetsCredentials = z.infer<typeof googleSheetsCredentialsSchema>;
+export type LivekitCredentials = z.infer<typeof livekitCredentialsSchema>;
+export type TelecmiCredentials = z.infer<typeof telecmiCredentialsSchema>;
+export type GeminiCredentials = z.infer<typeof geminiCredentialsSchema>;
+export type OpenAiCredentials = z.infer<typeof openaiCredentialsSchema>;
+export type CloudinaryCredentials = z.infer<typeof cloudinaryCredentialsSchema>;
+
+export const saveIntegrationSchema = z.object({
+  credentials: z.record(z.string(), z.unknown()),
+});
+
+export const syncGoogleSheetSchema = z.object({
+  sheetUrl: z.string().min(1, "Sheet URL or ID is required"),
+  sheetName: z.string().optional(),
+  branchId: z.string().min(1),
+});
+
+export type SyncGoogleSheetInput = z.infer<typeof syncGoogleSheetSchema>;
