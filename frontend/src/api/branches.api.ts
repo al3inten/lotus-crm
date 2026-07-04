@@ -28,3 +28,7 @@ export async function toggleAutoAssign(branchId: string, autoAssignEnabled: bool
   const { data } = await axiosClient.patch<Branch>(`/branches/${branchId}/auto-assign`, { autoAssignEnabled });
   return data;
 }
+
+export async function deleteBranch(branchId: string): Promise<void> {
+  await axiosClient.delete(`/branches/${branchId}`);
+}

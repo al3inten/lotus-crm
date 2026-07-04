@@ -12,7 +12,7 @@ export async function getEnquiry(enquiryId: string) {
       assignedCr: { select: { id: true, name: true } },
       consultant: { select: { id: true, name: true } },
       statusHistory: { orderBy: { createdAt: "asc" }, include: { changedBy: { select: { id: true, name: true } } } },
-      testDriveFeedback: true,
+      testDriveFeedbacks: { orderBy: { createdAt: "desc" }, include: { conductedBy: { select: { id: true, name: true } } } },
       quotation: true,
       exchangeEvaluation: true,
       financeApplication: true,

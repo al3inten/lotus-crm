@@ -31,9 +31,11 @@ export function WalkInLeadForm({ isOpen, onClose }: { isOpen: boolean; onClose: 
     setResultMessage(null);
     const result = await createWalkIn.mutateAsync({ ...values, email: values.email || undefined });
     setResultMessage(
-      result.isRepeatLead
-        ? `Repeat customer — ${result.priorEnquiryCount} previous enquiry(ies) found.`
-        : "New lead created."
+      result.attachedToExisting
+        ? "This customer already has an active enquiry — this visit was recorded on it (no duplicate created). Open the lead to see their full history."
+        : result.isRepeatLead
+          ? `Returning customer (${result.priorEnquiryCount} past enquiry(ies)) — new enquiry started.`
+          : "New lead created."
     );
     reset({ branchId: values.branchId, name: "", phone: "", email: "", carModel: "", location: "" } as WalkInLeadFormValues);
   };

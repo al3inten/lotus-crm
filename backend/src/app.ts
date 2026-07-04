@@ -17,6 +17,7 @@ import templatesRoutes from "./modules/templates/templates.routes";
 import agentConfigsRoutes from "./modules/agent-configs/agent-configs.routes";
 import campaignsRoutes from "./modules/campaigns/campaigns.routes";
 import voiceRoutes from "./modules/voice/voice.routes";
+import rolesRoutes from "./modules/roles/roles.routes";
 
 export const app = express();
 
@@ -47,6 +48,7 @@ app.use("/api/templates", templatesRoutes);
 app.use("/api/agent-configs", agentConfigsRoutes);
 app.use("/api/campaigns", campaignsRoutes);
 app.use("/api/voice", voiceRoutes);
+app.use("/api/roles", rolesRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

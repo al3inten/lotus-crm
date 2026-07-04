@@ -32,6 +32,8 @@ export interface CreateEnquiryResult {
   enquiry: Enquiry;
   isRepeatLead: boolean;
   priorEnquiryCount: number;
+  /** True when the contact was attached to an existing active enquiry instead of creating a new one. */
+  attachedToExisting: boolean;
 }
 
 export async function fetchLeads(filters: LeadFilters): Promise<PaginatedEnquiries> {

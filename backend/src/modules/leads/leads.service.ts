@@ -6,6 +6,18 @@ import { getNextCrForBranch } from "../enquiries/routing.service";
 import { DIGITAL_SOURCES, TRANSACTION_OPTIONS } from "../../config/constants";
 import { CreateEnquiryInput, LeadListQuery } from "./leads.schema";
 
+// A lead with an enquiry in any of these states is mid-journey; new contacts from any
+// source attach to that journey instead of opening a parallel one.
+const TERMINAL_STATUSES: EnquiryStatus[] = ["DELIVERED", "LOST"];
+
+/**
+ * Phone number is the identity key. Every inbound contact records a LeadTouch.
+ * - No active enquiry (first contact, or all past journeys ended in DELIVERED/LOST):
+ *   a new Enquiry is created — a genuinely new buying journey.
+ * - Active enquiry exists: NO new enquiry. The touch attaches to the active journey,
+ *   so the same person walking in today and submitting a Meta form tomorrow stays ONE
+ *   enquiry with full contact history — never a duplicate row.
+ */
 export async function createOrAttachEnquiry(input: CreateEnquiryInput, createdById: string) {
   const phoneNormalized = normalizePhone(input.phone);
 
@@ -26,6 +38,40 @@ export async function createOrAttachEnquiry(input: CreateEnquiryInput, createdBy
 
     const priorEnquiryCount = await tx.enquiry.count({ where: { leadId: lead.id } });
     const isRepeatLead = priorEnquiryCount > 0;
+
+    const activeEnquiry = await tx.enquiry.findFirst({
+      where: { leadId: lead.id, status: { notIn: TERMINAL_STATUSES } },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (activeEnquiry) {
+      await tx.leadTouch.create({
+        data: {
+          leadId: lead.id,
+          enquiryId: activeEnquiry.id,
+          source: input.source,
+          note: `Repeat contact while enquiry active — interested in ${input.carModel}`,
+        },
+      });
+
+      await tx.enquiryStatusHistory.create({
+        data: {
+          enquiryId: activeEnquiry.id,
+          fromStatus: activeEnquiry.status,
+          toStatus: activeEnquiry.status,
+          changedById: createdById,
+          note: `New ${input.source.replaceAll("_", " ")} contact from this lead (car: ${input.carModel}) — attached to this enquiry`,
+        },
+      });
+
+      return {
+        lead,
+        enquiry: activeEnquiry,
+        isRepeatLead: true,
+        priorEnquiryCount,
+        attachedToExisting: true,
+      };
+    }
 
     let assignedCrId: string | null = null;
     if (input.assignedCrId) {
@@ -49,6 +95,10 @@ export async function createOrAttachEnquiry(input: CreateEnquiryInput, createdBy
       },
     });
 
+    await tx.leadTouch.create({
+      data: { leadId: lead.id, enquiryId: enquiry.id, source: input.source },
+    });
+
     await tx.enquiryStatusHistory.create({
       data: {
         enquiryId: enquiry.id,
@@ -58,7 +108,7 @@ export async function createOrAttachEnquiry(input: CreateEnquiryInput, createdBy
       },
     });
 
-    return { lead, enquiry, isRepeatLead, priorEnquiryCount };
+    return { lead, enquiry, isRepeatLead, priorEnquiryCount, attachedToExisting: false };
   }, TRANSACTION_OPTIONS);
 }
 
@@ -89,23 +139,44 @@ export async function listEnquiries(query: LeadListQuery, branchFilter?: { branc
     };
   }
 
-  const [items, total] = await Promise.all([
-    prisma.enquiry.findMany({
+  // One row per PERSON, paginated by lead (not by enquiry) so the same phone number
+  // never shows as duplicate rows. Prisma's `distinct` dedupes in memory AFTER skip/take,
+  // which breaks page boundaries — so paginate via groupBy (DB-level) first, then fetch
+  // each page-lead's latest enquiry.
+  const [pageGroups, allGroups] = await Promise.all([
+    prisma.enquiry.groupBy({
+      by: ["leadId"],
       where,
-      include: {
-        lead: true,
-        branch: true,
-        assignedCr: { select: { id: true, name: true } },
-        consultant: { select: { id: true, name: true } },
-      },
-      orderBy: { createdAt: "desc" },
+      _max: { createdAt: true },
+      orderBy: { _max: { createdAt: "desc" } },
       skip: (query.page - 1) * query.pageSize,
       take: query.pageSize,
     }),
-    prisma.enquiry.count({ where }),
+    prisma.enquiry.groupBy({ by: ["leadId"], where }),
   ]);
 
-  return { items, total, page: query.page, pageSize: query.pageSize };
+  const pageLeadIds = pageGroups.map((g) => g.leadId);
+  const enquiriesForPage = await prisma.enquiry.findMany({
+    where: { ...where, leadId: { in: pageLeadIds } },
+    include: {
+      lead: { include: { _count: { select: { enquiries: true, touches: true } } } },
+      branch: true,
+      assignedCr: { select: { id: true, name: true } },
+      consultant: { select: { id: true, name: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  // Keep only each lead's latest matching enquiry, in the groupBy's newest-first order.
+  const latestByLead = new Map<string, (typeof enquiriesForPage)[number]>();
+  for (const enquiry of enquiriesForPage) {
+    if (!latestByLead.has(enquiry.leadId)) latestByLead.set(enquiry.leadId, enquiry);
+  }
+  const items = pageLeadIds
+    .map((leadId) => latestByLead.get(leadId))
+    .filter((e): e is NonNullable<typeof e> => !!e);
+
+  return { items, total: allGroups.length, page: query.page, pageSize: query.pageSize };
 }
 
 export async function getLeadWithHistory(leadId: string) {
@@ -121,8 +192,28 @@ export async function getLeadWithHistory(leadId: string) {
         },
         orderBy: { createdAt: "desc" },
       },
+      touches: { orderBy: { createdAt: "desc" } },
+      conversations: {
+        select: {
+          id: true,
+          channel: true,
+          _count: { select: { messages: true } },
+        },
+      },
     },
   });
   if (!lead) throw new NotFoundError("Lead not found");
-  return lead;
+
+  // Contact summary: "walked in twice, 1 Meta form, 12 WhatsApp messages" at a glance.
+  const touchesBySource: Record<string, number> = {};
+  for (const touch of lead.touches) {
+    touchesBySource[touch.source] = (touchesBySource[touch.source] ?? 0) + 1;
+  }
+  const messagesByChannel: Record<string, number> = {};
+  for (const conversation of lead.conversations) {
+    messagesByChannel[conversation.channel] =
+      (messagesByChannel[conversation.channel] ?? 0) + conversation._count.messages;
+  }
+
+  return { ...lead, touchesBySource, messagesByChannel };
 }

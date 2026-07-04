@@ -9,11 +9,16 @@ import {
   createUserHandler,
   listBranchUsersHandler,
   updateUserHandler,
+  directoryHandler,
+  deleteUserHandler,
 } from "./users.controller";
 
 const router = Router();
 
 router.use(verifyJwt);
+
+// Branch-wise / department-wise staff overview for admins.
+router.get("/directory", requireRole("SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"), asyncHandler(directoryHandler));
 
 // Admin-level user creation (Branch Managers, other Admins).
 router.post(
@@ -29,6 +34,8 @@ router.patch(
   validateBody(updateUserSchema),
   asyncHandler(updateUserHandler)
 );
+
+router.delete("/:userId", requireRole("SUPER_ADMIN", "ADMIN"), asyncHandler(deleteUserHandler));
 
 // Departments UI: add Consultants / CR Team members under a branch.
 router.post(

@@ -24,3 +24,12 @@ export async function updateUserHandler(req: Request, res: Response) {
   const user = await usersService.updateUser(req.params.userId, req.body);
   res.json(user);
 }
+
+export async function directoryHandler(_req: Request, res: Response) {
+  res.json(await usersService.getDirectory());
+}
+
+export async function deleteUserHandler(req: Request, res: Response) {
+  await usersService.deleteUser(req.params.userId);
+  res.status(204).send();
+}

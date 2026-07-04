@@ -11,6 +11,7 @@ import {
   getBranchHandler,
   updateBranchHandler,
   toggleAutoAssignHandler,
+  deleteBranchHandler,
 } from "./branches.controller";
 
 const router = Router();
@@ -40,5 +41,7 @@ router.patch(
   validateBody(toggleAutoAssignSchema),
   asyncHandler(toggleAutoAssignHandler)
 );
+
+router.delete("/:branchId", requireRole("SUPER_ADMIN", "ADMIN"), asyncHandler(deleteBranchHandler));
 
 export default router;

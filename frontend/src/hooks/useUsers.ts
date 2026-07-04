@@ -27,8 +27,22 @@ export function useCreateBranchStaff(branchId: string | undefined) {
 export function useUpdateUser() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ userId, payload }: { userId: string; payload: Parameters<typeof usersApi.updateUser>[1] }) =>
+    mutationFn: ({ userId, payload }: { userId: string; payload: usersApi.UpdateUserPayload }) =>
       usersApi.updateUser(userId, payload),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["branch-staff"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["branch-staff"] });
+      queryClient.invalidateQueries({ queryKey: ["directory"] });
+    },
+  });
+}
+
+export function useDeleteUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) => usersApi.deleteUser(userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["branch-staff"] });
+      queryClient.invalidateQueries({ queryKey: ["directory"] });
+    },
   });
 }

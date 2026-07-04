@@ -1,5 +1,17 @@
 import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
+import {
+  ArrowLeft,
+  Phone,
+  Mail,
+  UserCircle2,
+  Car,
+  History,
+  MessagesSquare,
+  PhoneCall,
+  ArrowRightCircle,
+  UserCog,
+} from "lucide-react";
 import { useLeadHistory } from "../hooks/useLeads";
 import { useEnquiry, useReassign } from "../hooks/useEnquiry";
 import { useBranchStaff } from "../hooks/useUsers";
@@ -8,6 +20,7 @@ import { useAuth } from "../context/AuthContext";
 import { EnquiryHistoryList } from "../components/leads/EnquiryHistoryList";
 import { StatusTimeline } from "../components/enquiry/StatusTimeline";
 import { StatusChangeModal } from "../components/enquiry/StatusChangeModal";
+import { PipelineStepper } from "../components/enquiry/PipelineStepper";
 import { TestDriveForm } from "../components/enquiry/TestDriveForm";
 import { QuotationForm } from "../components/enquiry/QuotationForm";
 import { ExchangeForm } from "../components/enquiry/ExchangeForm";
@@ -15,9 +28,20 @@ import { FinanceForm } from "../components/enquiry/FinanceForm";
 import { DeliveryForm } from "../components/enquiry/DeliveryForm";
 import { StatusBadge } from "../components/common/StatusBadge";
 import { Button } from "../components/common/Button";
+import { Card, CardHeader } from "../components/common/Card";
 import { Select } from "../components/common/Input";
 
 const REASSIGN_ROLES = ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"];
+
+function initials(name: string) {
+  return name
+    .split(" ")
+    .map((part) => part[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
 
 export function LeadDetailPage() {
   const { leadId, enquiryId: enquiryIdParam } = useParams<{ leadId: string; enquiryId?: string }>();
@@ -34,122 +58,213 @@ export function LeadDetailPage() {
 
   if (leadLoading || !lead) return <p className="text-sm text-gray-500">Loading…</p>;
 
+  const totalContacts = Math.max(lead.touches.length, lead.enquiries.length);
+
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-      <div className="lg:col-span-1">
-        <h2 className="mb-1 text-lg font-semibold text-gray-900">{lead.name}</h2>
-        <p className="mb-3 text-sm text-gray-500">{lead.phoneRaw}</p>
-        {lead.enquiries.length > 1 && (
-          <p className="mb-3 w-fit rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">
-            Repeat Customer — {lead.enquiries.length} enquiries
-          </p>
-        )}
-        <h3 className="mb-2 text-xs font-semibold uppercase text-gray-400">Enquiry History</h3>
-        <EnquiryHistoryList enquiries={lead.enquiries} activeEnquiryId={activeEnquiryId ?? ""} />
+    <div className="flex flex-col gap-4">
+      <Link to="/leads" className="flex w-fit items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800">
+        <ArrowLeft size={15} />
+        Back to Leads
+      </Link>
 
-        {callLogs && callLogs.length > 0 && (
-          <>
-            <h3 className="mb-2 mt-4 text-xs font-semibold uppercase text-gray-400">Call History</h3>
-            <ul className="flex flex-col gap-2">
-              {callLogs.map((call) => (
-                <li key={call.id} className="rounded-md border border-gray-200 bg-white p-2 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-900">{call.status}</span>
-                    <span className="text-xs text-gray-400">{new Date(call.createdAt).toLocaleString()}</span>
-                  </div>
-                  {call.durationSeconds != null && <p className="text-xs text-gray-500">{call.durationSeconds}s</p>}
-                  {call.recordingUrl && <audio controls src={call.recordingUrl} className="mt-1 h-8 w-full" />}
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-      </div>
-
-      <div className="flex flex-col gap-6 lg:col-span-2">
-        {enquiryLoading || !enquiry ? (
-          <p className="text-sm text-gray-500">Loading enquiry…</p>
-        ) : (
-          <>
-            <div className="rounded-lg border border-gray-200 bg-white p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-base font-semibold text-gray-900">{enquiry.carModel}</h3>
-                  <p className="text-xs text-gray-500">
-                    {enquiry.branch.name} · {enquiry.source.replaceAll("_", " ")} ·{" "}
-                    {new Date(enquiry.createdAt).toLocaleDateString()}
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[340px_1fr]">
+        {/* ---------- Left rail: customer profile ---------- */}
+        <div className="flex flex-col gap-4">
+          <Card>
+            <div className="flex items-center gap-3">
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-blue-600 text-lg font-bold text-white">
+                {initials(lead.name)}
+              </span>
+              <div className="min-w-0">
+                <h1 className="truncate text-lg font-bold text-gray-900">{lead.name}</h1>
+                <p className="flex items-center gap-1.5 text-sm text-gray-500">
+                  <Phone size={13} /> {lead.phoneRaw}
+                </p>
+                {lead.email && (
+                  <p className="flex items-center gap-1.5 text-sm text-gray-500">
+                    <Mail size={13} /> {lead.email}
                   </p>
-                </div>
-                <StatusBadge status={enquiry.status} />
-              </div>
-
-              <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-gray-600">
-                <span>Assigned CR: {enquiry.assignedCr?.name ?? "Unassigned"}</span>
-                <span>Consultant: {enquiry.consultant?.name ?? "—"}</span>
-              </div>
-
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                <Button onClick={() => setShowStatusModal(true)}>Update Status</Button>
-
-                {user && REASSIGN_ROLES.includes(user.role) && (
-                  <div className="flex items-center gap-2">
-                    <Select value={reassignTo} onChange={(e) => setReassignTo(e.target.value)}>
-                      <option value="">Reassign to…</option>
-                      {crTeam?.map((cr) => (
-                        <option key={cr.id} value={cr.id}>
-                          {cr.name}
-                        </option>
-                      ))}
-                    </Select>
-                    <Button
-                      variant="secondary"
-                      disabled={!reassignTo}
-                      onClick={() => {
-                        reassign.mutate({ toUserId: reassignTo });
-                        setReassignTo("");
-                      }}
-                    >
-                      Reassign
-                    </Button>
-                  </div>
                 )}
               </div>
             </div>
+            {totalContacts > 1 && (
+              <p className="mt-3 w-fit rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800">
+                Repeat customer · {totalContacts} contacts
+              </p>
+            )}
+          </Card>
 
-            {enquiry.status === "APPOINTMENT_SCHEDULED" || enquiry.status === "TEST_DRIVE_DONE" || enquiry.testDriveFeedback ? (
-              <TestDriveForm enquiryId={enquiry.id} branchId={enquiry.branchId} existing={enquiry.testDriveFeedback} />
-            ) : null}
-
-            {["FEEDBACK_COLLECTED", "QUOTATION_SHARED", "NEGOTIATION"].includes(enquiry.status) || enquiry.quotation ? (
-              <QuotationForm enquiryId={enquiry.id} branchId={enquiry.branchId} existing={enquiry.quotation} />
-            ) : null}
-
-            {enquiry.status === "EXCHANGE_IN_PROGRESS" || enquiry.exchangeEvaluation ? (
-              <ExchangeForm enquiryId={enquiry.id} branchId={enquiry.branchId} existing={enquiry.exchangeEvaluation} />
-            ) : null}
-
-            {enquiry.status === "FINANCE_IN_PROGRESS" || enquiry.financeApplication ? (
-              <FinanceForm enquiryId={enquiry.id} existing={enquiry.financeApplication} />
-            ) : null}
-
-            {["DELIVERY_IN_PROGRESS", "DELIVERED"].includes(enquiry.status) || enquiry.deliveryDetails ? (
-              <DeliveryForm enquiryId={enquiry.id} existing={enquiry.deliveryDetails} />
-            ) : null}
-
-            <div>
-              <h3 className="mb-2 text-xs font-semibold uppercase text-gray-400">Status Timeline</h3>
-              <StatusTimeline history={enquiry.statusHistory ?? []} />
-            </div>
-
-            <StatusChangeModal
-              enquiryId={enquiry.id}
-              branchId={enquiry.branchId}
-              currentStatus={enquiry.status}
-              isOpen={showStatusModal}
-              onClose={() => setShowStatusModal(false)}
+          <Card>
+            <CardHeader
+              icon={<MessagesSquare size={18} />}
+              iconClassName="bg-fuchsia-50 text-fuchsia-600"
+              title="Contact History"
+              subtitle="Every way they've reached us"
             />
-          </>
-        )}
+            <div className="mb-3 flex flex-wrap gap-1.5">
+              {Object.entries(lead.touchesBySource).map(([source, count]) => (
+                <span key={source} className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
+                  {source.replaceAll("_", " ")} ×{count}
+                </span>
+              ))}
+              {Object.entries(lead.messagesByChannel).map(([channel, count]) => (
+                <span key={channel} className="rounded-full bg-fuchsia-50 px-2.5 py-1 text-xs font-medium text-fuchsia-700">
+                  {channel} msgs: {count}
+                </span>
+              ))}
+            </div>
+            <ul className="flex flex-col gap-1.5">
+              {lead.touches.slice(0, 6).map((touch) => (
+                <li key={touch.id} className="rounded-md bg-gray-50 px-3 py-2 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-gray-800">{touch.source.replaceAll("_", " ")}</span>
+                    <span className="text-gray-400">{new Date(touch.createdAt).toLocaleDateString()}</span>
+                  </div>
+                  {touch.note && <p className="mt-0.5 text-gray-500">{touch.note}</p>}
+                </li>
+              ))}
+            </ul>
+          </Card>
+
+          <Card>
+            <CardHeader
+              icon={<History size={18} />}
+              iconClassName="bg-sky-50 text-sky-600"
+              title="Enquiries"
+              subtitle={`${lead.enquiries.length} buying journey(s)`}
+            />
+            <EnquiryHistoryList enquiries={lead.enquiries} activeEnquiryId={activeEnquiryId ?? ""} />
+          </Card>
+
+          {callLogs && callLogs.length > 0 && (
+            <Card>
+              <CardHeader
+                icon={<PhoneCall size={18} />}
+                iconClassName="bg-emerald-50 text-emerald-600"
+                title="AI Call History"
+              />
+              <ul className="flex flex-col gap-2">
+                {callLogs.map((call) => (
+                  <li key={call.id} className="rounded-md bg-gray-50 p-2.5 text-sm">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-medium text-gray-800">{call.status.replaceAll("_", " ")}</span>
+                      <span className="text-gray-400">{new Date(call.createdAt).toLocaleString()}</span>
+                    </div>
+                    {call.recordingUrl && <audio controls src={call.recordingUrl} className="mt-1.5 h-8 w-full" />}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+        </div>
+
+        {/* ---------- Right: enquiry pipeline ---------- */}
+        <div className="flex flex-col gap-4">
+          {enquiryLoading || !enquiry ? (
+            <p className="text-sm text-gray-500">Loading enquiry…</p>
+          ) : (
+            <>
+              <Card>
+                <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                      <Car size={22} />
+                    </span>
+                    <div>
+                      <h2 className="text-lg font-bold text-gray-900">{enquiry.carModel}</h2>
+                      <p className="text-xs text-gray-500">
+                        {enquiry.branch.name} · {enquiry.source.replaceAll("_", " ")} ·{" "}
+                        {new Date(enquiry.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <StatusBadge status={enquiry.status} />
+                </div>
+
+                <PipelineStepper status={enquiry.status} />
+
+                <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-gray-100 pt-4 text-sm">
+                  <span className="flex items-center gap-1.5 text-gray-600">
+                    <UserCircle2 size={15} className="text-gray-400" />
+                    CR: <strong className="text-gray-900">{enquiry.assignedCr?.name ?? "Unassigned"}</strong>
+                  </span>
+                  <span className="flex items-center gap-1.5 text-gray-600">
+                    <UserCog size={15} className="text-gray-400" />
+                    Consultant: <strong className="text-gray-900">{enquiry.consultant?.name ?? "—"}</strong>
+                  </span>
+                </div>
+
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <Button icon={<ArrowRightCircle size={15} />} onClick={() => setShowStatusModal(true)}>
+                    Move to Next Stage
+                  </Button>
+                  {user && REASSIGN_ROLES.includes(user.role) && (
+                    <div className="flex items-center gap-2">
+                      <Select value={reassignTo} onChange={(e) => setReassignTo(e.target.value)}>
+                        <option value="">Reassign CR to…</option>
+                        {crTeam?.map((cr) => (
+                          <option key={cr.id} value={cr.id}>
+                            {cr.name}
+                          </option>
+                        ))}
+                      </Select>
+                      <Button
+                        variant="secondary"
+                        disabled={!reassignTo}
+                        onClick={() => {
+                          reassign.mutate({ toUserId: reassignTo });
+                          setReassignTo("");
+                        }}
+                      >
+                        Reassign
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </Card>
+
+              {enquiry.status === "APPOINTMENT_SCHEDULED" ||
+              enquiry.status === "TEST_DRIVE_DONE" ||
+              (enquiry.testDriveFeedbacks?.length ?? 0) > 0 ? (
+                <TestDriveForm enquiryId={enquiry.id} branchId={enquiry.branchId} existing={enquiry.testDriveFeedbacks} />
+              ) : null}
+
+              {["FEEDBACK_COLLECTED", "QUOTATION_SHARED", "NEGOTIATION"].includes(enquiry.status) || enquiry.quotation ? (
+                <QuotationForm enquiryId={enquiry.id} branchId={enquiry.branchId} existing={enquiry.quotation} />
+              ) : null}
+
+              {enquiry.status === "EXCHANGE_IN_PROGRESS" || enquiry.exchangeEvaluation ? (
+                <ExchangeForm enquiryId={enquiry.id} branchId={enquiry.branchId} existing={enquiry.exchangeEvaluation} />
+              ) : null}
+
+              {enquiry.status === "FINANCE_IN_PROGRESS" || enquiry.financeApplication ? (
+                <FinanceForm enquiryId={enquiry.id} existing={enquiry.financeApplication} />
+              ) : null}
+
+              {["DELIVERY_IN_PROGRESS", "DELIVERED"].includes(enquiry.status) || enquiry.deliveryDetails ? (
+                <DeliveryForm enquiryId={enquiry.id} existing={enquiry.deliveryDetails} />
+              ) : null}
+
+              <Card>
+                <CardHeader
+                  icon={<History size={18} />}
+                  iconClassName="bg-gray-100 text-gray-600"
+                  title="Activity Timeline"
+                  subtitle="Every status change and contact, newest last"
+                />
+                <StatusTimeline history={enquiry.statusHistory ?? []} />
+              </Card>
+
+              <StatusChangeModal
+                enquiryId={enquiry.id}
+                branchId={enquiry.branchId}
+                currentStatus={enquiry.status}
+                isOpen={showStatusModal}
+                onClose={() => setShowStatusModal(false)}
+              />
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -25,8 +25,8 @@ export async function reassignHandler(req: Request, res: Response) {
 }
 
 export async function testDriveHandler(req: Request, res: Response) {
-  const result = await testDriveService.upsertTestDrive(req.params.enquiryId, req.body);
-  res.json(result);
+  const result = await testDriveService.addTestDrive(req.params.enquiryId, req.body);
+  res.status(201).json(result);
 }
 
 export async function quotationHandler(req: Request, res: Response) {

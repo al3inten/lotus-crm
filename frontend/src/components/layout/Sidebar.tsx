@@ -15,43 +15,53 @@ import {
   Plug,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
-import type { Role } from "../../types";
+import type { Role, ModuleKey } from "../../types";
 
 interface NavItem {
   to: string;
   label: string;
   icon: ReactNode;
+  module: ModuleKey;
   roles?: Role[];
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { to: "/dashboard", label: "Dashboard", icon: <Gauge size={18} /> },
-  { to: "/leads", label: "Leads", icon: <Car size={18} /> },
+  { to: "/dashboard", label: "Dashboard", icon: <Gauge size={18} />, module: "dashboard" },
+  { to: "/leads", label: "Leads", icon: <Car size={18} />, module: "leads" },
   {
     to: "/social-inbox",
     label: "Social Inbox",
     icon: <Inbox size={18} />,
+    module: "social-inbox",
     roles: ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER", "CR_TEAM"],
   },
-  { to: "/departments", label: "Departments", icon: <Building2 size={18} />, roles: ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"] },
-  { to: "/reports", label: "Reports", icon: <BarChart3 size={18} />, roles: ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"] },
-  { to: "/ai-agents", label: "AI Agents", icon: <Bot size={18} />, roles: ["SUPER_ADMIN", "ADMIN"] },
-  { to: "/media-library", label: "Media Library", icon: <Clapperboard size={18} />, roles: ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"] },
-  { to: "/templates", label: "Templates", icon: <FileText size={18} />, roles: ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"] },
+  { to: "/departments", label: "Departments", icon: <Building2 size={18} />, module: "departments", roles: ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"] },
+  { to: "/reports", label: "Reports", icon: <BarChart3 size={18} />, module: "reports", roles: ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"] },
+  { to: "/ai-agents", label: "AI Agents", icon: <Bot size={18} />, module: "ai-agents", roles: ["SUPER_ADMIN", "ADMIN"] },
+  { to: "/media-library", label: "Media Library", icon: <Clapperboard size={18} />, module: "media-library", roles: ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"] },
+  { to: "/templates", label: "Templates", icon: <FileText size={18} />, module: "templates", roles: ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"] },
   {
     to: "/call-campaigns",
     label: "Call Campaigns",
     icon: <PhoneCall size={18} />,
+    module: "call-campaigns",
     roles: ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER", "CR_TEAM"],
   },
-  { to: "/bulk-messages", label: "Bulk Messages", icon: <Megaphone size={18} />, roles: ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"] },
-  { to: "/integrations", label: "Integrations", icon: <Plug size={18} />, roles: ["SUPER_ADMIN", "ADMIN"] },
+  { to: "/bulk-messages", label: "Bulk Messages", icon: <Megaphone size={18} />, module: "bulk-messages", roles: ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"] },
+  { to: "/integrations", label: "Integrations", icon: <Plug size={18} />, module: "integrations", roles: ["SUPER_ADMIN", "ADMIN"] },
 ];
 
 export function Sidebar() {
   const { user } = useAuth();
 
-  const items = NAV_ITEMS.filter((item) => !item.roles || (user && item.roles.includes(user.role)));
+  // A custom role's permission toggles decide what appears; users without a custom role
+  // fall back to base-role defaults. SUPER_ADMIN always sees everything.
+  const items = NAV_ITEMS.filter((item) => {
+    if (!user) return false;
+    if (user.role === "SUPER_ADMIN") return true;
+    if (user.permissions) return user.permissions.includes(item.module);
+    return !item.roles || item.roles.includes(user.role);
+  });
 
   return (
     <aside className="flex h-full w-60 flex-col border-r border-gray-200 bg-white">

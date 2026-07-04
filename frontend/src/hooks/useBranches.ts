@@ -37,3 +37,14 @@ export function useToggleAutoAssign() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: branchKeys.all }),
   });
 }
+
+export function useDeleteBranch() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (branchId: string) => branchesApi.deleteBranch(branchId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: branchKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["directory"] });
+    },
+  });
+}

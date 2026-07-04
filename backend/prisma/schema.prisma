@@ -143,10 +143,31 @@ model Branch {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  users     User[]
-  enquiries Enquiry[]
+  users           User[]
+  enquiries       Enquiry[]
+  roleDefinitions RoleDefinition[]
 
   @@map("branches")
+}
+
+// A branch-scoped custom role ("Assistant Manager - OMR") built on top of a base Role.
+// baseRole drives backend security (RBAC middleware); permissions drives what modules
+// appear in that person's sidebar/dashboard — toggled per-role by an admin.
+model RoleDefinition {
+  id          String   @id @default(cuid())
+  name        String
+  branchId    String? // null = available to every branch
+  branch      Branch?  @relation(fields: [branchId], references: [id])
+  baseRole    Role
+  permissions Json // string[] of module keys, e.g. ["dashboard","leads","reports"]
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users User[]
+
+  @@unique([branchId, name])
+  @@map("role_definitions")
 }
 
 model User {
@@ -156,6 +177,8 @@ model User {
   phone                 String?
   passwordHash          String
   role                  Role
+  roleDefinitionId      String?
+  roleDefinition        RoleDefinition? @relation(fields: [roleDefinitionId], references: [id])
   branchId              String?
   branch                Branch?  @relation(fields: [branchId], references: [id])
   isActive              Boolean  @default(true)
@@ -197,9 +220,26 @@ model Lead {
 
   enquiries     Enquiry[]
   conversations Conversation[]
+  touches       LeadTouch[]
 
   @@index([phoneNormalized])
   @@map("leads")
+}
+
+// One row per inbound contact from this person — a walk-in visit, a Meta form submission,
+// a WhatsApp/Instagram first contact, a sheet import row. This is what lets the CR team see
+// "enquired 3 times: 2 walk-in, 1 Meta" even when those contacts all attach to one Enquiry.
+model LeadTouch {
+  id        String     @id @default(cuid())
+  leadId    String
+  lead      Lead       @relation(fields: [leadId], references: [id])
+  enquiryId String?
+  source    LeadSource
+  note      String?
+  createdAt DateTime   @default(now())
+
+  @@index([leadId, createdAt])
+  @@map("lead_touches")
 }
 
 model Enquiry {
@@ -230,7 +270,7 @@ model Enquiry {
 
   statusHistory      EnquiryStatusHistory[]
   reassignmentLogs   ReassignmentLog[]
-  testDriveFeedback  TestDriveFeedback?
+  testDriveFeedbacks TestDriveFeedback[]
   quotation          Quotation?
   exchangeEvaluation ExchangeEvaluation?
   financeApplication FinanceApplication?
@@ -276,9 +316,11 @@ model ReassignmentLog {
 
 // ---------- PIPELINE SUB-TABLES ----------
 
+// 1:many with Enquiry — a client can take several test drives (different variants,
+// family members, a second look) before deciding.
 model TestDriveFeedback {
   id            String    @id @default(cuid())
-  enquiryId     String    @unique
+  enquiryId     String
   enquiry       Enquiry   @relation(fields: [enquiryId], references: [id])
   conductedById String
   conductedBy   User      @relation("ConductedBy", fields: [conductedById], references: [id])
@@ -288,6 +330,7 @@ model TestDriveFeedback {
   comments      String?
   createdAt     DateTime  @default(now())
 
+  @@index([enquiryId, createdAt])
   @@map("test_drive_feedback")
 }
 

@@ -11,8 +11,25 @@ export async function hashPassword(plain: string) {
   return bcrypt.hash(plain, SALT_ROUNDS);
 }
 
+function toSafeUser(user: {
+  passwordHash: string;
+  roleDefinition?: { name: string; permissions: unknown; isActive: boolean } | null;
+  [key: string]: unknown;
+}) {
+  const { passwordHash: _passwordHash, roleDefinition, ...rest } = user;
+  return {
+    ...rest,
+    roleName: roleDefinition?.isActive ? roleDefinition.name : null,
+    // null = no custom role, frontend falls back to base-role defaults
+    permissions: roleDefinition?.isActive ? (roleDefinition.permissions as string[]) : null,
+  };
+}
+
 export async function login(input: LoginInput) {
-  const user = await prisma.user.findUnique({ where: { email: input.email } });
+  const user = await prisma.user.findUnique({
+    where: { email: input.email },
+    include: { roleDefinition: { select: { name: true, permissions: true, isActive: true } } },
+  });
 
   if (!user || !user.isActive) {
     throw new UnauthorizedError("Invalid email or password");
@@ -29,16 +46,17 @@ export async function login(input: LoginInput) {
     { expiresIn: env.JWT_EXPIRES_IN } as jwt.SignOptions
   );
 
-  const { passwordHash: _passwordHash, ...safeUser } = user;
-  return { token, user: safeUser };
+  return { token, user: toSafeUser(user) };
 }
 
 export async function getCurrentUser(userId: string) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    include: { branch: true },
+    include: {
+      branch: true,
+      roleDefinition: { select: { name: true, permissions: true, isActive: true } },
+    },
   });
   if (!user) throw new UnauthorizedError("User no longer exists");
-  const { passwordHash: _passwordHash, ...safeUser } = user;
-  return safeUser;
+  return toSafeUser(user);
 }
