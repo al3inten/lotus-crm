@@ -21,7 +21,10 @@ import rolesRoutes from "./modules/roles/roles.routes";
 
 export const app = express();
 
-app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
+// CORS_ORIGIN accepts a comma-separated list so production + Vercel preview
+// deployments can both call the API, e.g. "https://app.vercel.app,http://localhost:5173".
+const allowedOrigins = env.CORS_ORIGIN.split(",").map((origin) => origin.trim());
+app.use(cors({ origin: allowedOrigins, credentials: true }));
 // Captures the exact raw bytes of the request body so webhook signature verification
 // (HMAC over the raw payload) works — re-serializing req.body would break the signature.
 app.use(

@@ -1,0 +1,50 @@
+# Render Blueprint — deploy from the Render dashboard via "New > Blueprint" pointing at this repo,
+# or configure a Web Service manually with the same values.
+services:
+  - type: web
+    name: lotus-crm-backend
+    runtime: node
+    # Same region as the lotus_crm_db Postgres instance so the INTERNAL database URL works
+    # (faster + free bandwidth). Change both together if you ever move regions.
+    region: oregon
+    rootDir: backend
+    plan: starter
+    buildCommand: npm install --include=dev && npx prisma generate && npm run build
+    startCommand: npx prisma migrate deploy && node dist/server.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_EXPIRES_IN
+        value: 8h
+      # Set these in the Render dashboard (sync: false means "prompt me, don't store in repo"):
+      - key: DATABASE_URL
+        sync: false # use the INTERNAL url: postgresql://...@dpg-xxxx-a/lotus_crm_db
+      - key: JWT_SECRET
+        sync: false # generate: openssl rand -hex 32
+      - key: MASTER_ENCRYPTION_KEY
+        sync: false # MUST match the key used when integration credentials were saved
+      - key: CORS_ORIGIN
+        sync: false # your Vercel URL(s), comma-separated
+
+  # OPTIONAL — enable when LiveKit/TeleCMI/Gemini credentials are configured and you're
+  # ready for AI voice calls. Uses the same env vars as the web service.
+  # - type: worker
+  #   name: lotus-crm-voice-worker
+  #   runtime: node
+  #   region: oregon
+  #   rootDir: backend
+  #   plan: starter
+  #   buildCommand: npm install --include=dev && npx prisma generate && npm run build
+  #   startCommand: node dist/voice-worker/index.js
+  #   envVars:
+  #     - key: NODE_ENV
+  #       value: production
+  #     - key: DATABASE_URL
+  #       sync: false
+  #     - key: JWT_SECRET
+  #       sync: false
+  #     - key: MASTER_ENCRYPTION_KEY
+  #       sync: false
+  #     - key: CORS_ORIGIN
+  #       value: unused-by-worker
