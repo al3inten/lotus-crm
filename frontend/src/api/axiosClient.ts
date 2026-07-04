@@ -2,8 +2,11 @@ import axios from "axios";
 
 export const TOKEN_STORAGE_KEY = "lotus_crm_token";
 
+// Trailing slashes in the env var would produce double-slash URLs — normalize them away.
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000/api").replace(/\/+$/, "");
+
 export const axiosClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000/api",
+  baseURL: API_BASE_URL,
 });
 
 axiosClient.interceptors.request.use((config) => {
