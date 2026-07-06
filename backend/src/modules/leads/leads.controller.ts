@@ -39,3 +39,10 @@ export async function importLeadsHandler(req: Request, res: Response) {
   const summary = await importService.importRows(rows, branchId, "GOOGLE_SHEETS", req.user.id);
   res.json(summary);
 }
+
+export async function downloadLeadImportTemplateHandler(req: Request, res: Response) {
+  const buffer = await importService.generateLeadImportTemplate();
+  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+  res.setHeader("Content-Disposition", 'attachment; filename="lead-import-template.xlsx"');
+  res.send(buffer);
+}

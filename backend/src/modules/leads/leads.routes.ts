@@ -12,6 +12,7 @@ import {
   listEnquiriesHandler,
   getLeadHandler,
   importLeadsHandler,
+  downloadLeadImportTemplateHandler,
 } from "./leads.controller";
 
 const upload = multer({
@@ -30,6 +31,11 @@ router.post(
   requireRole("SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER", "CR_TEAM"),
   upload.single("file"),
   asyncHandler(importLeadsHandler)
+);
+router.get(
+  "/import/template",
+  requireRole("SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER", "CR_TEAM"),
+  asyncHandler(downloadLeadImportTemplateHandler)
 );
 router.get("/", validateQuery(leadListQuerySchema), asyncHandler(listEnquiriesHandler));
 router.get("/:leadId", asyncHandler(getLeadHandler));

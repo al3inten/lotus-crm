@@ -109,6 +109,7 @@ export interface User {
   permissions?: ModuleKey[] | null;
   roleDefinition?: { id: string; name: string } | null;
   branchId: string | null;
+  branch?: { id: string; name: string } | null;
   isActive: boolean;
   isAvailableForRouting: boolean;
 }

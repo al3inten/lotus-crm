@@ -73,3 +73,15 @@ export async function importLeadsFile(file: File, branchId: string): Promise<Imp
   });
   return data;
 }
+
+export async function downloadLeadImportTemplate(): Promise<void> {
+  const { data } = await axiosClient.get("/leads/import/template", { responseType: "blob" });
+  const url = window.URL.createObjectURL(data);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "lead-import-template.xlsx";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+}

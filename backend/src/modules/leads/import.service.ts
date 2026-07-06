@@ -105,6 +105,34 @@ export async function parseLeadFile(buffer: Buffer, filename: string): Promise<I
   throw new ValidationError("Unsupported file type — upload a .csv or .xlsx file");
 }
 
+const TEMPLATE_COLUMNS: { header: string; key: keyof ImportedRow; width: number }[] = [
+  { header: "Name", key: "name", width: 22 },
+  { header: "Phone", key: "phone", width: 16 },
+  { header: "Email", key: "email", width: 26 },
+  { header: "Car Model", key: "carModel", width: 18 },
+  { header: "Enquiry Type", key: "enquiryType", width: 16 },
+  { header: "Location", key: "location", width: 18 },
+];
+
+const TEMPLATE_EXAMPLE_ROW: Record<keyof ImportedRow, string> = {
+  name: "John Doe",
+  phone: "9876543210",
+  email: "john@example.com",
+  carModel: "Creta",
+  enquiryType: "NEW_CAR",
+  location: "Kochi",
+};
+
+export async function generateLeadImportTemplate(): Promise<Buffer> {
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet("Leads");
+  sheet.columns = TEMPLATE_COLUMNS.map((c) => ({ header: c.header, key: c.key, width: c.width }));
+  sheet.getRow(1).font = { bold: true };
+  sheet.addRow(TEMPLATE_EXAMPLE_ROW);
+  const buffer = await workbook.xlsx.writeBuffer();
+  return Buffer.from(buffer);
+}
+
 export async function importRows(
   rows: ImportedRow[],
   branchId: string,

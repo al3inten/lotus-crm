@@ -4,6 +4,7 @@ import { Select } from "../common/Input";
 import { Button } from "../common/Button";
 import { useBranches } from "../../hooks/useBranches";
 import { useImportLeads } from "../../hooks/useLeads";
+import { downloadLeadImportTemplate } from "../../api/leads.api";
 import type { ImportSummary } from "../../api/leads.api";
 
 export function ImportLeadsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
@@ -13,6 +14,7 @@ export function ImportLeadsModal({ isOpen, onClose }: { isOpen: boolean; onClose
   const [file, setFile] = useState<File | null>(null);
   const [summary, setSummary] = useState<ImportSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isDownloadingTemplate, setIsDownloadingTemplate] = useState(false);
 
   const handleImport = async () => {
     if (!file || !branchId) return;
@@ -22,6 +24,17 @@ export function ImportLeadsModal({ isOpen, onClose }: { isOpen: boolean; onClose
       setSummary(result);
     } catch {
       setError("Import failed — check the file format and try again.");
+    }
+  };
+
+  const handleDownloadTemplate = async () => {
+    setIsDownloadingTemplate(true);
+    try {
+      await downloadLeadImportTemplate();
+    } catch {
+      setError("Couldn't download the template — please try again.");
+    } finally {
+      setIsDownloadingTemplate(false);
     }
   };
 
@@ -40,6 +53,16 @@ export function ImportLeadsModal({ isOpen, onClose }: { isOpen: boolean; onClose
           names are matched flexibly). Existing phone numbers are merged into their existing lead history, not
           duplicated.
         </p>
+        <div>
+          <Button
+            type="button"
+            variant="secondary"
+            isLoading={isDownloadingTemplate}
+            onClick={handleDownloadTemplate}
+          >
+            Download Template
+          </Button>
+        </div>
         <Select label="Import into Branch" value={branchId} onChange={(e) => setBranchId(e.target.value)}>
           <option value="">Select branch</option>
           {branches?.map((b) => (

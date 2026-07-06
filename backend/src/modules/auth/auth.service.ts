@@ -28,7 +28,7 @@ function toSafeUser(user: {
 export async function login(input: LoginInput) {
   const user = await prisma.user.findUnique({
     where: { email: input.email },
-    include: { roleDefinition: { select: { name: true, permissions: true, isActive: true } } },
+    include: { branch: true, roleDefinition: { select: { name: true, permissions: true, isActive: true } } },
   });
 
   if (!user || !user.isActive) {
