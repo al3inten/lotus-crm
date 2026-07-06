@@ -27,7 +27,24 @@ export async function syncFromSheet(
   const spreadsheetId = extractSpreadsheetId(sheetUrlOrId);
   const range = sheetName ? `${sheetName}` : "A1:Z10000";
 
-  const { data } = await sheets.spreadsheets.values.get({ spreadsheetId, range });
+  let data;
+  try {
+    const response = await sheets.spreadsheets.values.get({ spreadsheetId, range });
+    data = response.data;
+  } catch (err: any) {
+    if (err.code === 403 || err.message?.toLowerCase().includes("permission")) {
+      throw new ValidationError(
+        "The service account does not have permission to view this sheet. Please share the Google Sheet with your service account email."
+      );
+    }
+    if (err.code === 404 || err.message?.toLowerCase().includes("not found") || err.message?.toLowerCase().includes("unable to parse range")) {
+      throw new ValidationError(
+        "Could not find the sheet or tab. Please check the URL and Tab name."
+      );
+    }
+    throw new ValidationError(`Failed to fetch from Google Sheets: ${err.message || "Unknown error"}`);
+  }
+
   const values = data.values;
   if (!values || values.length < 2) {
     throw new ValidationError("Sheet has no data rows (or the range/tab name is wrong)");

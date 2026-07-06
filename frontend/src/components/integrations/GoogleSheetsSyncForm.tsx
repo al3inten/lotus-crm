@@ -57,6 +57,7 @@ export function GoogleSheetsSyncForm() {
   const { data: branches } = useBranches();
   const syncSheet = useSyncGoogleSheet();
   const [result, setResult] = useState<SyncResult | null>(null);
+  const [errorModalMsg, setErrorModalMsg] = useState<string | null>(null);
 
   const {
     register,
@@ -65,9 +66,18 @@ export function GoogleSheetsSyncForm() {
   } = useForm<GoogleSheetSyncFormValues>({ resolver: zodResolver(googleSheetSyncFormSchema) });
 
   const onSubmit = async (values: GoogleSheetSyncFormValues) => {
-    const summary = await syncSheet.mutateAsync(values);
-    const branchName = branches?.find((b) => b.id === values.branchId)?.name ?? "Selected branch";
-    setResult({ summary, branchName });
+    try {
+      const summary = await syncSheet.mutateAsync(values);
+      const branchName = branches?.find((b) => b.id === values.branchId)?.name ?? "Selected branch";
+      setResult({ summary, branchName });
+    } catch (err: any) {
+      const msg =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        err.message ||
+        "An unknown error occurred while syncing from Google Sheets.";
+      setErrorModalMsg(msg);
+    }
   };
 
   const allSucceeded = result ? result.summary.failed === 0 : false;
@@ -154,6 +164,18 @@ export function GoogleSheetsSyncForm() {
             </div>
           </div>
         )}
+      </Modal>
+
+      <Modal isOpen={errorModalMsg !== null} onClose={() => setErrorModalMsg(null)} title="Sync Failed">
+        <div className="flex flex-col gap-4">
+          <div className="flex items-start gap-3 rounded-lg bg-red-50 p-4 text-sm text-red-800">
+            <AlertTriangle size={20} className="mt-0.5 shrink-0 text-red-600" />
+            <p>{errorModalMsg}</p>
+          </div>
+          <div className="mt-2 flex justify-end">
+            <Button onClick={() => setErrorModalMsg(null)}>Close</Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );
