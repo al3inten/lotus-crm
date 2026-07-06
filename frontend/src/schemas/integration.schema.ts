@@ -77,3 +77,9 @@ export const cloudinaryCredentialsFormSchema = z.object({
   apiSecret: z.string().min(1, "API secret is required"),
 });
 export type CloudinaryCredentialsFormValues = z.infer<typeof cloudinaryCredentialsFormSchema>;
+
+export const callmaticCredentialsFormSchema = z.object({
+  apiKey: z.string().min(1, "API key is required"),
+  campaignId: z.string().min(1, "Campaign ID is required"),
+});
+export type CallmaticCredentialsFormValues = z.infer<typeof callmaticCredentialsFormSchema>;

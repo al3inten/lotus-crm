@@ -50,7 +50,10 @@ export async function changeStatus(enquiryId: string, input: ChangeStatusInput, 
         lossReason: input.toStatus === "LOST" ? input.lossReason : enquiry.lossReason,
         lossNote: input.toStatus === "LOST" ? input.note : enquiry.lossNote,
         followUpDueAt: input.toStatus === "FOLLOW_UP" ? (input.followUpDueAt ? new Date(input.followUpDueAt) : null) : enquiry.followUpDueAt,
-        consultantId: input.consultantId ?? enquiry.consultantId,
+        // "" means the Assign Consultant dropdown was left on its placeholder — not a real
+        // value, so it must not overwrite an already-assigned consultant (|| falls back on
+        // "" too, unlike ??, which would otherwise null out the FK and violate the constraint).
+        consultantId: input.consultantId || enquiry.consultantId,
       },
     });
 

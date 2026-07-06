@@ -52,6 +52,11 @@ export const cloudinaryCredentialsSchema = z.object({
   apiSecret: z.string().min(1),
 });
 
+export const callmaticCredentialsSchema = z.object({
+  apiKey: z.string().min(1, "Callmatic API Key is required"),
+  campaignId: z.string().min(1, "Callmatic Campaign ID is required"),
+});
+
 export const CREDENTIAL_SCHEMAS = {
   META_ADS: metaAdsCredentialsSchema,
   WHATSAPP: whatsappCredentialsSchema,
@@ -62,6 +67,7 @@ export const CREDENTIAL_SCHEMAS = {
   GEMINI: geminiCredentialsSchema,
   OPENAI: openaiCredentialsSchema,
   CLOUDINARY: cloudinaryCredentialsSchema,
+  CALLMATIC: callmaticCredentialsSchema,
 } as const;
 
 export type IntegrationKey = keyof typeof CREDENTIAL_SCHEMAS;
@@ -75,6 +81,7 @@ export type TelecmiCredentials = z.infer<typeof telecmiCredentialsSchema>;
 export type GeminiCredentials = z.infer<typeof geminiCredentialsSchema>;
 export type OpenAiCredentials = z.infer<typeof openaiCredentialsSchema>;
 export type CloudinaryCredentials = z.infer<typeof cloudinaryCredentialsSchema>;
+export type CallmaticCredentials = z.infer<typeof callmaticCredentialsSchema>;
 
 export const saveIntegrationSchema = z.object({
   credentials: z.record(z.string(), z.unknown()),

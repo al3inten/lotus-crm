@@ -83,6 +83,7 @@ enum IntegrationKey {
   GEMINI
   OPENAI
   CLOUDINARY
+  CALLMATIC
 }
 
 enum IntegrationStatus {
@@ -526,6 +527,7 @@ model CallLog {
   durationSeconds Int?
   recordingUrl    String?
   summary         String?      @db.Text
+  externalCallId  String?      @unique
   createdAt       DateTime     @default(now())
 
   outboundTask OutboundCallTask?

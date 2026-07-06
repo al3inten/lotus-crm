@@ -1,6 +1,9 @@
 import { prisma } from "../../lib/prisma";
 import { NotFoundError, ValidationError } from "../../lib/errors";
 import { CreateCallCampaignInput } from "./voice.schema";
+import { normalizePhone } from "../leads/phone.util";
+import * as callmaticService from "../integrations/callmatic.service";
+import { logger } from "../../lib/logger";
 
 export async function listCallCampaigns() {
   return prisma.outboundCallCampaign.findMany({
@@ -43,9 +46,51 @@ export async function createCallCampaign(input: CreateCallCampaignInput, created
 }
 
 export async function startCampaign(campaignId: string) {
-  const campaign = await prisma.outboundCallCampaign.findUnique({ where: { id: campaignId } });
+  const campaign = await prisma.outboundCallCampaign.findUnique({ 
+    where: { id: campaignId },
+    include: { tasks: { include: { enquiry: { include: { lead: true } } } } }
+  });
   if (!campaign) throw new NotFoundError("Campaign not found");
-  return prisma.outboundCallCampaign.update({ where: { id: campaignId }, data: { status: "RUNNING" } });
+  
+  const updatedCampaign = await prisma.outboundCallCampaign.update({ where: { id: campaignId }, data: { status: "RUNNING" } });
+
+  try {
+    const callTasks = campaign.tasks.map(t => ({
+      phoneNumber: normalizePhone(t.enquiry.lead.phoneRaw),
+      variables: {
+        name: t.enquiry.lead.name,
+        callee_name: t.enquiry.lead.name,
+        taskId: t.id, // For mapping webhook responses later
+      }
+    }));
+    
+    // Chunk into 200 calls per request as per Callmatic API limits
+    const chunkSize = 200;
+    for (let i = 0; i < callTasks.length; i += chunkSize) {
+      const chunk = callTasks.slice(i, i + chunkSize);
+      const result = await callmaticService.triggerBatchCalls(chunk);
+      
+      if (result.success && result.data?.calls) {
+        // Map external callId to tasks
+        for (const call of result.data.calls) {
+          const task = chunk.find(t => t.phoneNumber === call.phoneNumber);
+          if (task) {
+            await prisma.outboundCallTask.update({
+              where: { id: task.variables.taskId },
+              data: { status: "IN_PROGRESS" }
+            });
+            logger.info("Callmatic call triggered", { taskId: task.variables.taskId, callId: call.callId });
+          }
+        }
+      }
+    }
+  } catch (err) {
+    logger.error("Failed to trigger Callmatic campaign. Falling back to local worker.", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+
+  return updatedCampaign;
 }
 
 export async function pauseCampaign(campaignId: string) {

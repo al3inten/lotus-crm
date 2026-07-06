@@ -54,12 +54,16 @@ export function Topbar() {
 
           {/* Profile */}
           <div className="flex items-center gap-3">
-            <button 
+            <button
               className="flex items-center gap-2 rounded-full p-1 pr-2 transition-colors hover:bg-gray-50"
             >
               <Avatar name={user?.name || "User"} size="sm" />
-              <span className="hidden text-sm font-medium text-gray-700 sm:inline-block">
-                {user?.name}
+              <span className="hidden flex-col items-start leading-tight sm:flex">
+                <span className="text-sm font-medium text-gray-700">{user?.name}</span>
+                <span className="text-xs text-gray-400">
+                  {user?.role.replaceAll("_", " ")}
+                  {user?.branch ? ` · ${user.branch.name}` : ""}
+                </span>
               </span>
             </button>
             <button 

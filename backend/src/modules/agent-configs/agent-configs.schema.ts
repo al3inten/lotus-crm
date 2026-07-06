@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const upsertAgentConfigSchema = z.object({
   name: z.string().min(1),
-  systemPrompt: z.string().min(1),
+  systemPrompt: z.string(),
   voiceName: z.string().optional(),
   model: z.string().optional(),
   isActive: z.boolean().optional(),

@@ -62,8 +62,16 @@ function AgentConfigCard({ config }: { config: AgentConfig }) {
     setIsActive(config.isActive);
   }, [config]);
 
-  const handleSave = () => {
-    saveConfig.mutate({ type: config.type, payload: { name, systemPrompt, isActive } });
+  const handleSave = (overrideIsActive?: boolean) => {
+    saveConfig.mutate({ 
+      type: config.type, 
+      payload: { name, systemPrompt, isActive: overrideIsActive ?? isActive } 
+    });
+  };
+
+  const handleToggleActive = (checked: boolean) => {
+    setIsActive(checked);
+    handleSave(checked);
   };
 
   return (
@@ -71,7 +79,7 @@ function AgentConfigCard({ config }: { config: AgentConfig }) {
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-gray-900">{LABELS[config.type]}</h3>
         <label className="flex items-center gap-2 text-xs text-gray-600">
-          <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
+          <input type="checkbox" checked={isActive} onChange={(e) => handleToggleActive(e.target.checked)} />
           Active
         </label>
       </div>
@@ -81,7 +89,7 @@ function AgentConfigCard({ config }: { config: AgentConfig }) {
         <Button variant="secondary" onClick={() => setShowGenerate(true)}>
           Generate with AI
         </Button>
-        <Button isLoading={saveConfig.isPending} onClick={handleSave}>
+        <Button isLoading={saveConfig.isPending} onClick={() => handleSave()}>
           Save
         </Button>
       </div>

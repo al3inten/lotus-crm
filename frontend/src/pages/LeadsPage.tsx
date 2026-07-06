@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Car, ChevronLeft, ChevronRight } from "lucide-react";
+import { Car, ChevronLeft, ChevronRight, FileSpreadsheet } from "lucide-react";
 import { useLeads } from "../hooks/useLeads";
 import type { LeadFilters as LeadFiltersType } from "../api/leads.api";
 import { LeadFilters } from "../components/leads/LeadFilters";
@@ -8,6 +8,9 @@ import { WalkInLeadForm } from "../components/leads/WalkInLeadForm";
 import { ImportLeadsModal } from "../components/leads/ImportLeadsModal";
 import { Button } from "../components/common/Button";
 import { Card } from "../components/common/Card";
+import { Modal } from "../components/common/Modal";
+import { GoogleSheetsSyncForm } from "../components/integrations/GoogleSheetsSyncForm";
+import { useIntegrations } from "../hooks/useIntegrations";
 
 const PAGE_SIZE = 20;
 
@@ -15,8 +18,11 @@ export function LeadsPage() {
   const [filters, setFilters] = useState<LeadFiltersType>({ page: 1, pageSize: PAGE_SIZE });
   const [showWalkInForm, setShowWalkInForm] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showSheetsSyncModal, setShowSheetsSyncModal] = useState(false);
 
   const { data, isLoading } = useLeads(filters);
+  const { data: integrations } = useIntegrations();
+  const googleSheetsConnected = integrations?.find((i) => i.key === "GOOGLE_SHEETS")?.hasCredentials ?? false;
   const totalPages = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1;
 
   return (
@@ -32,6 +38,11 @@ export function LeadsPage() {
           </div>
         </div>
         <div className="flex gap-2">
+          {googleSheetsConnected && (
+            <Button variant="secondary" icon={<FileSpreadsheet size={14} />} onClick={() => setShowSheetsSyncModal(true)}>
+              Sync from Google Sheets
+            </Button>
+          )}
           <Button variant="secondary" onClick={() => setShowImportModal(true)}>
             Import from Sheet/Excel
           </Button>
@@ -80,6 +91,9 @@ export function LeadsPage() {
 
       <WalkInLeadForm isOpen={showWalkInForm} onClose={() => setShowWalkInForm(false)} />
       <ImportLeadsModal isOpen={showImportModal} onClose={() => setShowImportModal(false)} />
+      <Modal isOpen={showSheetsSyncModal} onClose={() => setShowSheetsSyncModal(false)} title="">
+        <GoogleSheetsSyncForm />
+      </Modal>
     </div>
   );
 }

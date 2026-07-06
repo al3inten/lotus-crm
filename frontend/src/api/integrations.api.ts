@@ -9,7 +9,8 @@ export type IntegrationKey =
   | "TELECMI"
   | "GEMINI"
   | "OPENAI"
-  | "CLOUDINARY";
+  | "CLOUDINARY"
+  | "CALLMATIC";
 export type IntegrationStatus = "NOT_CONFIGURED" | "CONNECTED" | "ERROR";
 
 export interface IntegrationConfigSummary {

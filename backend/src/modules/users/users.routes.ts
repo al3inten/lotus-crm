@@ -45,9 +45,12 @@ router.post(
   asyncHandler(createBranchStaffHandler)
 );
 
+// CR Team and Consultants need this too — they're the ones assigning a consultant or
+// picking a colleague while working the enquiry pipeline (status changes, test drives,
+// quotations, exchange evaluations all read from this list).
 router.get(
   "/branches/:branchId/staff",
-  requireRole("SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"),
+  requireRole("SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER", "CR_TEAM", "CONSULTANT"),
   asyncHandler(listBranchUsersHandler)
 );
 
