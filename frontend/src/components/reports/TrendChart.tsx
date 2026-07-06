@@ -25,7 +25,7 @@ export function TrendChart({ points }: { points: TrendPoint[] }) {
   const lastPoint = points[points.length - 1];
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4">
+    <div>
       <div className="mb-3 flex gap-4 text-xs" style={{ color: VIZ.inkSecondary }}>
         {SERIES.map((s) => (
           <span key={s.key} className="flex items-center gap-1.5">

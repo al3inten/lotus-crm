@@ -41,47 +41,52 @@ export function PipelineStepper({ status }: { status: EnquiryStatus }) {
   const currentIndex = detour ? detour.anchorIndex : MAIN_PATH.findIndex((s) => s.status === status);
 
   return (
-    <div className="overflow-x-auto pb-1">
-      <div className="flex min-w-max items-start">
-        {MAIN_PATH.map((step, index) => {
-          const done = index < currentIndex;
-          const current = index === currentIndex;
-          return (
-            <div key={step.status} className="flex items-start">
-              {index > 0 && (
-                <div className={clsx("mt-3 h-0.5 w-6 sm:w-9", index <= currentIndex ? "bg-blue-500" : "bg-gray-200")} />
-              )}
-              <div className="flex w-16 flex-col items-center gap-1.5 sm:w-20">
-                <span
-                  className={clsx(
-                    "flex h-6.5 w-6.5 items-center justify-center rounded-full text-[11px] font-semibold transition-colors",
-                    done && "bg-blue-500 text-white",
-                    current && "bg-blue-600 text-white ring-4 ring-blue-100",
-                    !done && !current && "border-2 border-gray-200 bg-white text-gray-400"
-                  )}
-                  style={{ height: 26, width: 26 }}
-                >
-                  {done ? <Check size={13} strokeWidth={3} /> : index + 1}
-                </span>
-                <span
-                  className={clsx(
-                    "text-center text-[10px] leading-tight sm:text-[11px]",
-                    current ? "font-semibold text-blue-700" : done ? "text-gray-600" : "text-gray-400"
-                  )}
-                >
-                  {step.label}
-                </span>
-                {current && detour && (
-                  <span className="flex items-center gap-1 whitespace-nowrap rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-medium text-violet-700">
-                    {detour.icon}
-                    {detour.label}
-                  </span>
+    <div className="relative min-w-0">
+      <div className="overflow-x-auto pb-1">
+        <div className="flex min-w-max items-start">
+          {MAIN_PATH.map((step, index) => {
+            const done = index < currentIndex;
+            const current = index === currentIndex;
+            return (
+              <div key={step.status} className="flex items-start">
+                {index > 0 && (
+                  <div className={clsx("mt-3 h-0.5 w-6 sm:w-9", index <= currentIndex ? "bg-blue-500" : "bg-gray-200")} />
                 )}
+                <div className="flex w-16 flex-col items-center gap-1.5 sm:w-20">
+                  <span
+                    className={clsx(
+                      "flex items-center justify-center rounded-full text-[11px] font-semibold transition-colors",
+                      done && "bg-blue-500 text-white",
+                      current && "bg-blue-600 text-white ring-4 ring-blue-100",
+                      !done && !current && "border-2 border-gray-200 bg-white text-gray-400"
+                    )}
+                    style={{ height: 26, width: 26 }}
+                  >
+                    {done ? <Check size={13} strokeWidth={3} /> : index + 1}
+                  </span>
+                  <span
+                    className={clsx(
+                      "text-center text-[10px] leading-tight sm:text-[11px]",
+                      current ? "font-semibold text-blue-700" : done ? "text-gray-600" : "text-gray-400"
+                    )}
+                  >
+                    {step.label}
+                  </span>
+                  {current && detour && (
+                    <span className="flex items-center gap-1 whitespace-nowrap rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-medium text-violet-700">
+                      {detour.icon}
+                      {detour.label}
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
+      {/* Fade hints signal there's more of the stepper to scroll to — otherwise it reads as "cut off". */}
+      <div className="pointer-events-none absolute left-0 top-0 h-full w-6 bg-gradient-to-r from-white to-transparent" />
+      <div className="pointer-events-none absolute right-0 top-0 h-full w-6 bg-gradient-to-l from-white to-transparent" />
     </div>
   );
 }

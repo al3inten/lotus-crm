@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import clsx from "clsx";
+import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { VIZ, formatCompact } from "./vizTheme";
 
 interface StatTileProps {
@@ -30,23 +31,31 @@ export function StatTile({
     delta == null || delta === 0 ? VIZ.inkMuted : (delta > 0) === upIsGood ? VIZ.deltaGood : VIZ.deltaBad;
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+    <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-black/5 transition-colors hover:bg-gray-50/50">
       <div className="flex items-start gap-3">
         {icon && (
-          <span className={clsx("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg", iconClassName)}>
+          <span
+            className={clsx(
+              "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset ring-black/5",
+              iconClassName
+            )}
+          >
             {icon}
           </span>
         )}
         <div className="min-w-0">
           <p className="truncate text-xs font-medium text-gray-500">{label}</p>
-          <p className="mt-0.5 text-2xl font-semibold leading-tight text-gray-900">
+          <p className="mt-1 text-[1.65rem] font-bold leading-none tracking-tighter text-slate-950 tabular-nums">
             {typeof value === "number" ? formatCompact(value) : value}
-            {suffix && <span className="ml-0.5 text-base font-medium text-gray-500">{suffix}</span>}
+            {suffix && <span className="ml-0.5 text-base font-semibold text-gray-500">{suffix}</span>}
           </p>
           {delta !== undefined && (
-            <p className="mt-0.5 text-xs" style={{ color: deltaColor }}>
+            <p className="mt-1.5 flex items-center gap-1 text-xs font-medium" style={{ color: deltaColor }}>
+              {delta != null &&
+                delta !== 0 &&
+                (delta > 0 ? <ArrowUpRight size={12} strokeWidth={2.5} /> : <ArrowDownRight size={12} strokeWidth={2.5} />)}
               {delta == null ? "no prior data" : `${delta > 0 ? "+" : ""}${delta}%`}
-              {delta != null && deltaLabel && <span className="text-gray-400"> {deltaLabel}</span>}
+              {delta != null && deltaLabel && <span className="font-normal text-gray-400"> {deltaLabel}</span>}
             </p>
           )}
         </div>

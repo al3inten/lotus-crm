@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-sans: "Inter", system-ui, "Segoe UI", Roboto, sans-serif;
 }
 
 html,
@@ -15,4 +15,44 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: #f8fafc;
+}
+
+/* Theme react-datepicker to match the app's Tailwind blue accent. */
+.react-datepicker {
+  font-family: var(--font-sans);
+  border-color: #e5e7eb;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  overflow: hidden;
+}
+.react-datepicker__header {
+  background-color: #fff;
+  border-bottom: 1px solid #e5e7eb;
+}
+.react-datepicker__triangle {
+  display: none;
+}
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected,
+.react-datepicker__time-list-item--selected {
+  background-color: #2563eb !important;
+  color: #fff !important;
+}
+.react-datepicker__day:hover,
+.react-datepicker__time-list-item:hover {
+  background-color: #eff6ff !important;
+}
+.react-datepicker__day--today {
+  font-weight: 600;
+  color: #2563eb;
+}
+.react-datepicker__input-container .react-datepicker__calendar-icon {
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 0;
+  color: #6b7280;
+}
+.react-datepicker-wrapper {
+  width: 100%;
 }

@@ -1,6 +1,7 @@
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Input, Select, Textarea } from "../common/Input";
+import { Select, Textarea } from "../common/Input";
+import { DateTimePicker } from "../common/DateTimePicker";
 import { Button } from "../common/Button";
 import { testDriveFormSchema } from "../../schemas/enquiry.schema";
 import type { TestDriveFormValues, TestDriveFormInput } from "../../schemas/enquiry.schema";
@@ -23,6 +24,7 @@ export function TestDriveForm({
 
   const {
     register,
+    control,
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
@@ -74,8 +76,16 @@ export function TestDriveForm({
             </option>
           ))}
         </Select>
-        <Input label="Scheduled At" type="datetime-local" {...register("scheduledAt")} />
-        <Input label="Completed At" type="datetime-local" {...register("completedAt")} />
+        <Controller
+          control={control}
+          name="scheduledAt"
+          render={({ field }) => <DateTimePicker label="Scheduled At" value={field.value} onChange={field.onChange} />}
+        />
+        <Controller
+          control={control}
+          name="completedAt"
+          render={({ field }) => <DateTimePicker label="Completed At" value={field.value} onChange={field.onChange} />}
+        />
         <Select label="Rating (1-5)" error={errors.rating?.message} {...register("rating")}>
           <option value="">No rating</option>
           {[1, 2, 3, 4, 5].map((n) => (

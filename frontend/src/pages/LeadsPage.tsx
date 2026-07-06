@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Car, ChevronLeft, ChevronRight } from "lucide-react";
 import { useLeads } from "../hooks/useLeads";
 import type { LeadFilters as LeadFiltersType } from "../api/leads.api";
 import { LeadFilters } from "../components/leads/LeadFilters";
@@ -6,6 +7,7 @@ import { LeadTable } from "../components/leads/LeadTable";
 import { WalkInLeadForm } from "../components/leads/WalkInLeadForm";
 import { ImportLeadsModal } from "../components/leads/ImportLeadsModal";
 import { Button } from "../components/common/Button";
+import { Card } from "../components/common/Card";
 
 const PAGE_SIZE = 20;
 
@@ -20,7 +22,15 @@ export function LeadsPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-gray-900">Leads</h1>
+        <div className="flex items-center gap-3">
+          <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+            <Car size={20} />
+          </span>
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900">Leads</h1>
+            <p className="text-xs text-gray-500">Manage and follow up every enquiry across your showrooms.</p>
+          </div>
+        </div>
         <div className="flex gap-2">
           <Button variant="secondary" onClick={() => setShowImportModal(true)}>
             Import from Sheet/Excel
@@ -29,20 +39,26 @@ export function LeadsPage() {
         </div>
       </div>
 
-      <LeadFilters filters={filters} onChange={setFilters} />
+      <Card>
+        <LeadFilters filters={filters} onChange={setFilters} />
+      </Card>
 
       {isLoading || !data ? (
-        <p className="text-sm text-gray-500">Loading leads…</p>
+        <Card>
+          <p className="py-8 text-center text-sm text-gray-500">Loading leads…</p>
+        </Card>
       ) : (
-        <>
+        <Card padded={false} className="overflow-hidden">
           <LeadTable enquiries={data.items} />
-          <div className="flex items-center justify-between text-sm text-gray-500">
+          <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3 text-sm text-gray-500">
             <span>
               Page {data.page} of {totalPages} · {data.total} total
             </span>
             <div className="flex gap-2">
               <Button
                 variant="secondary"
+                size="sm"
+                icon={<ChevronLeft size={14} />}
                 disabled={data.page <= 1}
                 onClick={() => setFilters((f) => ({ ...f, page: (f.page ?? 1) - 1 }))}
               >
@@ -50,14 +66,16 @@ export function LeadsPage() {
               </Button>
               <Button
                 variant="secondary"
-                disabled={data.page >= totalPages}
+                size="sm"
                 onClick={() => setFilters((f) => ({ ...f, page: (f.page ?? 1) + 1 }))}
+                disabled={data.page >= totalPages}
               >
                 Next
+                <ChevronRight size={14} />
               </Button>
             </div>
           </div>
-        </>
+        </Card>
       )}
 
       <WalkInLeadForm isOpen={showWalkInForm} onClose={() => setShowWalkInForm(false)} />

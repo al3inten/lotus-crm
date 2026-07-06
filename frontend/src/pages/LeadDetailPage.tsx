@@ -27,21 +27,12 @@ import { ExchangeForm } from "../components/enquiry/ExchangeForm";
 import { FinanceForm } from "../components/enquiry/FinanceForm";
 import { DeliveryForm } from "../components/enquiry/DeliveryForm";
 import { StatusBadge } from "../components/common/StatusBadge";
+import { Avatar } from "../components/common/Avatar";
 import { Button } from "../components/common/Button";
 import { Card, CardHeader } from "../components/common/Card";
 import { Select } from "../components/common/Input";
 
 const REASSIGN_ROLES = ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"];
-
-function initials(name: string) {
-  return name
-    .split(" ")
-    .map((part) => part[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-}
 
 export function LeadDetailPage() {
   const { leadId, enquiryId: enquiryIdParam } = useParams<{ leadId: string; enquiryId?: string }>();
@@ -56,12 +47,22 @@ export function LeadDetailPage() {
   const { data: crTeam } = useBranchStaff(enquiry?.branchId, "CR_TEAM");
   const { data: callLogs } = useCallLogsForLead(leadId);
 
-  if (leadLoading || !lead) return <p className="text-sm text-gray-500">Loading…</p>;
+  if (leadLoading || !lead) {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="h-5 w-32 animate-pulse rounded bg-gray-200" />
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[340px_1fr]">
+          <div className="h-40 animate-pulse rounded-xl bg-gray-200" />
+          <div className="h-64 animate-pulse rounded-xl bg-gray-200" />
+        </div>
+      </div>
+    );
+  }
 
   const totalContacts = Math.max(lead.touches.length, lead.enquiries.length);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex min-w-0 flex-col gap-4">
       <Link to="/leads" className="flex w-fit items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800">
         <ArrowLeft size={15} />
         Back to Leads
@@ -69,20 +70,18 @@ export function LeadDetailPage() {
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[340px_1fr]">
         {/* ---------- Left rail: customer profile ---------- */}
-        <div className="flex flex-col gap-4">
+        <div className="flex min-w-0 flex-col gap-4">
           <Card>
             <div className="flex items-center gap-3">
-              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-blue-600 text-lg font-bold text-white">
-                {initials(lead.name)}
-              </span>
+              <Avatar name={lead.name} size="lg" />
               <div className="min-w-0">
                 <h1 className="truncate text-lg font-bold text-gray-900">{lead.name}</h1>
                 <p className="flex items-center gap-1.5 text-sm text-gray-500">
-                  <Phone size={13} /> {lead.phoneRaw}
+                  <Phone size={13} className="shrink-0" /> <span className="truncate">{lead.phoneRaw}</span>
                 </p>
                 {lead.email && (
                   <p className="flex items-center gap-1.5 text-sm text-gray-500">
-                    <Mail size={13} /> {lead.email}
+                    <Mail size={13} className="shrink-0" /> <span className="truncate">{lead.email}</span>
                   </p>
                 )}
               </div>
@@ -159,20 +158,23 @@ export function LeadDetailPage() {
         </div>
 
         {/* ---------- Right: enquiry pipeline ---------- */}
-        <div className="flex flex-col gap-4">
+        <div className="flex min-w-0 flex-col gap-4">
           {enquiryLoading || !enquiry ? (
-            <p className="text-sm text-gray-500">Loading enquiry…</p>
+            <div className="flex flex-col gap-4">
+              <div className="h-52 animate-pulse rounded-xl bg-gray-200" />
+              <div className="h-40 animate-pulse rounded-xl bg-gray-200" />
+            </div>
           ) : (
             <>
               <Card>
                 <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
                       <Car size={22} />
                     </span>
-                    <div>
-                      <h2 className="text-lg font-bold text-gray-900">{enquiry.carModel}</h2>
-                      <p className="text-xs text-gray-500">
+                    <div className="min-w-0">
+                      <h2 className="truncate text-lg font-bold text-gray-900">{enquiry.carModel}</h2>
+                      <p className="truncate text-xs text-gray-500">
                         {enquiry.branch.name} · {enquiry.source.replaceAll("_", " ")} ·{" "}
                         {new Date(enquiry.createdAt).toLocaleDateString()}
                       </p>
@@ -185,23 +187,24 @@ export function LeadDetailPage() {
 
                 <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-gray-100 pt-4 text-sm">
                   <span className="flex items-center gap-1.5 text-gray-600">
-                    <UserCircle2 size={15} className="text-gray-400" />
+                    <UserCircle2 size={15} className="shrink-0 text-gray-400" />
                     CR: <strong className="text-gray-900">{enquiry.assignedCr?.name ?? "Unassigned"}</strong>
                   </span>
                   <span className="flex items-center gap-1.5 text-gray-600">
-                    <UserCog size={15} className="text-gray-400" />
+                    <UserCog size={15} className="shrink-0 text-gray-400" />
                     Consultant: <strong className="text-gray-900">{enquiry.consultant?.name ?? "—"}</strong>
                   </span>
                 </div>
 
-                <div className="mt-4 flex flex-wrap items-center gap-2">
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-4">
                   <Button icon={<ArrowRightCircle size={15} />} onClick={() => setShowStatusModal(true)}>
                     Move to Next Stage
                   </Button>
                   {user && REASSIGN_ROLES.includes(user.role) && (
-                    <div className="flex items-center gap-2">
-                      <Select value={reassignTo} onChange={(e) => setReassignTo(e.target.value)}>
-                        <option value="">Reassign CR to…</option>
+                    <div className="flex flex-wrap items-center gap-2 rounded-lg bg-gray-50 p-2">
+                      <span className="pl-1 text-xs font-medium text-gray-500">Reassign CR</span>
+                      <Select value={reassignTo} onChange={(e) => setReassignTo(e.target.value)} className="w-40">
+                        <option value="">Select CR…</option>
                         {crTeam?.map((cr) => (
                           <option key={cr.id} value={cr.id}>
                             {cr.name}
@@ -209,6 +212,7 @@ export function LeadDetailPage() {
                         ))}
                       </Select>
                       <Button
+                        size="sm"
                         variant="secondary"
                         disabled={!reassignTo}
                         onClick={() => {

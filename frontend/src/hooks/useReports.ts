@@ -23,17 +23,22 @@ export function useBranchRollupReport(filters: reportsApi.ReportFilters) {
   });
 }
 
-export function useTrendReport(filters: reportsApi.ReportFilters & { granularity: "week" | "month" | "year" }) {
+export function useTrendReport(
+  filters: reportsApi.ReportFilters & { granularity: "week" | "month" | "year" },
+  enabled = true
+) {
   return useQuery({
     queryKey: ["reports", "trend", filters],
     queryFn: () => reportsApi.fetchTrend(filters),
+    enabled,
   });
 }
 
-export function useYoyReport(filters: reportsApi.ReportFilters) {
+export function useYoyReport(filters: reportsApi.ReportFilters, enabled = true) {
   return useQuery({
     queryKey: ["reports", "yoy", filters],
     queryFn: () => reportsApi.fetchYoy(filters),
+    enabled,
   });
 }
 
@@ -58,10 +63,11 @@ export function useCallAnalysisReport(filters: reportsApi.ReportFilters) {
   });
 }
 
-export function useSourcePerformanceReport(filters: reportsApi.ReportFilters) {
+export function useSourcePerformanceReport(filters: reportsApi.ReportFilters, enabled = true) {
   return useQuery({
     queryKey: ["reports", "source-performance", filters],
     queryFn: () => reportsApi.fetchSourcePerformance(filters),
+    enabled,
   });
 }
 

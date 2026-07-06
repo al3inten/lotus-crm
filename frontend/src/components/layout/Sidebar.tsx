@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import clsx from "clsx";
 import type { ReactNode } from "react";
@@ -13,6 +14,8 @@ import {
   PhoneCall,
   Megaphone,
   Plug,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import type { Role, ModuleKey } from "../../types";
@@ -53,6 +56,7 @@ const NAV_ITEMS: NavItem[] = [
 
 export function Sidebar() {
   const { user } = useAuth();
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   // A custom role's permission toggles decide what appears; users without a custom role
   // fall back to base-role defaults. SUPER_ADMIN always sees everything.
@@ -64,28 +68,49 @@ export function Sidebar() {
   });
 
   return (
-    <aside className="flex h-full w-60 flex-col border-r border-gray-200 bg-white">
-      <div className="flex items-center gap-2.5 px-5 py-5">
-        <img src="/hyundai-logo.jpg" alt="Hyundai" className="h-9 w-auto rounded-md object-contain" />
-        <div className="leading-tight">
-          <p className="text-base font-bold text-gray-900">Lotus CRM</p>
-          <p className="text-[10px] font-medium uppercase tracking-widest text-gray-400">Hyundai</p>
+    <aside
+      className={clsx(
+        "relative flex h-full flex-col border-r border-gray-200 bg-white transition-all duration-300",
+        isCollapsed ? "w-20" : "w-60"
+      )}
+    >
+      <button
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        className="absolute -right-3 top-6 z-20 flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm hover:text-gray-900"
+      >
+        {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+      </button>
+
+      <div className="flex h-20 items-center justify-center px-4">
+        <div className={clsx("flex items-center gap-2.5", isCollapsed && "justify-center")}>
+          <img src="/hyundai-logo.jpg" alt="Hyundai" className="h-9 w-auto shrink-0 rounded-md object-contain" />
+          {!isCollapsed && (
+            <div className="overflow-hidden whitespace-nowrap leading-tight">
+              <p className="text-base font-bold text-gray-900">Lotus CRM</p>
+              <p className="text-[10px] font-medium uppercase tracking-widest text-gray-400">Hyundai</p>
+            </div>
+          )}
         </div>
       </div>
-      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 pb-4">
+
+      <nav className="flex flex-1 flex-col gap-1 overflow-x-hidden overflow-y-auto px-3 pb-4">
         {items.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
+            title={isCollapsed ? item.label : undefined}
             className={({ isActive }) =>
               clsx(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                isActive ? "bg-blue-600 text-white shadow-sm" : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                "flex items-center rounded-lg px-3 py-2 text-sm transition-colors",
+                isCollapsed ? "justify-center" : "gap-3",
+                isActive
+                  ? "bg-blue-50 font-semibold text-blue-700"
+                  : "font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900"
               )
             }
           >
-            {item.icon}
-            {item.label}
+            <span className="shrink-0">{item.icon}</span>
+            {!isCollapsed && <span className="whitespace-nowrap">{item.label}</span>}
           </NavLink>
         ))}
       </nav>
