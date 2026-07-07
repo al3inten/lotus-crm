@@ -378,31 +378,54 @@ export function DepartmentsPage() {
   const [tab, setTab] = useState<Tab>("overview");
 
   return (
-    <div className="flex flex-col gap-5">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Departments</h1>
-        <p className="text-sm text-gray-500">Branches, roles with dashboard permissions, and your teams — all in one place.</p>
-      </div>
+    <div className="flex flex-col gap-8 p-4 md:p-6 lg:p-8">
+      <div className="mx-auto w-full max-w-7xl flex flex-col gap-8">
+        {/* Hero Section */}
+        <div className="relative overflow-hidden rounded-3xl bg-slate-900 px-8 py-10 shadow-2xl dark:bg-slate-950 sm:px-12 sm:py-14">
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div className="absolute -left-[10%] -top-[50%] h-[200%] w-[50%] rounded-full bg-blue-600/30 blur-[100px] dark:bg-blue-600/20" />
+            <div className="absolute -right-[20%] top-[-20%] h-[150%] w-[60%] rounded-full bg-indigo-500/20 blur-[120px] dark:bg-indigo-500/10" />
+          </div>
 
-      <div className="flex gap-1 rounded-lg border border-gray-200 bg-white p-1 shadow-sm w-fit">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`flex items-center gap-1.5 rounded-md px-3.5 py-2 text-sm font-medium transition-colors ${
-              tab === t.key ? "bg-blue-600 text-white shadow-sm" : "text-gray-600 hover:bg-gray-100"
-            }`}
-          >
-            {t.icon}
-            {t.label}
-          </button>
-        ))}
-      </div>
+          <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-2xl">
+              <span className="inline-flex items-center rounded-full bg-blue-500/10 px-3 py-1 text-sm font-medium text-blue-300 ring-1 ring-inset ring-blue-500/20 backdrop-blur-md">
+                Organization Hub
+              </span>
+              <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+                Departments
+              </h1>
+              <p className="mt-3 text-lg text-slate-300">
+                Manage branches, roles, and your staff — all in one place.
+              </p>
+            </div>
+          </div>
+        </div>
 
-      {tab === "overview" && <OverviewTab />}
-      {tab === "branches" && <BranchesTab />}
-      {tab === "roles" && <RolesTab />}
-      {tab === "staff" && <StaffTab />}
+        <div className="flex gap-1 rounded-xl border border-slate-200/60 bg-white p-1.5 shadow-sm w-fit overflow-x-auto">
+          {TABS.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`flex shrink-0 items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+                tab === t.key
+                  ? "bg-blue-600 text-white shadow-md"
+                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+              }`}
+            >
+              {t.icon}
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        <main>
+          {tab === "overview" && <OverviewTab />}
+          {tab === "branches" && <BranchesTab />}
+          {tab === "roles" && <RolesTab />}
+          {tab === "staff" && <StaffTab />}
+        </main>
+      </div>
     </div>
   );
 }

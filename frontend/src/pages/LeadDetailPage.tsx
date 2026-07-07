@@ -70,7 +70,7 @@ export function LeadDetailPage() {
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[340px_1fr]">
         {/* ---------- Left rail: customer profile ---------- */}
-        <div className="flex min-w-0 flex-col gap-4">
+        <div className="flex min-w-0 flex-col gap-4 order-2 xl:order-1">
           <Card>
             <div className="flex items-center gap-3">
               <Avatar name={lead.name} size="lg" />
@@ -158,7 +158,7 @@ export function LeadDetailPage() {
         </div>
 
         {/* ---------- Right: enquiry pipeline ---------- */}
-        <div className="flex min-w-0 flex-col gap-4">
+        <div className="flex min-w-0 flex-col gap-4 order-1 xl:order-2">
           {enquiryLoading || !enquiry ? (
             <div className="flex flex-col gap-4">
               <div className="h-52 animate-pulse rounded-xl bg-gray-200" />
@@ -196,14 +196,14 @@ export function LeadDetailPage() {
                   </span>
                 </div>
 
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-4">
-                  <Button icon={<ArrowRightCircle size={15} />} onClick={() => setShowStatusModal(true)}>
+                <div className="mt-4 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center justify-between gap-3 border-t border-gray-100 pt-4">
+                  <Button icon={<ArrowRightCircle size={15} />} onClick={() => setShowStatusModal(true)} className="w-full sm:w-auto justify-center">
                     Move to Next Stage
                   </Button>
                   {user && REASSIGN_ROLES.includes(user.role) && (
-                    <div className="flex flex-wrap items-center gap-2 rounded-lg bg-gray-50 p-2">
-                      <span className="pl-1 text-xs font-medium text-gray-500">Reassign CR</span>
-                      <Select value={reassignTo} onChange={(e) => setReassignTo(e.target.value)} className="w-40">
+                    <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 rounded-lg bg-gray-50 p-2">
+                      <span className="pl-1 text-xs font-medium text-gray-500 text-center sm:text-left">Reassign CR</span>
+                      <Select value={reassignTo} onChange={(e) => setReassignTo(e.target.value)} className="w-full sm:w-40">
                         <option value="">Select CR…</option>
                         {crTeam?.map((cr) => (
                           <option key={cr.id} value={cr.id}>

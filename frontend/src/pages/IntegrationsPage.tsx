@@ -38,38 +38,45 @@ export function IntegrationsPage() {
     });
   }, [integrations, category, query]);
 
-  // Page Wrapper: Light gray/blue-tinted background to make white cards pop
   return (
-    <div className="min-h-screen bg-[#F8FAFC] px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mx-auto w-full max-w-7xl">
-        {/* Header Section */}
-        <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <span className="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/10">
-              Integration Hub
-            </span>
-            <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Connect your stack</h1>
-            <p className="mt-1 text-sm text-slate-600 sm:text-base">
-              Manage lead sources, messaging channels, voice, and AI providers in one place.
-            </p>
+    <div className="flex flex-col gap-8 p-4 md:p-6 lg:p-8">
+      <div className="mx-auto w-full max-w-7xl flex flex-col gap-8">
+        {/* Hero Section */}
+        <div className="relative overflow-hidden rounded-3xl bg-slate-900 px-8 py-10 shadow-2xl dark:bg-slate-950 sm:px-12 sm:py-14">
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div className="absolute -left-[10%] -top-[50%] h-[200%] w-[50%] rounded-full bg-blue-600/30 blur-[100px] dark:bg-blue-600/20" />
+            <div className="absolute -right-[20%] top-[-20%] h-[150%] w-[60%] rounded-full bg-fuchsia-500/20 blur-[120px] dark:bg-fuchsia-500/10" />
           </div>
 
-          {/* Search Bar */}
-          <div className="relative w-full max-w-md sm:w-72">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <Search className="h-4 w-4 text-slate-400" aria-hidden="true" />
+          <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-2xl">
+              <span className="inline-flex items-center rounded-full bg-blue-500/10 px-3 py-1 text-sm font-medium text-blue-300 ring-1 ring-inset ring-blue-500/20 backdrop-blur-md">
+                Integration Hub
+              </span>
+              <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+                Connect your stack
+              </h1>
+              <p className="mt-3 text-lg text-slate-300">
+                Manage lead sources, messaging channels, voice, and AI providers in one place.
+              </p>
             </div>
-            <input
-              type="text"
-              name="search"
-              id="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="block w-full rounded-lg border-0 bg-white py-2.5 pl-10 pr-3 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-200 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
-              placeholder="Search integrations…"
-            />
+
+            <div className="relative w-full max-w-md lg:w-72 shrink-0">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                <Search className="h-4 w-4 text-slate-400" aria-hidden="true" />
+              </div>
+              <input
+                type="text"
+                name="search"
+                id="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="block w-full rounded-xl border-0 bg-white/10 py-3 pl-11 pr-4 text-white shadow-sm ring-1 ring-inset ring-white/20 backdrop-blur-md placeholder:text-slate-400 focus:bg-white/20 focus:ring-2 focus:ring-inset focus:ring-blue-500 sm:text-sm sm:leading-6 transition-all"
+                placeholder="Search integrations…"
+              />
+            </div>
           </div>
-        </header>
+        </div>
 
         {/* Meta OAuth callback result banner */}
         {metaOAuthResult === "connected" && (

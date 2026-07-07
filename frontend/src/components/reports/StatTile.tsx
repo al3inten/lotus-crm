@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 import clsx from "clsx";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { VIZ, formatCompact } from "./vizTheme";
+import { CountUp } from "@/components/common/CountUp";
+import { Sparkline } from "@/components/common/Sparkline";
 
 interface StatTileProps {
   label: string;
@@ -15,6 +17,10 @@ interface StatTileProps {
   /** Optional lucide icon rendered in a tinted badge. */
   icon?: ReactNode;
   iconClassName?: string;
+  /** Optional mini trend series shown top-right. */
+  sparkline?: number[];
+  /** Hex color for the sparkline stroke/fill. */
+  sparkColor?: string;
 }
 
 export function StatTile({
@@ -25,46 +31,67 @@ export function StatTile({
   deltaLabel,
   upIsGood = true,
   icon,
-  iconClassName = "bg-blue-50 text-blue-600",
+  iconClassName = "bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 bg-gradient-to-br from-blue-500/20 to-blue-500/5",
+  sparkline,
+  sparkColor = VIZ.series1,
 }: StatTileProps) {
   const deltaColor =
     delta == null || delta === 0 ? VIZ.inkMuted : (delta > 0) === upIsGood ? VIZ.deltaGood : VIZ.deltaBad;
 
   return (
-    <div className={clsx(
-      "relative overflow-hidden rounded-2xl bg-white p-5 transition-all duration-300",
-      "border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]",
-      "dark:border-slate-800 dark:bg-slate-900 dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)]",
-      "hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-0.5 dark:hover:shadow-[0_8px_30px_rgb(0,0,0,0.3)]"
-    )}>
-      <div className="flex items-start gap-3">
+    <div
+      className={clsx(
+        "group relative overflow-hidden rounded-2xl p-5 transition-all duration-300 glass-panel",
+        "shadow-[0_1px_2px_rgb(0,0,0,0.04),0_8px_24px_-12px_rgb(0,0,0,0.12)]",
+        "dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)]",
+        "hover:-translate-y-1 hover:border-blue-200/50 hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)]",
+        "dark:hover:border-blue-500/30 dark:hover:shadow-[0_20px_40px_rgb(0,0,0,0.4)]"
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
         {icon && (
           <span
             className={clsx(
-              "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl",
+              "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-105",
               iconClassName
             )}
           >
             {icon}
           </span>
         )}
-        <div className="min-w-0">
-          <p className="truncate text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
-          <p className="mt-1 text-[1.65rem] font-bold leading-none tracking-tighter text-slate-900 tabular-nums dark:text-white">
-            {typeof value === "number" ? formatCompact(value) : value}
-            {suffix && <span className="ml-0.5 text-base font-semibold text-slate-500 dark:text-slate-400">{suffix}</span>}
-          </p>
-          {delta !== undefined && (
-            <p className="mt-2 flex items-center gap-1 text-xs font-medium" style={{ color: deltaColor }}>
-              {delta != null &&
-                delta !== 0 &&
-                (delta > 0 ? <ArrowUpRight size={12} strokeWidth={2.5} /> : <ArrowDownRight size={12} strokeWidth={2.5} />)}
-              {delta == null ? "no prior data" : `${delta > 0 ? "+" : ""}${delta}%`}
-              {delta != null && deltaLabel && <span className="font-normal text-slate-400 dark:text-slate-500"> {deltaLabel}</span>}
-            </p>
-          )}
-        </div>
+        {sparkline && sparkline.length > 1 && (
+          <Sparkline data={sparkline} color={sparkColor} className="mt-0.5 opacity-90" />
+        )}
       </div>
+
+      <p className="mt-4 truncate text-[13px] font-medium text-slate-500 dark:text-slate-400">{label}</p>
+
+      <p className="mt-1 text-[1.75rem] font-bold leading-none tracking-tight text-slate-900 tabular-nums dark:text-white">
+        {typeof value === "number" ? (
+          <CountUp value={value} format={(n) => formatCompact(Math.round(n))} />
+        ) : (
+          value
+        )}
+        {suffix && (
+          <span className="ml-0.5 text-base font-semibold text-slate-400 dark:text-slate-500">{suffix}</span>
+        )}
+      </p>
+
+      {delta !== undefined && (
+        <p className="mt-2.5 flex items-center gap-1 text-xs font-medium" style={{ color: deltaColor }}>
+          {delta != null &&
+            delta !== 0 &&
+            (delta > 0 ? (
+              <ArrowUpRight size={13} strokeWidth={2.5} />
+            ) : (
+              <ArrowDownRight size={13} strokeWidth={2.5} />
+            ))}
+          {delta == null ? "no prior data" : `${delta > 0 ? "+" : ""}${delta}%`}
+          {delta != null && deltaLabel && (
+            <span className="font-normal text-slate-400 dark:text-slate-500"> {deltaLabel}</span>
+          )}
+        </p>
+      )}
     </div>
   );
 }

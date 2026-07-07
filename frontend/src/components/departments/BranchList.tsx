@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Building2, Pencil, Trash2 } from "lucide-react";
+import { Building2, Pencil, Trash2, AlertTriangle } from "lucide-react";
 import clsx from "clsx";
 import type { Branch } from "../../types";
 import { useToggleAutoAssign, useToggleAutoCall, useUpdateBranch, useDeleteBranch } from "../../hooks/useBranches";
@@ -71,15 +71,19 @@ export function BranchList({ branches, selectedBranchId, onSelect }: BranchListP
   const [editing, setEditing] = useState<Branch | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const handleDelete = (branch: Branch) => {
-    if (!window.confirm(`Delete branch "${branch.name}"? Only possible when it has no staff, enquiries or roles.`)) return;
+  const [branchToDelete, setBranchToDelete] = useState<Branch | null>(null);
+
+  const confirmDelete = () => {
+    if (!branchToDelete) return;
     setDeleteError(null);
-    deleteBranch.mutate(branch.id, {
+    deleteBranch.mutate(branchToDelete.id, {
+      onSuccess: () => setBranchToDelete(null),
       onError: (err) => {
         const message =
           (err as { response?: { data?: { error?: string } } }).response?.data?.error ??
           "Could not delete this branch.";
         setDeleteError(message);
+        setBranchToDelete(null);
       },
     });
   };
@@ -122,7 +126,7 @@ export function BranchList({ branches, selectedBranchId, onSelect }: BranchListP
                 </button>
                 <button
                   className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"
-                  onClick={(e) => { e.stopPropagation(); handleDelete(branch); }}
+                  onClick={(e) => { e.stopPropagation(); setBranchToDelete(branch); }}
                   aria-label="Delete branch"
                 >
                   <Trash2 size={15} />
@@ -146,6 +150,43 @@ export function BranchList({ branches, selectedBranchId, onSelect }: BranchListP
         ))}
       </div>
       {editing && <EditBranchModal branch={editing} isOpen={!!editing} onClose={() => setEditing(null)} />}
+
+      <Modal isOpen={!!branchToDelete} onClose={() => setBranchToDelete(null)} title="">
+        <div className="flex flex-col gap-4 py-2 sm:p-2">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+            <AlertTriangle className="h-6 w-6 text-red-600" aria-hidden="true" />
+          </div>
+
+          <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
+            <h3 className="text-lg font-semibold leading-6 text-slate-900">
+              Delete {branchToDelete?.name}?
+            </h3>
+            <div className="mt-2">
+              <p className="text-sm text-slate-500">
+                Are you sure? This is only possible when the branch has no staff, enquiries, or roles assigned to it.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse sm:gap-3">
+            <Button
+              variant="danger"
+              isLoading={deleteBranch.isPending}
+              onClick={confirmDelete}
+              className="w-full sm:w-auto"
+            >
+              Delete
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => setBranchToDelete(null)}
+              className="mt-3 w-full sm:mt-0 sm:w-auto"
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

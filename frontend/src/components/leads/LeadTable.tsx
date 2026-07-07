@@ -38,7 +38,7 @@ export function LeadTable({ enquiries }: { enquiries: Enquiry[] }) {
           {enquiries.map((enquiry, index) => (
             <tr
               key={enquiry.id}
-              className={`group cursor-pointer transition-colors hover:bg-indigo-50/60 dark:hover:bg-indigo-500/10 ${
+              className={`group cursor-pointer transition-colors hover:bg-blue-50/60 dark:hover:bg-blue-500/10 ${
                 index % 2 === 1 ? "bg-slate-50/40 dark:bg-slate-800/30" : ""
               }`}
               onClick={() => navigate(`/leads/${enquiry.leadId}`)}
@@ -68,7 +68,7 @@ export function LeadTable({ enquiries }: { enquiries: Enquiry[] }) {
               </td>
               <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">{enquiry.assignedCr?.name ?? "Unassigned"}</td>
               <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">{enquiry.branch.name}</td>
-              <td className="px-4 py-2.5 text-slate-300 group-hover:text-indigo-500 dark:text-slate-600 dark:group-hover:text-indigo-400">
+              <td className="px-4 py-2.5 text-slate-300 group-hover:text-blue-500 dark:text-slate-600 dark:group-hover:text-blue-400">
                 <ChevronRight size={16} />
               </td>
             </tr>

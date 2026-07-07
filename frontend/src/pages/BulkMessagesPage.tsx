@@ -74,22 +74,39 @@ export function BulkMessagesPage() {
   const runCampaign = useRunMessageCampaign();
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Bulk Messages</h1>
-          <p className="text-sm text-gray-500">
-            Send a WhatsApp template message to a segment of leads. Sends are paced automatically to stay within
-            rate limits.
-          </p>
+    <div className="flex flex-col gap-8 p-4 md:p-6 lg:p-8">
+      <div className="mx-auto w-full max-w-7xl flex flex-col gap-8">
+        {/* Hero Section */}
+        <div className="relative overflow-hidden rounded-3xl bg-slate-900 px-8 py-10 shadow-2xl dark:bg-slate-950 sm:px-12 sm:py-14">
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div className="absolute -left-[10%] -top-[50%] h-[200%] w-[50%] rounded-full bg-[#25D366]/30 blur-[100px] dark:bg-[#25D366]/20" />
+            <div className="absolute -right-[20%] top-[-20%] h-[150%] w-[60%] rounded-full bg-emerald-500/20 blur-[120px] dark:bg-emerald-500/10" />
+          </div>
+
+          <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-2xl">
+              <span className="inline-flex items-center rounded-full bg-[#25D366]/10 px-3 py-1 text-sm font-medium text-[#25D366] ring-1 ring-inset ring-[#25D366]/20 backdrop-blur-md">
+                Broadcast Center
+              </span>
+              <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+                Bulk Messages
+              </h1>
+              <p className="mt-3 text-lg text-slate-300">
+                Send a WhatsApp template message to a segment of leads. Sends are paced automatically to stay within rate limits.
+              </p>
+            </div>
+            <div className="shrink-0">
+              <Button onClick={() => setShowCreate(true)}>
+                + New Campaign
+              </Button>
+            </div>
+          </div>
         </div>
-        <Button onClick={() => setShowCreate(true)}>+ New Campaign</Button>
-      </div>
 
       {isLoading ? (
         <p className="text-sm text-gray-500">Loading…</p>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+        <div className="overflow-x-auto rounded-2xl border border-slate-200/60 bg-white shadow-sm">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-left text-xs font-medium text-gray-500">
               <tr>
@@ -120,6 +137,7 @@ export function BulkMessagesPage() {
       )}
 
       <CreateCampaignModal isOpen={showCreate} onClose={() => setShowCreate(false)} />
+      </div>
     </div>
   );
 }

@@ -1,11 +1,11 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-sans: "Plus Jakarta Sans", system-ui, "Segoe UI", Roboto, sans-serif;
   
   /* Premium colors */
-  --color-brand-primary: var(--color-indigo-600);
-  --color-brand-hover: var(--color-indigo-700);
+  --color-brand-primary: var(--color-blue-600);
+  --color-brand-hover: var(--color-blue-700);
   --color-surface: var(--color-white);
   --color-surface-dark: var(--color-slate-900);
   
@@ -29,14 +29,30 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: var(--color-slate-50);
+  background-color: #f8fafc; /* slightly cooler white/gray for modern look */
   color: var(--color-slate-900);
   transition: background-color 0.3s, color 0.3s;
 }
 
 .dark body {
-  background-color: var(--color-slate-950);
+  /* Rich deep indigo/slate instead of flat gray */
+  background-color: #0b0f19;
   color: var(--color-slate-50);
+}
+
+/* Glassmorphism Utilities */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.dark .glass-panel {
+  background: rgba(17, 24, 39, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 /* Theme react-datepicker to match the app's Tailwind blue accent. */
@@ -76,4 +92,15 @@ body {
 }
 .react-datepicker-wrapper {
   width: 100%;
+}
+
+/* Modal Animations */
+@keyframes fadeIn {
+  from { opacity: 0; backdrop-filter: blur(0px); }
+  to { opacity: 1; backdrop-filter: blur(4px); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }

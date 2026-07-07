@@ -27,26 +27,33 @@ export function LeadsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-4">
-          <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
-            <Car size={22} />
-          </span>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Leads</h1>
-            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Manage and follow up every enquiry across your showrooms.</p>
-          </div>
+      <div className="relative overflow-hidden rounded-3xl bg-slate-900 px-6 py-10 shadow-xl dark:bg-slate-950 sm:px-10 sm:py-12 mb-6">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -left-[10%] -top-[50%] h-[200%] w-[50%] rounded-full bg-blue-600/20 blur-[100px] dark:bg-blue-600/10" />
+          <div className="absolute -right-[20%] top-[-20%] h-[150%] w-[60%] rounded-full bg-indigo-500/20 blur-[120px] dark:bg-indigo-500/10" />
         </div>
-        <div className="flex gap-2">
-          {googleSheetsConnected && (
-            <Button variant="secondary" icon={<FileSpreadsheet size={14} />} onClick={() => setShowSheetsSyncModal(true)}>
-              Sync from Google Sheets
+        
+        <div className="relative z-10 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-5">
+            <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-white shadow-inner ring-1 ring-white/20 backdrop-blur-md">
+              <Car size={26} />
+            </span>
+            <div>
+              <h1 className="text-3xl font-extrabold tracking-tight text-white">Leads</h1>
+              <p className="mt-1 text-base font-medium text-slate-300">Manage and follow up every enquiry across your showrooms.</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            {googleSheetsConnected && (
+              <Button variant="secondary" icon={<FileSpreadsheet size={14} />} onClick={() => setShowSheetsSyncModal(true)}>
+                Sync
+              </Button>
+            )}
+            <Button variant="secondary" onClick={() => setShowImportModal(true)}>
+              Import
             </Button>
-          )}
-          <Button variant="secondary" onClick={() => setShowImportModal(true)}>
-            Import from Sheet/Excel
-          </Button>
-          <Button onClick={() => setShowWalkInForm(true)}>+ Add Walk-in Lead</Button>
+            <Button onClick={() => setShowWalkInForm(true)}>+ Add Walk-in Lead</Button>
+          </div>
         </div>
       </div>
 

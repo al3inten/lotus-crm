@@ -7,7 +7,7 @@ const PALETTE = [
   "bg-amber-600",
   "bg-rose-600",
   "bg-cyan-600",
-  "bg-indigo-600",
+  "bg-blue-600",
   "bg-teal-600",
 ];
 

@@ -11,18 +11,18 @@ export function Card({ interactive, padded = true, className, children, ...props
   return (
     <div
       className={clsx(
-        "relative overflow-hidden rounded-2xl bg-white transition-all duration-300",
-        "border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]",
-        "dark:border-slate-800 dark:bg-slate-900 dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)]",
+        "relative overflow-hidden rounded-2xl transition-all duration-300 glass-panel",
+        "shadow-[0_8px_30px_rgb(0,0,0,0.04)]",
+        "dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)]",
         padded && "p-6",
         interactive &&
-          "cursor-pointer hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-0.5 dark:hover:shadow-[0_8px_30px_rgb(0,0,0,0.3)]",
+          "cursor-pointer hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-1 hover:border-blue-200/50 dark:hover:border-blue-500/30 dark:hover:shadow-[0_20px_40px_rgb(0,0,0,0.4)]",
         className
       )}
       {...props}
     >
       {/* Optional subtle glassmorphism accent in the corner */}
-      <div className="pointer-events-none absolute -right-20 -top-20 h-40 w-40 rounded-full bg-indigo-50/50 blur-3xl dark:bg-indigo-900/20" />
+      <div className="pointer-events-none absolute -right-20 -top-20 h-40 w-40 rounded-full bg-blue-500/10 blur-[40px] dark:bg-blue-500/20" />
       
       <div className="relative z-10">
         {children}
@@ -36,12 +36,12 @@ interface CardHeaderProps {
   icon?: ReactNode;
   title: string;
   subtitle?: string;
-  /** Tailwind classes for the icon badge, e.g. "bg-indigo-50 text-indigo-600". */
+  /** Tailwind classes for the icon badge, e.g. "bg-blue-50 text-blue-600". */
   iconClassName?: string;
   actions?: ReactNode;
 }
 
-export function CardHeader({ icon, title, subtitle, iconClassName = "bg-indigo-50 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400", actions }: CardHeaderProps) {
+export function CardHeader({ icon, title, subtitle, iconClassName = "bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400", actions }: CardHeaderProps) {
   return (
     <div className="mb-5 flex items-start justify-between gap-4">
       <div className="flex items-center gap-3">

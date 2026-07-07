@@ -3,7 +3,7 @@ import type { EnquiryStatus } from "../../types";
 
 const STATUS_STYLES: Record<EnquiryStatus, string> = {
   NEW: "bg-blue-100 text-blue-800",
-  CONTACTED: "bg-indigo-100 text-indigo-800",
+  CONTACTED: "bg-blue-100 text-blue-800",
   FOLLOW_UP: "bg-amber-100 text-amber-800",
   APPOINTMENT_SCHEDULED: "bg-purple-100 text-purple-800",
   APPOINTMENT_NO_SHOW: "bg-orange-100 text-orange-800",

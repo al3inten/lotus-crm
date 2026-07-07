@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import { VIZ } from "./vizTheme";
 import type { TrendPoint } from "../../api/reports.api";
 
@@ -17,12 +18,14 @@ function formatBucket(bucket: string) {
 
 export function TrendChart({ points }: { points: TrendPoint[] }) {
   if (points.length === 0) {
-    return <p className="text-sm text-gray-400">No data in this range.</p>;
+    return <p className="text-sm text-slate-400">No data in this range.</p>;
   }
 
   const max = Math.max(1, ...points.map((p) => p.total));
   const chartHeight = 180;
   const lastPoint = points[points.length - 1];
+  const reduce =
+    typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
   return (
     <div>
@@ -35,12 +38,12 @@ export function TrendChart({ points }: { points: TrendPoint[] }) {
         ))}
       </div>
       <div className="flex items-end gap-3 overflow-x-auto pb-1" style={{ minHeight: chartHeight + 24 }}>
-        {points.map((point) => {
+        {points.map((point, idx) => {
           const isLast = point === lastPoint;
           return (
             <div
               key={point.bucket}
-              className="flex flex-col items-center gap-1"
+              className="group flex flex-col items-center gap-1 rounded-lg px-1 pt-1 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/40"
               style={{ minWidth: 52 }}
               title={`${formatBucket(point.bucket)} — Total: ${point.total}, Converted: ${point.converted}, Lost: ${point.lost}`}
             >
@@ -54,13 +57,17 @@ export function TrendChart({ points }: { points: TrendPoint[] }) {
                   const value = point[s.key];
                   const height = Math.round((value / max) * chartHeight);
                   return (
-                    <div
+                    <motion.div
                       key={s.key}
+                      initial={reduce ? false : { scaleY: 0 }}
+                      animate={{ scaleY: 1 }}
+                      transition={{ duration: 0.5, delay: idx * 0.03, ease: [0.22, 1, 0.36, 1] }}
                       style={{
                         height: Math.max(height, value > 0 ? 2 : 0),
                         backgroundColor: s.color,
                         width: 12,
                         borderRadius: "4px 4px 0 0",
+                        transformOrigin: "bottom",
                       }}
                     />
                   );

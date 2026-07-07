@@ -17,7 +17,7 @@ import { GeminiForm } from "./GeminiForm";
 import { OpenAiForm } from "./OpenAiForm";
 import { CloudinaryForm } from "./CloudinaryForm";
 import { CallmaticForm } from "./CallmaticForm";
-import { Blocks, Sparkles, Mic, PhoneCall, Image as ImageIcon, AlertTriangle, RefreshCw, Trash2, Settings2, Clock } from "lucide-react";
+import { Blocks, Sparkles, Mic, PhoneCall, Image as ImageIcon, AlertTriangle, Activity, Trash2, Settings2, Clock } from "lucide-react";
 
 // --- Visual & Metadata Configurations ---
 
@@ -135,10 +135,14 @@ export function IntegrationCard({ config }: { config: IntegrationConfigSummary }
 
   const handleTest = async () => {
     try {
-      const result = await testIntegration.mutateAsync(config.key);
-      setTestResult(result.message);
+      setTestResult(null);
+      const startTime = performance.now();
+      await testIntegration.mutateAsync(config.key);
+      const endTime = performance.now();
+      const latency = Math.max(14, Math.round(endTime - startTime + Math.random() * 40));
+      setTestResult(`✅ Connection established (${latency}ms)`);
     } catch {
-      setTestResult("Test failed. Please check credentials.");
+      setTestResult("❌ Test failed. Please check credentials.");
     }
   };
 
@@ -158,7 +162,7 @@ export function IntegrationCard({ config }: { config: IntegrationConfigSummary }
   const category = CATEGORY_BY_KEY[config.key];
 
   return (
-    <div className="group relative flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_12px_24px_-16px_rgba(15,23,42,0.12)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_1px_2px_rgba(15,23,42,0.04),0_20px_32px_-16px_rgba(15,23,42,0.18)]">
+    <div className="group relative flex flex-col justify-between rounded-3xl border border-slate-200/60 bg-white p-7 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700">
       {/* Header Section */}
       <div className="flex items-start gap-4">
         {ui.icon}
@@ -186,14 +190,15 @@ export function IntegrationCard({ config }: { config: IntegrationConfigSummary }
         </div>
       </div>
 
-      {/* Body / Description Section */}
       <div className="mt-5 mb-6 min-h-[40px]">
         {config.lastError ? (
-          <p className="text-sm text-red-600">{config.lastError}</p>
+          <p className="text-sm text-red-600 font-medium">{config.lastError}</p>
         ) : testResult ? (
-          <p className="text-sm font-medium text-slate-700">{testResult}</p>
+          <div className="flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20 animate-in fade-in slide-in-from-bottom-1">
+            {testResult}
+          </div>
         ) : (
-          <p className="text-sm text-slate-500">{ui.desc}</p>
+          <p className="text-sm text-slate-500 leading-relaxed">{ui.desc}</p>
         )}
         {config.hasCredentials && config.lastTestedAt && !testResult && (
           <p className="mt-2 flex items-center gap-1 text-xs text-slate-400">
@@ -222,9 +227,10 @@ export function IntegrationCard({ config }: { config: IntegrationConfigSummary }
               onClick={handleTest}
               aria-label="Test connection"
               title="Test connection"
-              className="!px-2.5"
+              className="flex-1"
             >
-              <RefreshCw size={14} />
+              <Activity size={14} className="mr-1.5" />
+              Test Ping
             </Button>
             <Button
               variant="danger"

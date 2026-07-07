@@ -242,29 +242,59 @@ export function CallCampaignsPage() {
   const pauseCampaign = usePauseCallCampaign();
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Call Campaigns</h1>
-          <p className="text-sm text-gray-500">Queue leads for the AI voice agent to call. Requires the Voice agent to be active.</p>
-        </div>
-        {tab === "campaigns" && <Button onClick={() => setShowCreate(true)}>+ New Campaign</Button>}
-      </div>
+    <div className="flex flex-col gap-8 p-4 md:p-6 lg:p-8">
+      <div className="mx-auto w-full max-w-7xl flex flex-col gap-8">
+        {/* Hero Section */}
+        <div className="relative overflow-hidden rounded-3xl bg-slate-900 px-8 py-10 shadow-2xl dark:bg-slate-950 sm:px-12 sm:py-14">
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div className="absolute -left-[10%] -top-[50%] h-[200%] w-[50%] rounded-full bg-indigo-600/30 blur-[100px] dark:bg-indigo-600/20" />
+            <div className="absolute -right-[20%] top-[-20%] h-[150%] w-[60%] rounded-full bg-violet-500/20 blur-[120px] dark:bg-violet-500/10" />
+          </div>
 
-      <div className="flex gap-1 border-b border-gray-200">
-        <button
-          className={`px-3 py-2 text-sm font-medium ${tab === "campaigns" ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-500"}`}
-          onClick={() => setTab("campaigns")}
-        >
-          Campaigns
-        </button>
-        <button
-          className={`px-3 py-2 text-sm font-medium ${tab === "call-log" ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-500"}`}
-          onClick={() => setTab("call-log")}
-        >
-          Call Log
-        </button>
-      </div>
+          <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-2xl">
+              <span className="inline-flex items-center rounded-full bg-indigo-500/10 px-3 py-1 text-sm font-medium text-indigo-300 ring-1 ring-inset ring-indigo-500/20 backdrop-blur-md">
+                Voice Outbound
+              </span>
+              <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+                Call Campaigns
+              </h1>
+              <p className="mt-3 text-lg text-slate-300">
+                Queue leads for the AI voice agent to call. Requires the Voice agent to be active.
+              </p>
+            </div>
+            {tab === "campaigns" && (
+              <div className="shrink-0">
+                <Button onClick={() => setShowCreate(true)}>
+                  + New Campaign
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex gap-1 rounded-xl border border-slate-200/60 bg-white p-1.5 shadow-sm w-fit overflow-x-auto">
+          <button
+            className={`flex shrink-0 items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+              tab === "campaigns"
+                ? "bg-blue-600 text-white shadow-md"
+                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+            }`}
+            onClick={() => setTab("campaigns")}
+          >
+            Campaigns
+          </button>
+          <button
+            className={`flex shrink-0 items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+              tab === "call-log"
+                ? "bg-blue-600 text-white shadow-md"
+                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+            }`}
+            onClick={() => setTab("call-log")}
+          >
+            Call Log
+          </button>
+        </div>
 
       {tab === "call-log" ? (
         <CallLogTable />
@@ -332,6 +362,7 @@ export function CallCampaignsPage() {
       )}
 
       <CreateCampaignModal isOpen={showCreate} onClose={() => setShowCreate(false)} />
+      </div>
     </div>
   );
 }
