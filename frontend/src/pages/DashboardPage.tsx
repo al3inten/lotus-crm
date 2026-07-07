@@ -121,12 +121,16 @@ export function DashboardPage() {
     <motion.div variants={pageFade} initial="hidden" animate="show" className="mx-auto flex max-w-7xl flex-col gap-10">
       {/* Hero Section */}
       <div className="relative overflow-hidden rounded-3xl bg-slate-900 px-8 py-12 shadow-2xl dark:bg-slate-950 sm:px-12 sm:py-16">
-        {/* Animated Background Mesh */}
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -left-[10%] -top-[50%] h-[200%] w-[50%] rounded-full bg-blue-600/30 blur-[100px] dark:bg-blue-600/20" />
-          <div className="absolute -right-[20%] top-[-20%] h-[150%] w-[60%] rounded-full bg-indigo-500/20 blur-[120px] dark:bg-indigo-500/10" />
-          <div className="absolute bottom-[-50%] left-[20%] h-[150%] w-[60%] rounded-full bg-fuchsia-500/20 blur-[100px] dark:bg-fuchsia-500/10" />
-        </div>
+        {/* Static gradient mesh — soft color glow with no per-frame blur compositing. */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(60% 120% at 12% 0%, rgba(37,99,235,0.40), transparent 60%)," +
+              "radial-gradient(55% 100% at 92% 8%, rgba(99,102,241,0.28), transparent 60%)," +
+              "radial-gradient(60% 120% at 45% 130%, rgba(217,70,239,0.22), transparent 60%)",
+          }}
+        />
 
         <div className="relative z-10 flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">

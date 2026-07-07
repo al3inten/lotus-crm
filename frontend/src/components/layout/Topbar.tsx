@@ -3,7 +3,7 @@ import { LogOut, Search, Bell, HelpCircle, Menu } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { Button } from "../common/Button";
 import { Modal } from "../common/Modal";
-import { Avatar } from "../common/Avatar";
+
 
 export function Topbar({ onMenuToggle }: { onMenuToggle: () => void }) {
   const { user, logout } = useAuth();
@@ -16,7 +16,7 @@ export function Topbar({ onMenuToggle }: { onMenuToggle: () => void }) {
 
   return (
     <>
-      <header className="sticky top-0 z-10 flex h-[72px] items-center justify-between border-b border-slate-100 bg-white px-4 sm:px-6 dark:border-slate-800 dark:bg-slate-900 transition-colors">
+      <header className="sticky top-0 z-10 flex h-[72px] items-center justify-between border-b border-slate-200/60 bg-white/80 backdrop-blur-xl px-4 sm:px-6 dark:border-slate-800/50 dark:bg-slate-950/80 transition-colors">
         
         {/* Left: Global Search & Mobile Menu */}
         <div className="flex flex-1 items-center gap-4">
@@ -34,7 +34,7 @@ export function Topbar({ onMenuToggle }: { onMenuToggle: () => void }) {
             <input
               type="text"
               placeholder="Search leads, campaigns..."
-              className="block w-full rounded-lg border-0 bg-slate-50 py-2.5 pl-10 pr-14 text-sm text-slate-900 ring-1 ring-inset ring-slate-200 transition-all placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-inset focus:ring-blue-600 dark:bg-slate-950 dark:text-white dark:ring-slate-800 dark:placeholder:text-slate-500 dark:focus:bg-slate-950 sm:leading-6"
+              className="block w-full rounded-xl border border-slate-200/60 bg-white/50 py-2.5 pl-10 pr-14 text-sm text-slate-900 shadow-sm transition-all placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:border-slate-700/50 dark:bg-slate-900/50 dark:text-white dark:placeholder:text-slate-500 dark:focus:bg-slate-900 sm:leading-6 hover:bg-white"
             />
             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
               <kbd className="inline-flex items-center rounded-md border border-slate-200 px-1.5 py-0.5 font-sans text-[10px] font-medium text-slate-400 dark:border-slate-700 dark:text-slate-500">
@@ -62,9 +62,15 @@ export function Topbar({ onMenuToggle }: { onMenuToggle: () => void }) {
           {/* Profile */}
           <div className="flex items-center gap-2 sm:gap-3">
             <button
-              className="flex items-center gap-2 rounded-full p-1 pr-2 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
+              className="flex items-center gap-2.5 rounded-full p-1 pr-3 transition-colors hover:bg-slate-100/80 dark:hover:bg-slate-800/50"
             >
-              <Avatar name={user?.name || "User"} size="sm" />
+              <div className="relative h-8 w-8 overflow-hidden rounded-full ring-2 ring-white shadow-sm dark:ring-slate-800">
+                <img
+                  src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
+                  alt={user?.name || "User"}
+                  className="h-full w-full object-cover"
+                />
+              </div>
               <span className="hidden flex-col items-start leading-none sm:flex gap-0.5">
                 <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{user?.name}</span>
                 <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500">

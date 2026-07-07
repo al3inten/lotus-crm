@@ -104,7 +104,7 @@ const INTEGRATION_UI: Record<IntegrationKey, { title: string; desc: string; icon
     icon: <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500"><ImageIcon className="h-6 w-6 text-white" /></div>,
   },
   CALLMATIC: {
-    title: "Callmatic",
+    title: "D-voice",
     desc: "Programmatic AI voice calling platform.",
     icon: <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#0F172A]"><PhoneCall className="h-6 w-6 text-white" /></div>,
   },

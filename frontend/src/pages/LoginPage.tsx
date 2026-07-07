@@ -39,9 +39,11 @@ export function LoginPage() {
   return (
     <div className="flex min-h-dvh w-full bg-slate-50 dark:bg-slate-950">
       {/* Brand panel — desktop/tablet only */}
-      <div className="relative hidden shrink-0 flex-col justify-between overflow-hidden bg-slate-900 p-10 text-white md:flex md:w-2/5 lg:w-1/2 lg:p-16">
-        <div className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-blue-600/25 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-32 -right-16 h-96 w-96 rounded-full bg-blue-500/25 blur-3xl" />
+      <div className="relative hidden shrink-0 flex-col justify-between overflow-hidden bg-slate-900 p-10 text-white md:flex md:w-2/5 lg:w-1/2 lg:p-16 shadow-2xl">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -left-[10%] -top-[50%] h-[200%] w-[50%] rounded-full bg-blue-600/30 blur-[120px]" />
+          <div className="absolute -right-[20%] top-[-20%] h-[150%] w-[60%] rounded-full bg-indigo-500/20 blur-[150px]" />
+        </div>
 
         <div className="relative z-10 flex items-center gap-3">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white p-1.5">
@@ -87,7 +89,7 @@ export function LoginPage() {
             Back to home
           </Link>
 
-          <div className="rounded-3xl border border-slate-200/80 bg-white p-7 shadow-[0_20px_50px_-20px_rgb(15,23,42,0.25)] dark:border-slate-800 dark:bg-slate-900 dark:shadow-[0_20px_50px_-20px_rgb(0,0,0,0.6)] sm:p-9">
+          <div className="rounded-[2.5rem] border border-slate-200/80 bg-white/80 backdrop-blur-xl p-7 shadow-[0_20px_50px_-20px_rgb(15,23,42,0.15)] dark:border-slate-800/80 dark:bg-slate-900/80 dark:shadow-[0_20px_50px_-20px_rgb(0,0,0,0.6)] sm:p-10">
             <div className="mb-7 flex flex-col items-center text-center">
               <span className="relative mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white p-2 shadow-md ring-1 ring-slate-200/70 dark:bg-slate-800 dark:ring-slate-700">
                 <span className="pointer-events-none absolute inset-0 -z-10 rounded-2xl bg-blue-400/20 blur-xl" />
