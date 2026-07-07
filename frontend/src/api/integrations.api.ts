@@ -17,16 +17,24 @@ export interface IntegrationConfigSummary {
   key: IntegrationKey;
   status: IntegrationStatus;
   hasCredentials: boolean;
+  enabled: boolean;
   lastError: string | null;
   lastTestedAt: string | null;
   updatedAt: string | null;
 }
 
-export interface MetaAdsCredentials {
+export interface MetaAdsPageSummary {
   pageId: string;
-  pageAccessToken: string;
-  appSecret: string;
-  verifyToken: string;
+  pageName: string;
+  leadFormCount: number;
+  webhookSubscribed: boolean;
+  lastSyncedAt: string | null;
+}
+
+export interface MetaAdsStatus {
+  connected: boolean;
+  fbUserName: string | null;
+  pages: MetaAdsPageSummary[];
 }
 
 export interface WhatsappCredentials {
@@ -62,6 +70,34 @@ export async function deleteIntegration(key: IntegrationKey): Promise<void> {
 
 export async function testIntegrationConnection(key: IntegrationKey): Promise<{ ok: boolean; message: string }> {
   const { data } = await axiosClient.post<{ ok: boolean; message: string }>(`/integrations/${key}/test`);
+  return data;
+}
+
+export async function toggleIntegration(key: IntegrationKey, enabled: boolean): Promise<void> {
+  await axiosClient.patch(`/integrations/${key}/enabled`, { enabled });
+}
+
+export async function startMetaOAuth(): Promise<{ url: string }> {
+  const { data } = await axiosClient.get<{ url: string }>("/integrations/meta/oauth/start");
+  return data;
+}
+
+export async function fetchMetaAdsStatus(): Promise<MetaAdsStatus> {
+  const { data } = await axiosClient.get<MetaAdsStatus>("/integrations/meta/pages");
+  return data;
+}
+
+export async function disconnectMetaAds(): Promise<void> {
+  await axiosClient.post("/integrations/meta/disconnect");
+}
+
+export async function syncMetaAdsPage(pageId: string): Promise<{ created: number }> {
+  const { data } = await axiosClient.post<{ created: number }>(`/integrations/meta/pages/${pageId}/sync`);
+  return data;
+}
+
+export async function syncAllMetaAdsPages(): Promise<{ created: number }> {
+  const { data } = await axiosClient.post<{ created: number }>("/integrations/meta/sync-all");
   return data;
 }
 

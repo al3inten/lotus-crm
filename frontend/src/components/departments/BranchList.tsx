@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Building2, Pencil, Trash2 } from "lucide-react";
 import clsx from "clsx";
 import type { Branch } from "../../types";
-import { useToggleAutoAssign, useUpdateBranch, useDeleteBranch } from "../../hooks/useBranches";
+import { useToggleAutoAssign, useToggleAutoCall, useUpdateBranch, useDeleteBranch } from "../../hooks/useBranches";
 import { Modal } from "../common/Modal";
 import { Input } from "../common/Input";
 import { Button } from "../common/Button";
@@ -66,6 +66,7 @@ interface BranchListProps {
 
 export function BranchList({ branches, selectedBranchId, onSelect }: BranchListProps) {
   const toggleAutoAssign = useToggleAutoAssign();
+  const toggleAutoCall = useToggleAutoCall();
   const deleteBranch = useDeleteBranch();
   const [editing, setEditing] = useState<Branch | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -128,11 +129,17 @@ export function BranchList({ branches, selectedBranchId, onSelect }: BranchListP
                 </button>
               </div>
             </div>
-            <div className="mt-3 border-t border-gray-100 pt-3" onClick={(e) => e.stopPropagation()}>
+            <div className="mt-3 flex flex-col gap-2 border-t border-gray-100 pt-3" onClick={(e) => e.stopPropagation()}>
               <Toggle
                 label="Auto-assign digital leads"
                 checked={branch.autoAssignEnabled}
                 onChange={(on) => toggleAutoAssign.mutate({ branchId: branch.id, autoAssignEnabled: on })}
+              />
+              <Toggle
+                label="Auto-call new digital leads"
+                description="Voice AI calls a lead automatically as soon as it's created (score 0)"
+                checked={branch.autoCallEnabled}
+                onChange={(on) => toggleAutoCall.mutate({ branchId: branch.id, autoCallEnabled: on })}
               />
             </div>
           </Card>

@@ -15,7 +15,10 @@ export async function listAgentConfigs() {
   const rows = await prisma.agentConfig.findMany();
   const byType = new Map(rows.map((r) => [r.type, r]));
 
-  return types.map((type) => byType.get(type) ?? { type, name: DEFAULT_NAMES[type], systemPrompt: "", isActive: false });
+  return types.map(
+    (type) =>
+      byType.get(type) ?? { type, name: DEFAULT_NAMES[type], systemPrompt: "", isActive: false, autoCallEnabled: false }
+  );
 }
 
 export async function upsertAgentConfig(type: AgentType, input: UpsertAgentConfigInput, updatedById: string) {
@@ -28,6 +31,7 @@ export async function upsertAgentConfig(type: AgentType, input: UpsertAgentConfi
       voiceName: input.voiceName,
       model: input.model,
       isActive: input.isActive ?? false,
+      autoCallEnabled: input.autoCallEnabled ?? false,
       updatedById,
     },
     update: {
@@ -36,6 +40,7 @@ export async function upsertAgentConfig(type: AgentType, input: UpsertAgentConfi
       voiceName: input.voiceName,
       model: input.model,
       isActive: input.isActive,
+      autoCallEnabled: input.autoCallEnabled,
       updatedById,
     },
   });

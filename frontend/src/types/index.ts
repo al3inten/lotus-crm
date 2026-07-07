@@ -121,6 +121,7 @@ export interface Branch {
   city: string;
   address?: string | null;
   autoAssignEnabled: boolean;
+  autoCallEnabled: boolean;
   isActive: boolean;
 }
 

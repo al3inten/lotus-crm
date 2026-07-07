@@ -31,12 +31,17 @@ export function StatTile({
     delta == null || delta === 0 ? VIZ.inkMuted : (delta > 0) === upIsGood ? VIZ.deltaGood : VIZ.deltaBad;
 
   return (
-    <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-black/5 transition-colors hover:bg-gray-50/50">
+    <div className={clsx(
+      "relative overflow-hidden rounded-2xl bg-white p-5 transition-all duration-300",
+      "border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]",
+      "dark:border-slate-800 dark:bg-slate-900 dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)]",
+      "hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-0.5 dark:hover:shadow-[0_8px_30px_rgb(0,0,0,0.3)]"
+    )}>
       <div className="flex items-start gap-3">
         {icon && (
           <span
             className={clsx(
-              "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset ring-black/5",
+              "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl",
               iconClassName
             )}
           >
@@ -44,18 +49,18 @@ export function StatTile({
           </span>
         )}
         <div className="min-w-0">
-          <p className="truncate text-xs font-medium text-gray-500">{label}</p>
-          <p className="mt-1 text-[1.65rem] font-bold leading-none tracking-tighter text-slate-950 tabular-nums">
+          <p className="truncate text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
+          <p className="mt-1 text-[1.65rem] font-bold leading-none tracking-tighter text-slate-900 tabular-nums dark:text-white">
             {typeof value === "number" ? formatCompact(value) : value}
-            {suffix && <span className="ml-0.5 text-base font-semibold text-gray-500">{suffix}</span>}
+            {suffix && <span className="ml-0.5 text-base font-semibold text-slate-500 dark:text-slate-400">{suffix}</span>}
           </p>
           {delta !== undefined && (
-            <p className="mt-1.5 flex items-center gap-1 text-xs font-medium" style={{ color: deltaColor }}>
+            <p className="mt-2 flex items-center gap-1 text-xs font-medium" style={{ color: deltaColor }}>
               {delta != null &&
                 delta !== 0 &&
                 (delta > 0 ? <ArrowUpRight size={12} strokeWidth={2.5} /> : <ArrowDownRight size={12} strokeWidth={2.5} />)}
               {delta == null ? "no prior data" : `${delta > 0 ? "+" : ""}${delta}%`}
-              {delta != null && deltaLabel && <span className="font-normal text-gray-400"> {deltaLabel}</span>}
+              {delta != null && deltaLabel && <span className="font-normal text-slate-400 dark:text-slate-500"> {deltaLabel}</span>}
             </p>
           )}
         </div>

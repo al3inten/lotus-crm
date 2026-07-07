@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { env } from "../../config/env";
 import { logger } from "../../lib/logger";
 import { verifyMetaSignature } from "./signature.util";
 import * as integrationsService from "../integrations/integrations.service";
@@ -7,11 +8,12 @@ import * as whatsappService from "./whatsapp.service";
 import * as instagramService from "./instagram.service";
 
 async function findMatchingVerifyToken(providedToken: string): Promise<boolean> {
-  const checks = [
-    integrationsService.getMetaAdsCredentials,
-    integrationsService.getWhatsappCredentials,
-    integrationsService.getInstagramCredentials,
-  ];
+  // Meta Ads' verify token is app-level env config (set once, alongside FACEBOOK_APP_SECRET) —
+  // it's not part of the per-admin OAuth login, unlike WhatsApp/Instagram which still use a
+  // manually-pasted per-row verify token.
+  if (env.META_WEBHOOK_VERIFY_TOKEN && providedToken === env.META_WEBHOOK_VERIFY_TOKEN) return true;
+
+  const checks = [integrationsService.getWhatsappCredentials, integrationsService.getInstagramCredentials];
 
   for (const getCreds of checks) {
     try {
@@ -43,7 +45,9 @@ export async function verifyWebhookHandler(req: Request, res: Response) {
 
 async function getAppSecretForObject(object: string): Promise<string | null> {
   try {
-    if (object === "page") return (await integrationsService.getMetaAdsCredentials()).appSecret;
+    // "page" (Meta Ads leadgen) verifies against the app-level secret now — App Secret isn't
+    // part of the per-admin OAuth login, it's the same Meta App for every connected account.
+    if (object === "page") return env.FACEBOOK_APP_SECRET ?? null;
     if (object === "whatsapp_business_account") return (await integrationsService.getWhatsappCredentials()).appSecret;
     if (object === "instagram") return (await integrationsService.getInstagramCredentials()).appSecret;
   } catch {
@@ -78,7 +82,7 @@ export async function receiveWebhookHandler(req: Request, res: Response) {
       if (object === "page") {
         for (const change of entry.changes ?? []) {
           if (change.field === "leadgen" && change.value?.leadgen_id) {
-            await metaLeadAdsService.handleLeadgenEvent(change.value.leadgen_id);
+            await metaLeadAdsService.handleLeadgenEvent(entry.id, change.value.leadgen_id);
           }
         }
       } else if (object === "whatsapp_business_account") {

@@ -38,6 +38,15 @@ export function useToggleAutoAssign() {
   });
 }
 
+export function useToggleAutoCall() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ branchId, autoCallEnabled }: { branchId: string; autoCallEnabled: boolean }) =>
+      branchesApi.toggleAutoCall(branchId, autoCallEnabled),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: branchKeys.all }),
+  });
+}
+
 export function useDeleteBranch() {
   const queryClient = useQueryClient();
   return useMutation({

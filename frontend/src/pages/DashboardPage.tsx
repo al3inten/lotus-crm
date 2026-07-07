@@ -89,18 +89,18 @@ export function DashboardPage() {
       {/* Stripe-like Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <span className="text-sm font-medium text-gray-500">
+          <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
             {today}
           </span>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-gray-900">
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
             Overview
           </h1>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
           {visibleActions.map((action) => (
             <Link key={action.to} to={action.to}>
-              <button className={`group flex cursor-pointer items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-200 transition-all duration-300 active:scale-95 hover:-translate-y-0.5 hover:shadow-md ${action.hoverClass}`}>
-                <span className={`text-gray-400 transition-transform duration-300 group-hover:scale-110 ${action.iconHoverClass}`}>
+              <button className={`group flex cursor-pointer items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-[0_4px_20px_rgb(0,0,0,0.03)] ring-1 ring-inset ring-slate-200 transition-all duration-300 active:scale-95 hover:-translate-y-0.5 hover:shadow-md dark:bg-slate-900 dark:text-slate-300 dark:ring-slate-800 ${action.hoverClass}`}>
+                <span className={`text-slate-400 transition-transform duration-300 group-hover:scale-110 ${action.iconHoverClass}`}>
                   {action.icon}
                 </span>
                 {action.title}
@@ -164,13 +164,13 @@ export function DashboardPage() {
             <div className="lg:col-span-2">
               <Card className="flex h-full flex-col">
                 <div className="mb-6 flex items-center justify-between">
-                  <h2 className="text-base font-semibold text-gray-900">Enquiry Trend</h2>
-                  <Link to="/reports" className="flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700">
+                  <h2 className="text-base font-semibold text-slate-900 dark:text-white">Enquiry Trend</h2>
+                  <Link to="/reports" className="flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300">
                     View report <ArrowUpRight size={14} />
                   </Link>
                 </div>
                 <div className="min-h-[250px] flex-1">
-                  {trend ? <TrendChart points={trend} /> : <p className="text-sm text-gray-400">Loading…</p>}
+                  {trend ? <TrendChart points={trend} /> : <p className="text-sm text-slate-400 dark:text-slate-500">Loading…</p>}
                 </div>
               </Card>
             </div>
@@ -178,7 +178,7 @@ export function DashboardPage() {
             {/* Top Sources */}
             <div className="lg:col-span-1">
               <Card className="h-full">
-                <h2 className="mb-6 text-base font-semibold text-gray-900">Top Lead Sources</h2>
+                <h2 className="mb-6 text-base font-semibold text-slate-900 dark:text-white">Top Lead Sources</h2>
                 {sources && sources.length > 0 ? (
                   <HBarList
                     rows={[...sources]
@@ -193,7 +193,7 @@ export function DashboardPage() {
                     color={VIZ.series1}
                   />
                 ) : (
-                  <p className="text-sm text-gray-400">No data yet.</p>
+                  <p className="text-sm text-slate-400 dark:text-slate-500">No data yet.</p>
                 )}
               </Card>
             </div>
@@ -203,33 +203,33 @@ export function DashboardPage() {
         {/* Recent Leads (Full Width) */}
         <div className="lg:col-span-3">
           <Card padded={false} className="overflow-hidden">
-            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-              <h2 className="text-base font-semibold text-gray-900">Recent Leads</h2>
-              <Link to="/leads" className="flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700">
+            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5 dark:border-slate-800">
+              <h2 className="text-base font-semibold text-slate-900 dark:text-white">Recent Leads</h2>
+              <Link to="/leads" className="flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300">
                 View all <ArrowUpRight size={14} />
               </Link>
             </div>
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-slate-100 dark:divide-slate-800">
               {recentLeads && recentLeads.items.length > 0 ? (
                 recentLeads.items.slice(0, 5).map((enquiry) => (
                   <Link
                     key={enquiry.id}
                     to={`/leads/${enquiry.leadId}`}
-                    className="flex items-center gap-4 px-6 py-4 transition-colors hover:bg-gray-50"
+                    className="flex items-center gap-4 px-6 py-4 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
                   >
                     <Avatar name={enquiry.lead.name} size="sm" />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-gray-900">{enquiry.lead.name}</p>
-                      <p className="truncate text-xs text-gray-500">
+                      <p className="truncate text-sm font-medium text-slate-900 dark:text-slate-200">{enquiry.lead.name}</p>
+                      <p className="truncate text-xs text-slate-500 dark:text-slate-400">
                         {enquiry.carModel} · {enquiry.branch.name}
                       </p>
                     </div>
                     <StatusBadge status={enquiry.status} />
-                    <span className="w-20 shrink-0 text-right text-xs text-gray-400">{timeAgo(enquiry.createdAt)}</span>
+                    <span className="w-20 shrink-0 text-right text-xs text-slate-400 dark:text-slate-500">{timeAgo(enquiry.createdAt)}</span>
                   </Link>
                 ))
               ) : (
-                <p className="px-6 py-8 text-center text-sm text-gray-400">No leads yet.</p>
+                <p className="px-6 py-8 text-center text-sm text-slate-400 dark:text-slate-500">No leads yet.</p>
               )}
             </div>
           </Card>

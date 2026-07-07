@@ -36,6 +36,13 @@ export async function testIntegrationHandler(req: Request, res: Response) {
   res.json(result);
 }
 
+export async function toggleIntegrationHandler(req: Request, res: Response) {
+  if (!req.user) throw new UnauthorizedError();
+  const key = parseKey(req.params.key);
+  await integrationsService.setEnabled(key, req.body.enabled, req.user.id);
+  res.status(204).send();
+}
+
 export async function syncGoogleSheetHandler(req: Request, res: Response) {
   if (!req.user) throw new UnauthorizedError();
   const { sheetUrl, sheetName, branchId } = req.body;

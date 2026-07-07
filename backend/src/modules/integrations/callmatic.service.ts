@@ -8,13 +8,13 @@ interface CallmaticCallDetails {
   variables: Record<string, string>;
 }
 
-export async function triggerBatchCalls(tasks: CallmaticCallDetails[]) {
+export async function triggerBatchCalls(tasks: CallmaticCallDetails[], campaignId?: string) {
   const creds = await getCallmaticCredentials();
-  
+
   const response = await axios.post(
     `${CALLMATIC_API_BASE}/calls/batch`,
     {
-      campaignId: creds.campaignId,
+      campaignId: campaignId || creds.campaignId,
       to: tasks,
     },
     {

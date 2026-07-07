@@ -27,14 +27,14 @@ export function LeadsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
-            <Car size={20} />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-4">
+          <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+            <Car size={22} />
           </span>
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">Leads</h1>
-            <p className="text-xs text-gray-500">Manage and follow up every enquiry across your showrooms.</p>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Leads</h1>
+            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Manage and follow up every enquiry across your showrooms.</p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -56,12 +56,12 @@ export function LeadsPage() {
 
       {isLoading || !data ? (
         <Card>
-          <p className="py-8 text-center text-sm text-gray-500">Loading leads…</p>
+          <p className="py-8 text-center text-sm font-medium text-slate-500 dark:text-slate-400">Loading leads…</p>
         </Card>
       ) : (
         <Card padded={false} className="overflow-hidden">
           <LeadTable enquiries={data.items} />
-          <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3 text-sm text-gray-500">
+          <div className="flex items-center justify-between border-t border-slate-100 px-5 py-4 text-sm font-medium text-slate-500 dark:border-slate-800 dark:text-slate-400">
             <span>
               Page {data.page} of {totalPages} · {data.total} total
             </span>

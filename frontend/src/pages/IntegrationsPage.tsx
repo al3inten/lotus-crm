@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import clsx from "clsx";
 import { useIntegrations } from "../hooks/useIntegrations";
 import { IntegrationCard } from "../components/integrations/IntegrationCard";
@@ -11,6 +12,16 @@ export function IntegrationsPage() {
   const { data: integrations, isLoading } = useIntegrations();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const metaOAuthResult = searchParams.get("meta");
+
+  useEffect(() => {
+    if (!metaOAuthResult) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete("meta");
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [metaOAuthResult]);
 
   const counts = useMemo(() => {
     const connected = integrations?.filter((i) => i.status === "CONNECTED").length ?? 0;
@@ -59,6 +70,18 @@ export function IntegrationsPage() {
             />
           </div>
         </header>
+
+        {/* Meta OAuth callback result banner */}
+        {metaOAuthResult === "connected" && (
+          <div className="mb-6 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+            <CheckCircle2 size={16} /> Facebook login connected — your Pages are listed under Meta Lead Ads.
+          </div>
+        )}
+        {metaOAuthResult === "error" && (
+          <div className="mb-6 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
+            <AlertTriangle size={16} /> Facebook login failed — please try again.
+          </div>
+        )}
 
         {/* Status Summary Strip */}
         {!isLoading && integrations && integrations.length > 0 && (

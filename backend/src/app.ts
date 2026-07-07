@@ -10,6 +10,7 @@ import leadsRoutes from "./modules/leads/leads.routes";
 import enquiriesRoutes from "./modules/enquiries/enquiries.routes";
 import reportsRoutes from "./modules/reports/reports.routes";
 import integrationsRoutes from "./modules/integrations/integrations.routes";
+import metaOAuthCallbackRoutes from "./modules/integrations/metaOAuthCallback.routes";
 import webhooksRoutes from "./modules/webhooks/webhooks.routes";
 import socialInboxRoutes from "./modules/social-inbox/social-inbox.routes";
 import mediaRoutes from "./modules/media/media.routes";
@@ -43,6 +44,9 @@ app.use("/api/branches", branchesRoutes);
 app.use("/api/leads", leadsRoutes);
 app.use("/api/enquiries", enquiriesRoutes);
 app.use("/api/reports", reportsRoutes);
+// Public callback registered first so it's handled before the JWT-protected router below —
+// any other path under this prefix (e.g. /meta/oauth/start) falls through to it untouched.
+app.use("/api/integrations/meta/oauth", metaOAuthCallbackRoutes);
 app.use("/api/integrations", integrationsRoutes);
 app.use("/api/webhooks", webhooksRoutes);
 app.use("/api/social-inbox", socialInboxRoutes);

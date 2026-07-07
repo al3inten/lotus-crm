@@ -21,11 +21,11 @@ export function CallmaticForm({ onSaved }: { onSaved: () => void }) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
       <p className="rounded-md bg-gray-50 p-2 text-xs text-gray-600">
-        Connects LotusCRM to Callmatic AI for automated outbound voice campaigns. You can find your API key and Campaign ID in the Callmatic Dashboard.
+        Connects LotusCRM to    for automated outbound voice campaigns. You can find your API key and Campaign ID in the Callmatic Dashboard.
       </p>
       <Input label="API Key" type="password" error={errors.apiKey?.message} {...register("apiKey")} />
       <Input label="Campaign ID" error={errors.campaignId?.message} {...register("campaignId")} />
-      
+
       {saveIntegration.isError && (
         <p className="text-sm text-red-600">Failed to save — check the values and try again.</p>
       )}

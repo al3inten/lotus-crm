@@ -54,7 +54,12 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/integrations", label: "Integrations", icon: <Plug size={18} />, module: "integrations", roles: ["SUPER_ADMIN", "ADMIN"] },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  isMobileMenuOpen: boolean;
+  setIsMobileMenuOpen: (val: boolean) => void;
+}
+
+export function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }: SidebarProps) {
   const { user } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -68,52 +73,64 @@ export function Sidebar() {
   });
 
   return (
-    <aside
-      className={clsx(
-        "relative flex h-full flex-col border-r border-gray-200 bg-white transition-all duration-300",
-        isCollapsed ? "w-20" : "w-60"
+    <>
+      {/* Mobile overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm md:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
       )}
-    >
-      <button
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute -right-3 top-6 z-20 flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm hover:text-gray-900"
+
+      <aside
+        className={clsx(
+          "fixed inset-y-0 left-0 z-50 flex h-full flex-col border-r border-slate-200 bg-white transition-all duration-300 md:relative md:z-0 dark:border-slate-800 dark:bg-slate-900",
+          isCollapsed ? "w-20" : "w-64",
+          isMobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        )}
       >
-        {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-      </button>
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="absolute -right-3 top-6 z-20 hidden h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-sm transition-colors hover:text-slate-900 md:flex dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500 dark:hover:text-white"
+        >
+          {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+        </button>
 
-      <div className="flex h-20 items-center justify-center px-4">
-        <div className={clsx("flex items-center gap-2.5", isCollapsed && "justify-center")}>
-          <img src="/hyundai-logo.jpg" alt="Hyundai" className="h-9 w-auto shrink-0 rounded-md object-contain" />
-          {!isCollapsed && (
-            <div className="overflow-hidden whitespace-nowrap leading-tight">
-              <p className="text-base font-bold text-gray-900">Lotus CRM</p>
-              <p className="text-[10px] font-medium uppercase tracking-widest text-gray-400">Hyundai</p>
-            </div>
-          )}
+        <div className="flex h-16 items-center justify-center px-4 shrink-0">
+          <div className={clsx("flex items-center gap-3", isCollapsed && "justify-center")}>
+            <img src="/hyundai-logo.jpg" alt="Hyundai" className="h-8 w-8 shrink-0 rounded-lg object-contain shadow-sm bg-white" />
+            {!isCollapsed && (
+              <div className="overflow-hidden whitespace-nowrap leading-tight">
+                <p className="text-base font-bold tracking-tight text-slate-900 dark:text-white">Lotus CRM</p>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-indigo-600 dark:text-indigo-400">Hyundai</p>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
 
-      <nav className="flex flex-1 flex-col gap-1 overflow-x-hidden overflow-y-auto px-3 pb-4">
-        {items.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            title={isCollapsed ? item.label : undefined}
-            className={({ isActive }) =>
-              clsx(
-                "flex items-center rounded-lg px-3 py-2 text-sm transition-colors",
-                isCollapsed ? "justify-center" : "gap-3",
-                isActive
-                  ? "bg-blue-50 font-semibold text-blue-700"
-                  : "font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-              )
-            }
-          >
-            <span className="shrink-0">{item.icon}</span>
-            {!isCollapsed && <span className="whitespace-nowrap">{item.label}</span>}
-          </NavLink>
-        ))}
-      </nav>
-    </aside>
+        <nav className="flex flex-1 flex-col gap-1.5 overflow-x-hidden overflow-y-auto px-3 pb-4 pt-4">
+          {items.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              title={isCollapsed ? item.label : undefined}
+              onClick={() => setIsMobileMenuOpen(false)}
+              className={({ isActive }) =>
+                clsx(
+                  "flex items-center rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                  isCollapsed ? "justify-center" : "gap-3",
+                  isActive
+                    ? "bg-indigo-50 font-semibold text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400"
+                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white"
+                )
+              }
+            >
+              <span className={clsx("shrink-0", isCollapsed ? "scale-110" : "")}>{item.icon}</span>
+              {!isCollapsed && <span className="whitespace-nowrap">{item.label}</span>}
+            </NavLink>
+          ))}
+        </nav>
+      </aside>
+    </>
   );
 }

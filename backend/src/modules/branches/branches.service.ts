@@ -31,6 +31,11 @@ export async function setAutoAssign(branchId: string, autoAssignEnabled: boolean
   return prisma.branch.update({ where: { id: branchId }, data: { autoAssignEnabled } });
 }
 
+export async function setAutoCall(branchId: string, autoCallEnabled: boolean) {
+  await getBranch(branchId);
+  return prisma.branch.update({ where: { id: branchId }, data: { autoCallEnabled } });
+}
+
 /**
  * Hard delete only for a branch with no history — staff, enquiries, and roles all
  * reference it. A branch with records must be deactivated instead.

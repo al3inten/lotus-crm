@@ -3,7 +3,8 @@ import type { ReactNode } from "react";
 import clsx from "clsx";
 import { Modal } from "../common/Modal";
 import { Button } from "../common/Button";
-import { useDeleteIntegration, useTestIntegration } from "../../hooks/useIntegrations";
+import { Toggle } from "../common/Toggle";
+import { useDeleteIntegration, useTestIntegration, useToggleIntegration } from "../../hooks/useIntegrations";
 import type { IntegrationConfigSummary, IntegrationKey } from "../../api/integrations.api";
 import { CATEGORY_BY_KEY } from "./integrationMeta";
 import { MetaAdsForm } from "./MetaAdsForm";
@@ -130,6 +131,7 @@ export function IntegrationCard({ config }: { config: IntegrationConfigSummary }
 
   const testIntegration = useTestIntegration();
   const deleteIntegration = useDeleteIntegration();
+  const toggleIntegration = useToggleIntegration();
 
   const handleTest = async () => {
     try {
@@ -161,7 +163,14 @@ export function IntegrationCard({ config }: { config: IntegrationConfigSummary }
       <div className="flex items-start gap-4">
         {ui.icon}
         <div className="flex min-w-0 flex-1 flex-col items-start pt-1">
-          <h3 className="truncate text-base font-semibold text-slate-900">{ui.title}</h3>
+          <div className="flex w-full items-center justify-between gap-2">
+            <h3 className="truncate text-base font-semibold text-slate-900">{ui.title}</h3>
+            <Toggle
+              checked={config.enabled}
+              onChange={(enabled) => toggleIntegration.mutate({ key: config.key, enabled })}
+              disabled={toggleIntegration.isPending}
+            />
+          </div>
           <span className="mt-0.5 text-xs font-medium uppercase tracking-wide text-slate-400">{category}</span>
           <span
             className={clsx(

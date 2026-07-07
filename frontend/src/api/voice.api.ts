@@ -13,7 +13,29 @@ export interface CallLog {
   durationSeconds?: number | null;
   recordingUrl?: string | null;
   summary?: string | null;
+  transcript?: string | null;
+  insights?: unknown;
   createdAt: string;
+}
+
+export interface GlobalCallLog extends CallLog {
+  conversation?: { lead?: { id: string; name: string } | null } | null;
+}
+
+export interface ListCallLogsFilters {
+  phoneNumber?: string;
+  status?: CallStatus | "";
+  dateFrom?: string;
+  dateTo?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface ListCallLogsResult {
+  items: GlobalCallLog[];
+  total: number;
+  page: number;
+  pageSize: number;
 }
 
 export interface OutboundCallTask {
@@ -30,6 +52,7 @@ export interface OutboundCallCampaign {
   name: string;
   status: CampaignStatus;
   createdAt: string;
+  callmaticCampaignId?: string | null;
   tasks: OutboundCallTask[];
 }
 
@@ -37,6 +60,7 @@ export interface CreateCallCampaignPayload {
   name: string;
   branchId?: string;
   enquiryIds: string[];
+  callmaticCampaignId?: string;
 }
 
 export async function fetchCallCampaigns(): Promise<OutboundCallCampaign[]> {
@@ -61,5 +85,12 @@ export async function pauseCallCampaign(campaignId: string): Promise<OutboundCal
 
 export async function fetchCallLogsForLead(leadId: string): Promise<CallLog[]> {
   const { data } = await axiosClient.get<CallLog[]>(`/voice/call-logs/lead/${leadId}`);
+  return data;
+}
+
+export async function fetchCallLogs(filters: ListCallLogsFilters): Promise<ListCallLogsResult> {
+  const { data } = await axiosClient.get<ListCallLogsResult>("/voice/call-logs", {
+    params: filters,
+  });
   return data;
 }

@@ -1,11 +1,190 @@
 import { useState } from "react";
-import { useCallCampaigns, useCreateCallCampaign, useStartCallCampaign, usePauseCallCampaign } from "../hooks/useVoice";
+import {
+  useCallCampaigns,
+  useCreateCallCampaign,
+  useStartCallCampaign,
+  usePauseCallCampaign,
+  useCallLogs,
+} from "../hooks/useVoice";
 import { useLeads } from "../hooks/useLeads";
 import { Button } from "../components/common/Button";
-import { Input } from "../components/common/Input";
+import { Input, Select } from "../components/common/Input";
 import { Modal } from "../components/common/Modal";
 import { LeadFilters } from "../components/leads/LeadFilters";
 import type { LeadFilters as LeadFiltersType } from "../api/leads.api";
+import type { CallStatus, GlobalCallLog, ListCallLogsFilters } from "../api/voice.api";
+
+const CALL_STATUSES: CallStatus[] = ["QUEUED", "DIALING", "IN_PROGRESS", "COMPLETED", "NO_ANSWER", "FAILED"];
+
+function formatDuration(seconds?: number | null) {
+  if (!seconds) return "—";
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return mins > 0 ? `${mins} min ${secs} sec` : `${secs} sec`;
+}
+
+function CallDetailModal({
+  log,
+  field,
+  onClose,
+}: {
+  log: GlobalCallLog | null;
+  field: "transcript" | "insights";
+  onClose: () => void;
+}) {
+  if (!log) return null;
+  const content =
+    field === "transcript"
+      ? log.transcript ?? "No transcript available."
+      : log.insights
+        ? JSON.stringify(log.insights, null, 2)
+        : "No insights available.";
+
+  return (
+    <Modal isOpen={!!log} onClose={onClose} title={field === "transcript" ? "Call Transcript" : "Call Insights"}>
+      <pre className="max-h-[60vh] overflow-y-auto whitespace-pre-wrap break-words rounded-md bg-gray-50 p-3 text-xs text-gray-700">
+        {content}
+      </pre>
+    </Modal>
+  );
+}
+
+function CallLogTable() {
+  const [filters, setFilters] = useState<ListCallLogsFilters>({ page: 1, pageSize: 20 });
+  const { data, isLoading } = useCallLogs(filters);
+  const [detail, setDetail] = useState<{ log: GlobalCallLog; field: "transcript" | "insights" } | null>(null);
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-end gap-3 rounded-lg border border-gray-200 bg-white p-4">
+        <Input
+          label="Phone Number"
+          value={filters.phoneNumber ?? ""}
+          onChange={(e) => setFilters((f) => ({ ...f, phoneNumber: e.target.value || undefined, page: 1 }))}
+          placeholder="Search by phone"
+        />
+        <Select
+          label="Status"
+          value={filters.status ?? ""}
+          onChange={(e) => setFilters((f) => ({ ...f, status: (e.target.value || undefined) as CallStatus, page: 1 }))}
+        >
+          <option value="">All</option>
+          {CALL_STATUSES.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </Select>
+        <Input
+          label="From"
+          type="date"
+          value={filters.dateFrom ?? ""}
+          onChange={(e) => setFilters((f) => ({ ...f, dateFrom: e.target.value || undefined, page: 1 }))}
+        />
+        <Input
+          label="To"
+          type="date"
+          value={filters.dateTo ?? ""}
+          onChange={(e) => setFilters((f) => ({ ...f, dateTo: e.target.value || undefined, page: 1 }))}
+        />
+        <Button variant="secondary" onClick={() => setFilters({ page: 1, pageSize: 20 })}>
+          Reset
+        </Button>
+      </div>
+
+      <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50 text-left text-xs font-medium text-gray-500">
+            <tr>
+              <th className="px-4 py-2">Time</th>
+              <th className="px-4 py-2">To Phone Number</th>
+              <th className="px-4 py-2">Status</th>
+              <th className="px-4 py-2">Duration</th>
+              <th className="px-4 py-2">Recording</th>
+              <th className="px-4 py-2">Transcript</th>
+              <th className="px-4 py-2">Insights</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {isLoading ? (
+              <tr>
+                <td colSpan={7} className="px-4 py-6 text-center text-gray-500">
+                  Loading…
+                </td>
+              </tr>
+            ) : data?.items.length ? (
+              data.items.map((log) => (
+                <tr key={log.id}>
+                  <td className="whitespace-nowrap px-4 py-2 text-gray-600">
+                    {new Date(log.createdAt).toLocaleString()}
+                  </td>
+                  <td className="px-4 py-2 text-gray-900">{log.toNumber}</td>
+                  <td className="px-4 py-2 text-xs">{log.status}</td>
+                  <td className="px-4 py-2 text-gray-600">{formatDuration(log.durationSeconds)}</td>
+                  <td className="px-4 py-2">
+                    {log.recordingUrl ? <audio controls src={log.recordingUrl} className="h-8" /> : "—"}
+                  </td>
+                  <td className="px-4 py-2">
+                    <button
+                      className="text-blue-600 hover:underline disabled:text-gray-300 disabled:no-underline"
+                      disabled={!log.transcript}
+                      onClick={() => setDetail({ log, field: "transcript" })}
+                    >
+                      View
+                    </button>
+                  </td>
+                  <td className="px-4 py-2">
+                    <button
+                      className="text-blue-600 hover:underline disabled:text-gray-300 disabled:no-underline"
+                      disabled={!log.insights}
+                      onClick={() => setDetail({ log, field: "insights" })}
+                    >
+                      View
+                    </button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={7} className="px-4 py-6 text-center text-gray-500">
+                  No calls found.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {data && data.total > data.pageSize && (
+        <div className="flex items-center justify-between text-sm text-gray-500">
+          <span>
+            Showing {(data.page - 1) * data.pageSize + 1} to {Math.min(data.page * data.pageSize, data.total)} of{" "}
+            {data.total} results
+          </span>
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              disabled={data.page <= 1}
+              onClick={() => setFilters((f) => ({ ...f, page: (f.page ?? 1) - 1 }))}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="secondary"
+              disabled={data.page * data.pageSize >= data.total}
+              onClick={() => setFilters((f) => ({ ...f, page: (f.page ?? 1) + 1 }))}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {detail && <CallDetailModal log={detail.log} field={detail.field} onClose={() => setDetail(null)} />}
+    </div>
+  );
+}
+
 
 function CreateCampaignModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const [name, setName] = useState("");
@@ -56,6 +235,7 @@ function CreateCampaignModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
 }
 
 export function CallCampaignsPage() {
+  const [tab, setTab] = useState<"campaigns" | "call-log">("campaigns");
   const [showCreate, setShowCreate] = useState(false);
   const { data: campaigns, isLoading } = useCallCampaigns();
   const startCampaign = useStartCallCampaign();
@@ -68,10 +248,27 @@ export function CallCampaignsPage() {
           <h1 className="text-2xl font-semibold text-gray-900">Call Campaigns</h1>
           <p className="text-sm text-gray-500">Queue leads for the AI voice agent to call. Requires the Voice agent to be active.</p>
         </div>
-        <Button onClick={() => setShowCreate(true)}>+ New Campaign</Button>
+        {tab === "campaigns" && <Button onClick={() => setShowCreate(true)}>+ New Campaign</Button>}
       </div>
 
-      {isLoading ? (
+      <div className="flex gap-1 border-b border-gray-200">
+        <button
+          className={`px-3 py-2 text-sm font-medium ${tab === "campaigns" ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-500"}`}
+          onClick={() => setTab("campaigns")}
+        >
+          Campaigns
+        </button>
+        <button
+          className={`px-3 py-2 text-sm font-medium ${tab === "call-log" ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-500"}`}
+          onClick={() => setTab("call-log")}
+        >
+          Call Log
+        </button>
+      </div>
+
+      {tab === "call-log" ? (
+        <CallLogTable />
+      ) : isLoading ? (
         <p className="text-sm text-gray-500">Loading…</p>
       ) : (
         <div className="flex flex-col gap-4">

@@ -23,3 +23,17 @@ export async function pauseCampaignHandler(req: Request, res: Response) {
 export async function getCallLogsForLeadHandler(req: Request, res: Response) {
   res.json(await voiceService.getCallLogsForLead(req.params.leadId));
 }
+
+export async function listCallLogsHandler(req: Request, res: Response) {
+  const { phoneNumber, status, dateFrom, dateTo, page, pageSize } = req.query;
+  res.json(
+    await voiceService.listCallLogs({
+      phoneNumber: typeof phoneNumber === "string" ? phoneNumber : undefined,
+      status: typeof status === "string" ? status : undefined,
+      dateFrom: typeof dateFrom === "string" ? dateFrom : undefined,
+      dateTo: typeof dateTo === "string" ? dateTo : undefined,
+      page: page ? Number(page) : undefined,
+      pageSize: pageSize ? Number(pageSize) : undefined,
+    })
+  );
+}

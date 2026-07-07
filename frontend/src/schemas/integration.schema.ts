@@ -1,12 +1,7 @@
 import { z } from "zod";
 
-export const metaAdsCredentialsFormSchema = z.object({
-  pageId: z.string().min(1, "Page ID is required"),
-  pageAccessToken: z.string().min(1, "Page access token is required"),
-  appSecret: z.string().min(1, "App secret is required"),
-  verifyToken: z.string().min(1, "Verify token is required"),
-});
-export type MetaAdsCredentialsFormValues = z.infer<typeof metaAdsCredentialsFormSchema>;
+// Meta Ads no longer uses a manual credentials form — see MetaAdsForm.tsx, which now
+// drives the "Login with Facebook" OAuth flow instead.
 
 export const whatsappCredentialsFormSchema = z.object({
   phoneNumberId: z.string().min(1, "Phone number ID is required"),

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as voiceApi from "../api/voice.api";
-import type { CreateCallCampaignPayload } from "../api/voice.api";
+import type { CreateCallCampaignPayload, ListCallLogsFilters } from "../api/voice.api";
 
 export function useCallCampaigns() {
   return useQuery({
@@ -39,5 +39,13 @@ export function useCallLogsForLead(leadId: string | undefined) {
     queryKey: ["call-logs", "lead", leadId],
     queryFn: () => voiceApi.fetchCallLogsForLead(leadId!),
     enabled: !!leadId,
+  });
+}
+
+export function useCallLogs(filters: ListCallLogsFilters) {
+  return useQuery({
+    queryKey: ["call-logs", "all", filters],
+    queryFn: () => voiceApi.fetchCallLogs(filters),
+    refetchInterval: 10_000,
   });
 }

@@ -34,9 +34,58 @@ export function useTestIntegration() {
   });
 }
 
+export function useToggleIntegration() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ key, enabled }: { key: IntegrationKey; enabled: boolean }) =>
+      integrationsApi.toggleIntegration(key, enabled),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["integrations"] }),
+  });
+}
+
 export function useSyncGoogleSheet() {
   return useMutation({
     mutationFn: ({ sheetUrl, sheetName, branchId }: { sheetUrl: string; sheetName?: string; branchId: string }) =>
       integrationsApi.syncGoogleSheet(sheetUrl, sheetName, branchId),
+  });
+}
+
+export function useMetaAdsStatus() {
+  return useQuery({
+    queryKey: ["meta-ads-status"],
+    queryFn: integrationsApi.fetchMetaAdsStatus,
+  });
+}
+
+export function useStartMetaOAuth() {
+  return useMutation({
+    mutationFn: integrationsApi.startMetaOAuth,
+  });
+}
+
+export function useDisconnectMetaAds() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: integrationsApi.disconnectMetaAds,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["integrations"] });
+      queryClient.invalidateQueries({ queryKey: ["meta-ads-status"] });
+    },
+  });
+}
+
+export function useSyncMetaAdsPage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (pageId: string) => integrationsApi.syncMetaAdsPage(pageId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["meta-ads-status"] }),
+  });
+}
+
+export function useSyncAllMetaAdsPages() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: integrationsApi.syncAllMetaAdsPages,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["meta-ads-status"] }),
   });
 }

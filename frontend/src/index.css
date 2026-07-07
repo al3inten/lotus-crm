@@ -2,7 +2,21 @@
 
 @theme {
   --font-sans: "Inter", system-ui, "Segoe UI", Roboto, sans-serif;
+  
+  /* Premium colors */
+  --color-brand-primary: var(--color-indigo-600);
+  --color-brand-hover: var(--color-indigo-700);
+  --color-surface: var(--color-white);
+  --color-surface-dark: var(--color-slate-900);
+  
+  /* Premium Shadows */
+  --shadow-premium: 0 8px 30px rgb(0 0 0 / 0.04);
+  --shadow-premium-hover: 0 8px 30px rgb(0 0 0 / 0.08);
+  --shadow-premium-dark: 0 8px 30px rgb(0 0 0 / 0.2);
+  --shadow-premium-dark-hover: 0 8px 30px rgb(0 0 0 / 0.3);
 }
+
+@custom-variant dark (&:is(.dark *));
 
 html,
 body,
@@ -15,7 +29,14 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f8fafc;
+  background-color: var(--color-slate-50);
+  color: var(--color-slate-900);
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.dark body {
+  background-color: var(--color-slate-950);
+  color: var(--color-slate-50);
 }
 
 /* Theme react-datepicker to match the app's Tailwind blue accent. */

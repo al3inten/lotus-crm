@@ -10,6 +10,7 @@ import {
   startCampaignHandler,
   pauseCampaignHandler,
   getCallLogsForLeadHandler,
+  listCallLogsHandler,
 } from "./voice.controller";
 
 const router = Router();
@@ -26,5 +27,10 @@ router.post(
 router.post("/campaigns/:campaignId/start", requireRole("SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"), asyncHandler(startCampaignHandler));
 router.post("/campaigns/:campaignId/pause", requireRole("SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"), asyncHandler(pauseCampaignHandler));
 router.get("/call-logs/lead/:leadId", asyncHandler(getCallLogsForLeadHandler));
+router.get(
+  "/call-logs",
+  requireRole("SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER", "CR_TEAM"),
+  asyncHandler(listCallLogsHandler)
+);
 
 export default router;

@@ -1,10 +1,12 @@
 import { z } from "zod";
 
+// Populated by the OAuth callback (metaOAuth.controller.ts), never by a manual form —
+// the app secret and webhook verify token are app-level env config now (FACEBOOK_APP_SECRET,
+// META_WEBHOOK_VERIFY_TOKEN), and per-Page access tokens live in the MetaAdsPage table.
 export const metaAdsCredentialsSchema = z.object({
-  pageId: z.string().min(1),
-  pageAccessToken: z.string().min(1),
-  appSecret: z.string().min(1),
-  verifyToken: z.string().min(1),
+  fbUserId: z.string().min(1),
+  fbUserName: z.string().min(1),
+  longLivedUserAccessToken: z.string().min(1),
 });
 
 export const whatsappCredentialsSchema = z.object({
@@ -85,6 +87,10 @@ export type CallmaticCredentials = z.infer<typeof callmaticCredentialsSchema>;
 
 export const saveIntegrationSchema = z.object({
   credentials: z.record(z.string(), z.unknown()),
+});
+
+export const toggleIntegrationSchema = z.object({
+  enabled: z.boolean(),
 });
 
 export const syncGoogleSheetSchema = z.object({

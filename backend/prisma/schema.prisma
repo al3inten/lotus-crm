@@ -131,6 +131,31 @@ enum MediaType {
   DOCUMENT
 }
 
+// Outcome of the automated Voice AI outbound call itself (did the phone get answered),
+// distinct from CallStatus which tracks the CallLog/OutboundCallTask lifecycle.
+enum CallOutcome {
+  ANSWERED
+  NO_ANSWER
+  BUSY
+}
+
+// The lead's stated intent once the Voice AI actually gets them on the line.
+enum EnquiryResponse {
+  INTERESTED
+  NOT_INTERESTED
+  CALLBACK
+  FOLLOW_UP
+}
+
+// What the CR team should do next, derived from callOutcome/response after the auto-call.
+enum NextAction {
+  RETRY_CALL
+  SCHEDULE_CALLBACK
+  SCHEDULE_FOLLOW_UP
+  ASSIGN_TO_CR
+  MARK_LOST
+}
+
 // ---------- CORE ----------
 
 model Branch {
@@ -140,6 +165,10 @@ model Branch {
   city              String
   address           String?
   autoAssignEnabled Boolean  @default(true)
+  // Per-branch override for the Voice AI auto-dial pipeline — both this AND
+  // AgentConfig(VOICE).autoCallEnabled must be true for a digital lead in this branch
+  // to get auto-called.
+  autoCallEnabled   Boolean  @default(true)
   isActive          Boolean  @default(true)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
@@ -260,6 +289,13 @@ model Enquiry {
   followUpDueAt DateTime?
   lossReason    LossReason?
   lossNote      String?
+
+  // Digital-lead auto-dial pipeline (Voice AI outbound call on new digital enquiries).
+  score         Int              @default(0)
+  callTriggered Boolean          @default(false)
+  callOutcome   CallOutcome?
+  response      EnquiryResponse?
+  nextAction    NextAction?
 
   assignedCrId String?
   assignedCr   User?   @relation("AssignedCr", fields: [assignedCrId], references: [id])
@@ -411,6 +447,9 @@ model IntegrationConfig {
   // Never decrypted for API responses; only decrypted server-side when calling the provider.
   encryptedCredentials String?
   status               IntegrationStatus @default(NOT_CONFIGURED)
+  // When false, getCredentials() in integrations.service.ts refuses to hand out credentials —
+  // this is the single chokepoint that turns an integration off everywhere it's used.
+  enabled              Boolean           @default(true)
   lastError            String?
   lastTestedAt         DateTime?
   updatedAt            DateTime          @updatedAt
@@ -418,6 +457,24 @@ model IntegrationConfig {
   updatedBy            User?             @relation("IntegrationUpdatedBy", fields: [updatedById], references: [id])
 
   @@map("integration_configs")
+}
+
+// One row per Facebook Page connected via the Meta Ads "Login with Facebook" OAuth flow.
+// The IntegrationConfig(key=META_ADS) row holds the FB user identity + long-lived user token;
+// each Page gets its own row here since Page access tokens differ per Page.
+model MetaAdsPage {
+  id                    String    @id @default(cuid())
+  pageId                String    @unique
+  pageName              String
+  // AES-256-GCM encrypted Page access token — see backend/src/lib/crypto.ts.
+  encryptedAccessToken  String
+  leadFormCount         Int       @default(0)
+  webhookSubscribed     Boolean   @default(false)
+  lastSyncedAt          DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@map("meta_ads_pages")
 }
 
 // A conversation with one external contact on WhatsApp or Instagram.
@@ -473,6 +530,9 @@ model AgentConfig {
   voiceName    String?
   model        String    @default("gemini-2.0-flash-live-001")
   isActive     Boolean   @default(false)
+  // Global kill switch for the auto-dial pipeline (VOICE type only) — separate from
+  // isActive, which gates the voice agent/manual campaigns generally.
+  autoCallEnabled Boolean @default(false)
   updatedById  String?
   updatedBy    User?     @relation("AgentConfigUpdatedBy", fields: [updatedById], references: [id])
   updatedAt    DateTime  @updatedAt
@@ -527,6 +587,8 @@ model CallLog {
   durationSeconds Int?
   recordingUrl    String?
   summary         String?      @db.Text
+  transcript      String?      @db.Text
+  insights        Json?
   externalCallId  String?      @unique
   createdAt       DateTime     @default(now())
 
@@ -541,6 +603,10 @@ model OutboundCallCampaign {
   name          String
   agentConfigId String
   branchId      String?
+  // Callmatic has no API to create campaigns — each one is created by hand in their
+  // dashboard. This is that campaign's ID, pasted in so calls route to the right place.
+  // Null falls back to the single campaignId stored in Integration settings.
+  callmaticCampaignId String?
   status        CampaignStatus @default(DRAFT)
   createdById   String
   createdBy     User           @relation("CallCampaignCreatedBy", fields: [createdById], references: [id])
@@ -559,6 +625,9 @@ model OutboundCallTask {
   enquiryId     String
   enquiry       Enquiry              @relation(fields: [enquiryId], references: [id])
   phoneNumber   String
+  // Callmatic's own call ID — set as soon as the call is triggered, used to poll
+  // GET /calls/{callId} for completion data when their webhook can't be relied on.
+  externalCallId String?             @unique
   status        CallStatus           @default(QUEUED)
   attemptCount  Int                  @default(0)
   lastAttemptAt DateTime?

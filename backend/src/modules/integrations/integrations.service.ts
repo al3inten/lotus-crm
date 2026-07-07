@@ -7,7 +7,7 @@ import { v2 as cloudinary } from "cloudinary";
 import { IntegrationKey as PrismaIntegrationKey } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { encryptJson, decryptJson } from "../../lib/crypto";
-import { NotFoundError, ValidationError } from "../../lib/errors";
+import { ForbiddenError, NotFoundError, ValidationError } from "../../lib/errors";
 import {
   CREDENTIAL_SCHEMAS,
   IntegrationKey,
@@ -48,10 +48,19 @@ export async function listConfigs() {
       key,
       status: row?.status ?? "NOT_CONFIGURED",
       hasCredentials: !!row?.encryptedCredentials,
+      enabled: row?.enabled ?? true,
       lastError: row?.lastError ?? null,
       lastTestedAt: row?.lastTestedAt ?? null,
       updatedAt: row?.updatedAt ?? null,
     };
+  });
+}
+
+export async function setEnabled(key: IntegrationKey, enabled: boolean, updatedById: string) {
+  await prisma.integrationConfig.upsert({
+    where: { key: key as PrismaIntegrationKey },
+    create: { key: key as PrismaIntegrationKey, enabled, updatedById },
+    update: { enabled, updatedById },
   });
 }
 
@@ -70,6 +79,7 @@ export async function saveCredentials(key: IntegrationKey, rawCredentials: unkno
       key: key as PrismaIntegrationKey,
       encryptedCredentials: encrypted,
       status: "CONNECTED",
+      enabled: true,
       updatedById,
     },
     update: {
@@ -77,6 +87,8 @@ export async function saveCredentials(key: IntegrationKey, rawCredentials: unkno
       status: "CONNECTED",
       lastError: null,
       updatedById,
+      // enabled is intentionally left untouched — re-saving/re-authorizing credentials
+      // shouldn't silently flip an integration an admin turned off back on.
     },
   });
 }
@@ -95,10 +107,28 @@ async function getCredentials<T>(key: IntegrationKey): Promise<T> {
   if (!row?.encryptedCredentials) {
     throw new NotFoundError(`${key} is not configured`);
   }
+  // Single chokepoint: every credential consumer in the codebase (webhooks, outbound
+  // sends, sync jobs, AI providers) goes through here, so this is the one place the
+  // enable/disable toggle needs to be enforced.
+  if (!row.enabled) {
+    throw new ForbiddenError(`${key} is disabled`);
+  }
   return decryptJson<T>(row.encryptedCredentials);
 }
 
 export const getMetaAdsCredentials = () => getCredentials<MetaAdsCredentials>("META_ADS");
+
+/**
+ * Reads just the connected Facebook identity for display purposes, bypassing the `enabled`
+ * gate — an admin who disabled Meta Ads should still see who it's connected as, not a
+ * "logged out" state, since disabling doesn't clear the saved login.
+ */
+export async function getMetaAdsIdentity(): Promise<{ fbUserId: string; fbUserName: string } | null> {
+  const row = await prisma.integrationConfig.findUnique({ where: { key: "META_ADS" } });
+  if (!row?.encryptedCredentials) return null;
+  const creds = decryptJson<MetaAdsCredentials>(row.encryptedCredentials);
+  return { fbUserId: creds.fbUserId, fbUserName: creds.fbUserName };
+}
 export const getWhatsappCredentials = () => getCredentials<WhatsappCredentials>("WHATSAPP");
 export const getInstagramCredentials = () => getCredentials<InstagramCredentials>("INSTAGRAM");
 export const getGoogleSheetsCredentials = () => getCredentials<GoogleSheetsCredentials>("GOOGLE_SHEETS");
@@ -132,11 +162,11 @@ export async function testConnection(key: IntegrationKey): Promise<{ ok: boolean
     switch (key) {
       case "META_ADS": {
         const creds = await getMetaAdsCredentials();
-        const { data } = await axios.get(`${GRAPH_API_BASE}/${creds.pageId}`, {
-          params: { fields: "id,name", access_token: creds.pageAccessToken },
+        const { data } = await axios.get(`${GRAPH_API_BASE}/me`, {
+          params: { fields: "id,name", access_token: creds.longLivedUserAccessToken },
         });
         await markResult(key, true);
-        return { ok: true, message: `Connected to Page "${data.name}"` };
+        return { ok: true, message: `Connected as ${data.name}` };
       }
       case "WHATSAPP": {
         const creds = await getWhatsappCredentials();

@@ -6,6 +6,7 @@ export const upsertAgentConfigSchema = z.object({
   voiceName: z.string().optional(),
   model: z.string().optional(),
   isActive: z.boolean().optional(),
+  autoCallEnabled: z.boolean().optional(),
 });
 
 export const generatePromptSchema = z.object({

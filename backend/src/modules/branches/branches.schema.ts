@@ -19,5 +19,9 @@ export const toggleAutoAssignSchema = z.object({
   autoAssignEnabled: z.boolean(),
 });
 
+export const toggleAutoCallSchema = z.object({
+  autoCallEnabled: z.boolean(),
+});
+
 export type CreateBranchInput = z.infer<typeof createBranchSchema>;
 export type UpdateBranchInput = z.infer<typeof updateBranchSchema>;

@@ -18,6 +18,14 @@ const envSchema = z.object({
   // is already established before the voice/chat agent code exists.
   GEMINI_API_KEY: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
+
+  // Meta (Facebook) Lead Ads OAuth login — app-level config from the Meta Developer dashboard,
+  // shared across every admin who connects a Facebook account. Optional so environments without
+  // Meta configured yet still boot; the OAuth routes throw a clear error if used without these.
+  FACEBOOK_APP_ID: z.string().optional(),
+  FACEBOOK_APP_SECRET: z.string().optional(),
+  META_WEBHOOK_VERIFY_TOKEN: z.string().optional(),
+  BACKEND_PUBLIC_URL: z.string().default("http://localhost:4000"),
 });
 
 const parsed = envSchema.safeParse(process.env);

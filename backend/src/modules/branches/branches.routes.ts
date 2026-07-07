@@ -4,13 +4,14 @@ import { verifyJwt } from "../../middleware/auth";
 import { requireRole } from "../../middleware/rbac";
 import { applyBranchScope } from "../../middleware/branchScope";
 import { validateBody } from "../../middleware/validate";
-import { createBranchSchema, updateBranchSchema, toggleAutoAssignSchema } from "./branches.schema";
+import { createBranchSchema, updateBranchSchema, toggleAutoAssignSchema, toggleAutoCallSchema } from "./branches.schema";
 import {
   createBranchHandler,
   listBranchesHandler,
   getBranchHandler,
   updateBranchHandler,
   toggleAutoAssignHandler,
+  toggleAutoCallHandler,
   deleteBranchHandler,
 } from "./branches.controller";
 
@@ -40,6 +41,13 @@ router.patch(
   requireRole("SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"),
   validateBody(toggleAutoAssignSchema),
   asyncHandler(toggleAutoAssignHandler)
+);
+
+router.patch(
+  "/:branchId/auto-call",
+  requireRole("SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"),
+  validateBody(toggleAutoCallSchema),
+  asyncHandler(toggleAutoCallHandler)
 );
 
 router.delete("/:branchId", requireRole("SUPER_ADMIN", "ADMIN"), asyncHandler(deleteBranchHandler));

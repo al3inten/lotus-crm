@@ -7,6 +7,7 @@ export interface CreateBranchPayload {
   city: string;
   address?: string;
   autoAssignEnabled?: boolean;
+  autoCallEnabled?: boolean;
 }
 
 export async function fetchBranches(): Promise<Branch[]> {
@@ -26,6 +27,11 @@ export async function updateBranch(branchId: string, payload: Partial<CreateBran
 
 export async function toggleAutoAssign(branchId: string, autoAssignEnabled: boolean): Promise<Branch> {
   const { data } = await axiosClient.patch<Branch>(`/branches/${branchId}/auto-assign`, { autoAssignEnabled });
+  return data;
+}
+
+export async function toggleAutoCall(branchId: string, autoCallEnabled: boolean): Promise<Branch> {
+  const { data } = await axiosClient.patch<Branch>(`/branches/${branchId}/auto-call`, { autoCallEnabled });
   return data;
 }
 

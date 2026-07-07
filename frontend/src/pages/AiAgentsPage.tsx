@@ -3,6 +3,7 @@ import { useAgentConfigs, useSaveAgentConfig, useGeneratePrompt } from "../hooks
 import { Button } from "../components/common/Button";
 import { Input, Textarea } from "../components/common/Input";
 import { Modal } from "../components/common/Modal";
+import { Toggle } from "../components/common/Toggle";
 import type { AgentConfig, AgentType } from "../api/agentConfigs.api";
 
 const LABELS: Record<AgentType, string> = {
@@ -54,24 +55,36 @@ function AgentConfigCard({ config }: { config: AgentConfig }) {
   const [name, setName] = useState(config.name);
   const [systemPrompt, setSystemPrompt] = useState(config.systemPrompt);
   const [isActive, setIsActive] = useState(config.isActive);
+  const [autoCallEnabled, setAutoCallEnabled] = useState(config.autoCallEnabled);
   const [showGenerate, setShowGenerate] = useState(false);
 
   useEffect(() => {
     setName(config.name);
     setSystemPrompt(config.systemPrompt);
     setIsActive(config.isActive);
+    setAutoCallEnabled(config.autoCallEnabled);
   }, [config]);
 
-  const handleSave = (overrideIsActive?: boolean) => {
-    saveConfig.mutate({ 
-      type: config.type, 
-      payload: { name, systemPrompt, isActive: overrideIsActive ?? isActive } 
+  const handleSave = (overrides?: { isActive?: boolean; autoCallEnabled?: boolean }) => {
+    saveConfig.mutate({
+      type: config.type,
+      payload: {
+        name,
+        systemPrompt,
+        isActive: overrides?.isActive ?? isActive,
+        autoCallEnabled: overrides?.autoCallEnabled ?? autoCallEnabled,
+      },
     });
   };
 
   const handleToggleActive = (checked: boolean) => {
     setIsActive(checked);
-    handleSave(checked);
+    handleSave({ isActive: checked });
+  };
+
+  const handleToggleAutoCall = (checked: boolean) => {
+    setAutoCallEnabled(checked);
+    handleSave({ autoCallEnabled: checked });
   };
 
   return (
@@ -85,6 +98,16 @@ function AgentConfigCard({ config }: { config: AgentConfig }) {
       </div>
       <Input label="Name" value={name} onChange={(e) => setName(e.target.value)} />
       <Textarea label="System Prompt" rows={8} value={systemPrompt} onChange={(e) => setSystemPrompt(e.target.value)} />
+      {config.type === "VOICE" && (
+        <div className="rounded-lg border border-gray-200 p-3">
+          <Toggle
+            label="Auto-call new digital leads"
+            description="Voice AI calls a lead automatically the moment it's created (score 0) — also requires the branch's own auto-call toggle to be on"
+            checked={autoCallEnabled}
+            onChange={handleToggleAutoCall}
+          />
+        </div>
+      )}
       <div className="flex gap-2">
         <Button variant="secondary" onClick={() => setShowGenerate(true)}>
           Generate with AI

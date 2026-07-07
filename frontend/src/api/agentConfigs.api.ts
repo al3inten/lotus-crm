@@ -10,6 +10,7 @@ export interface AgentConfig {
   voiceName?: string | null;
   model?: string;
   isActive: boolean;
+  autoCallEnabled: boolean;
 }
 
 export interface UpsertAgentConfigPayload {
@@ -18,6 +19,7 @@ export interface UpsertAgentConfigPayload {
   voiceName?: string;
   model?: string;
   isActive?: boolean;
+  autoCallEnabled?: boolean;
 }
 
 export async function fetchAgentConfigs(): Promise<AgentConfig[]> {

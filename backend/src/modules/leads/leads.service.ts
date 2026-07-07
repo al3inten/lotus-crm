@@ -5,6 +5,7 @@ import { normalizePhone } from "./phone.util";
 import { getNextCrForBranch } from "../enquiries/routing.service";
 import { DIGITAL_SOURCES, TRANSACTION_OPTIONS } from "../../config/constants";
 import { CreateEnquiryInput, LeadListQuery } from "./leads.schema";
+import { triggerAutoCallForEnquiry } from "../voice/voice.service";
 
 // A lead with an enquiry in any of these states is mid-journey; new contacts from any
 // source attach to that journey instead of opening a parallel one.
@@ -21,7 +22,7 @@ const TERMINAL_STATUSES: EnquiryStatus[] = ["DELIVERED", "LOST"];
 export async function createOrAttachEnquiry(input: CreateEnquiryInput, createdById: string) {
   const phoneNormalized = normalizePhone(input.phone);
 
-  return prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const branch = await tx.branch.findUnique({ where: { id: input.branchId } });
     if (!branch) throw new NotFoundError("Branch not found");
 
@@ -110,6 +111,15 @@ export async function createOrAttachEnquiry(input: CreateEnquiryInput, createdBy
 
     return { lead, enquiry, isRepeatLead, priorEnquiryCount, attachedToExisting: false };
   }, TRANSACTION_OPTIONS);
+
+  // Voice AI auto-dial: only for genuinely new enquiries from digital sources — never for
+  // touches attached to an already-active enquiry (that lead has already been contacted).
+  // Fired after the transaction commits since it makes an outbound HTTP call to Callmatic.
+  if (!result.attachedToExisting && DIGITAL_SOURCES.includes(input.source)) {
+    void triggerAutoCallForEnquiry(result.enquiry.id);
+  }
+
+  return result;
 }
 
 export async function listEnquiries(query: LeadListQuery, branchFilter?: { branchId: string }) {
