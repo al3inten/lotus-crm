@@ -13,8 +13,60 @@ export const LEAD_SOURCES = [
 ] as const;
 export type LeadSource = (typeof LEAD_SOURCES)[number];
 
+// Sources captured digitally, arriving with only the lightweight intake fields — a CR
+// completes the rest later via "Complete Customer Details" on the Lead Detail page.
+// Mirrors backend DIGITAL_SOURCES in backend/src/config/constants.ts.
+export const DIGITAL_SOURCES: LeadSource[] = ["META_ADS", "WHATSAPP", "INSTAGRAM", "GOOGLE_SHEETS"];
+
 export const ENQUIRY_TYPES = ["NEW_CAR", "USED_CAR", "SERVICE_RELATED", "ACCESSORY", "OTHER"] as const;
 export type EnquiryType = (typeof ENQUIRY_TYPES)[number];
+
+// Business department the enquiry belongs to — distinct from EnquiryType (see backend
+// schema.prisma comment on the Department enum).
+export const DEPARTMENTS = ["SALES", "SERVICE", "USED_CAR", "ACCESSORIES", "HR", "OTHER_TERRITORY", "OTHERS"] as const;
+export type Department = (typeof DEPARTMENTS)[number];
+
+export const LEAD_SUBSOURCES = [
+  "WALK_IN",
+  "HMIL_WEBSITE",
+  "HMIL_SOCIAL_MEDIA",
+  "HMIL_CHATBOT",
+  "SOCIAL_MEDIA",
+  "HYPERLOCAL",
+  "CARPORTAL",
+  "CRM",
+  "REFERRAL",
+  "INCOMING_CALL",
+  "DEALER_ACTIVITY",
+  "SC_OWN_SOURCE",
+  "HMIL_EVENT",
+] as const;
+export type LeadSubsource = (typeof LEAD_SUBSOURCES)[number];
+
+export const ENQUIRY_CATEGORIES = ["HOT", "WARM", "COLD"] as const;
+export type EnquiryCategory = (typeof ENQUIRY_CATEGORIES)[number];
+
+export const TRANSMISSION_TYPES = ["MANUAL", "AUTOMATIC"] as const;
+export type TransmissionType = (typeof TRANSMISSION_TYPES)[number];
+
+export const FUEL_TYPES = ["PETROL", "DIESEL", "CNG_PETROL", "ELECTRIC"] as const;
+export type FuelType = (typeof FUEL_TYPES)[number];
+
+export interface VehicleVariant {
+  id: string;
+  modelId: string;
+  name: string;
+  transmissionType: TransmissionType;
+  fuelType: FuelType;
+  isActive: boolean;
+}
+
+export interface VehicleModel {
+  id: string;
+  name: string;
+  isActive: boolean;
+  variants: VehicleVariant[];
+}
 
 export const ENQUIRY_STATUSES = [
   "NEW",
@@ -84,6 +136,7 @@ export const MODULES = [
   { key: "call-campaigns", label: "Call Campaigns" },
   { key: "bulk-messages", label: "Bulk Messages" },
   { key: "integrations", label: "Integrations" },
+  { key: "vehicles", label: "Vehicles" },
 ] as const;
 export type ModuleKey = (typeof MODULES)[number]["key"];
 
@@ -131,8 +184,21 @@ export interface Lead {
   phoneRaw: string;
   phoneNormalized: string;
   email?: string | null;
+  alternateMobile?: string | null;
+  dob?: string | null;
+  profession?: string | null;
+  pincode?: string | null;
+  address?: string | null;
   createdAt: string;
   _count?: { enquiries: number; touches: number };
+}
+
+export interface LeadDraft {
+  id: string;
+  branchId?: string | null;
+  data: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface LeadTouch {
@@ -166,6 +232,22 @@ export interface Enquiry {
   followUpDueAt?: string | null;
   lossReason?: LossReason | null;
   lossNote?: string | null;
+  department?: Department | null;
+  subsource?: LeadSubsource | null;
+  variant?: string | null;
+  enquiryCategory?: EnquiryCategory | null;
+  financeRequired?: boolean | null;
+  financeRemarks?: string | null;
+  appointmentScheduled: boolean;
+  appointmentAt?: string | null;
+  testDriveInterested: boolean;
+  testDriveCount?: number | null;
+  exchangeCarModel?: string | null;
+  exchangeCarYear?: number | null;
+  exchangeCarKms?: number | null;
+  exchangeCarOwners?: number | null;
+  calledDate?: string | null;
+  remarks?: string | null;
   assignedCrId?: string | null;
   assignedCr?: { id: string; name: string } | null;
   consultantId?: string | null;

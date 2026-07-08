@@ -18,6 +18,11 @@ export async function changeStatusHandler(req: Request, res: Response) {
   res.json(enquiry);
 }
 
+export async function updateDetailsHandler(req: Request, res: Response) {
+  const enquiry = await enquiriesService.updateEnquiryDetails(req.params.enquiryId, req.body);
+  res.json(enquiry);
+}
+
 export async function reassignHandler(req: Request, res: Response) {
   if (!req.user) throw new UnauthorizedError();
   const enquiry = await enquiriesService.reassign(req.params.enquiryId, req.body, req.user.id);

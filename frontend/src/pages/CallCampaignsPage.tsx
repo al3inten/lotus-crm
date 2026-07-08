@@ -242,27 +242,26 @@ export function CallCampaignsPage() {
   const pauseCampaign = usePauseCallCampaign();
 
   return (
-    <div className="flex flex-col gap-8 p-4 md:p-6 lg:p-8">
-      <div className="mx-auto w-full max-w-7xl flex flex-col gap-8">
-        {/* Hero Section */}
-        <div className="relative overflow-hidden rounded-3xl bg-slate-900 px-8 py-10 shadow-2xl dark:bg-slate-950 sm:px-12 sm:py-14">
-          <div className="pointer-events-none absolute inset-0 overflow-hidden">
-            <div className="absolute -left-[10%] -top-[50%] h-[200%] w-[50%] rounded-full bg-indigo-600/30 blur-[100px] dark:bg-indigo-600/20" />
-            <div className="absolute -right-[20%] top-[-20%] h-[150%] w-[60%] rounded-full bg-violet-500/20 blur-[120px] dark:bg-violet-500/10" />
-          </div>
+    <div className="mx-auto w-full max-w-7xl flex flex-col gap-6">
+      {/* Hero Section */}
+      <div className="relative overflow-hidden rounded-3xl bg-slate-900 px-6 py-8 shadow-xl dark:bg-slate-950 sm:px-8 sm:py-10">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -left-[10%] -top-[50%] h-[200%] w-[50%] rounded-full bg-indigo-600/30 blur-[100px] dark:bg-indigo-600/20" />
+          <div className="absolute -right-[20%] top-[-20%] h-[150%] w-[60%] rounded-full bg-violet-500/20 blur-[120px] dark:bg-violet-500/10" />
+        </div>
 
-          <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-2xl">
-              <span className="inline-flex items-center rounded-full bg-indigo-500/10 px-3 py-1 text-sm font-medium text-indigo-300 ring-1 ring-inset ring-indigo-500/20 backdrop-blur-md">
-                Voice Outbound
-              </span>
-              <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-                Call Campaigns
-              </h1>
-              <p className="mt-3 text-lg text-slate-300">
-                Queue leads for the AI voice agent to call. Requires the Voice agent to be active.
-              </p>
-            </div>
+        <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl">
+            <span className="inline-flex items-center rounded-full bg-indigo-500/10 px-2.5 py-0.5 text-xs sm:text-sm font-medium text-indigo-300 ring-1 ring-inset ring-indigo-500/20 backdrop-blur-md">
+              Voice Outbound
+            </span>
+            <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
+              Call Campaigns
+            </h1>
+            <p className="mt-2 text-sm sm:text-base text-slate-300">
+              Queue leads for the AI voice agent to call. Requires the Voice agent to be active.
+            </p>
+          </div>
             {tab === "campaigns" && (
               <div className="shrink-0">
                 <Button onClick={() => setShowCreate(true)}>
@@ -362,7 +361,6 @@ export function CallCampaignsPage() {
       )}
 
       <CreateCampaignModal isOpen={showCreate} onClose={() => setShowCreate(false)} />
-      </div>
     </div>
   );
 }

@@ -11,6 +11,7 @@ import {
   exchangeEvaluationSchema,
   financeApplicationSchema,
   deliveryDetailsSchema,
+  enquiryDetailsSchema,
 } from "./enquiries.schema";
 import {
   getEnquiryHandler,
@@ -21,6 +22,7 @@ import {
   exchangeHandler,
   financeHandler,
   deliveryHandler,
+  updateDetailsHandler,
 } from "./enquiries.controller";
 
 const router = Router();
@@ -30,6 +32,7 @@ router.use(verifyJwt);
 router.get("/:enquiryId", asyncHandler(getEnquiryHandler));
 
 router.patch("/:enquiryId/status", validateBody(changeStatusSchema), asyncHandler(changeStatusHandler));
+router.patch("/:enquiryId/details", validateBody(enquiryDetailsSchema), asyncHandler(updateDetailsHandler));
 
 router.patch(
   "/:enquiryId/reassign",

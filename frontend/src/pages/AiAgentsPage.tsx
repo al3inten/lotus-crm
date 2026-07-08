@@ -4,7 +4,7 @@ import { Button } from "../components/common/Button";
 import { Textarea } from "../components/common/Input";
 import { Modal } from "../components/common/Modal";
 import { Toggle } from "../components/common/Toggle";
-import { Bot, Phone, MessageCircle, Sparkles } from "lucide-react";
+import { Bot, Phone, MessageCircle, Sparkles, Eye, EyeOff } from "lucide-react";
 import type { AgentConfig, AgentType } from "../api/agentConfigs.api";
 
 const LABELS: Record<AgentType, string> = {
@@ -79,6 +79,7 @@ function AgentConfigCard({ config }: { config: AgentConfig }) {
   const [isActive, setIsActive] = useState(config.isActive);
   const [autoCallEnabled, setAutoCallEnabled] = useState(config.autoCallEnabled);
   const [showGenerate, setShowGenerate] = useState(false);
+  const [isPromptVisible, setIsPromptVisible] = useState(false);
 
   useEffect(() => {
     setName(config.name);
@@ -117,11 +118,11 @@ function AgentConfigCard({ config }: { config: AgentConfig }) {
     autoCallEnabled !== config.autoCallEnabled;
 
   return (
-    <div className={`flex flex-col rounded-3xl border ${theme.border} bg-white shadow-sm transition-all hover:shadow-lg overflow-hidden`}>
+    <div className={`flex flex-col rounded-2xl border ${theme.border} bg-white shadow-sm transition-all hover:shadow-md overflow-hidden`}>
       {/* Header */}
-      <div className={`p-6 pb-5 ${theme.bg}`}>
-        <div className="flex items-center justify-between mb-4">
-          <div className={`flex h-14 w-14 items-center justify-center rounded-2xl shadow-sm ring-1 ring-black/5 ${theme.iconBg}`}>
+      <div className={`p-4 pb-3 ${theme.bg}`}>
+        <div className="flex items-center justify-between mb-2">
+          <div className={`flex h-10 w-10 items-center justify-center rounded-xl shadow-sm ring-1 ring-black/5 ${theme.iconBg}`}>
             {theme.icon}
           </div>
           <Toggle checked={isActive} onChange={handleToggleActive} />
@@ -130,56 +131,76 @@ function AgentConfigCard({ config }: { config: AgentConfig }) {
         <input
            value={name}
            onChange={(e) => setName(e.target.value)}
-           className="w-full bg-transparent text-2xl font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md px-1 -mx-1 transition-colors hover:bg-black/5"
+           className="w-full bg-transparent text-lg font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md px-1 -mx-1 transition-colors hover:bg-black/5"
            placeholder="Agent Name"
         />
-        <p className="text-sm font-medium text-gray-500 mt-1 pl-1">{LABELS[config.type]}</p>
+        <p className="text-xs font-medium text-gray-500 mt-0.5 pl-1">{LABELS[config.type]}</p>
       </div>
 
-      <div className="flex flex-col gap-6 p-6 flex-1 bg-white">
+      <div className="flex flex-col gap-4 p-4 flex-1 bg-white">
         {/* System Prompt */}
-        <div className="flex-1 flex flex-col gap-3">
+        <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-              <Bot size={16} className="text-gray-400" />
-              System Prompt
-            </label>
-            <button
-              onClick={() => setShowGenerate(true)}
-              className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-lg transition-colors ring-1 ring-inset ring-blue-600/10"
-            >
-              <Sparkles size={13} /> Auto-Generate
-            </button>
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
+                <Bot size={14} className="text-gray-400" />
+                System Prompt
+              </label>
+              <button
+                onClick={() => setIsPromptVisible(!isPromptVisible)}
+                className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-md hover:bg-gray-100"
+                title={isPromptVisible ? "Hide Prompt" : "Show Prompt"}
+              >
+                {isPromptVisible ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
+            </div>
+            {isPromptVisible && (
+              <button
+                onClick={() => setShowGenerate(true)}
+                className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-md transition-colors ring-1 ring-inset ring-blue-600/10"
+              >
+                <Sparkles size={11} /> Auto-Generate
+              </button>
+            )}
           </div>
           
-          <textarea
-            rows={10}
-            value={systemPrompt}
-            onChange={(e) => setSystemPrompt(e.target.value)}
-            className="w-full flex-1 rounded-2xl border border-gray-200 bg-gray-50/50 p-4 text-sm text-gray-700 shadow-inner focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-mono resize-none transition-all leading-relaxed"
-            placeholder="You are a helpful AI assistant..."
-            spellCheck={false}
-          />
+          {isPromptVisible ? (
+            <textarea
+              rows={6}
+              value={systemPrompt}
+              onChange={(e) => setSystemPrompt(e.target.value)}
+              className="w-full rounded-xl border border-gray-200 bg-gray-50/50 p-3 text-xs text-gray-700 shadow-inner focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-mono resize-none transition-all leading-relaxed"
+              placeholder="You are a helpful AI assistant..."
+              spellCheck={false}
+            />
+          ) : (
+            <div 
+              className="w-full rounded-xl border border-gray-100 bg-gray-50 p-3 text-xs text-gray-400 font-mono italic cursor-pointer hover:bg-gray-100 transition-colors flex items-center justify-center h-[96px]"
+              onClick={() => setIsPromptVisible(true)}
+            >
+              Click to reveal system prompt...
+            </div>
+          )}
         </div>
 
         {config.type === "VOICE" && (
-          <div className="flex items-start gap-3 rounded-2xl border border-indigo-100 bg-indigo-50/30 p-4">
+          <div className="flex items-start gap-2.5 rounded-xl border border-indigo-100 bg-indigo-50/30 p-3">
             <div className="mt-0.5">
               <Toggle checked={autoCallEnabled} onChange={handleToggleAutoCall} />
             </div>
             <div>
-              <p className="text-sm font-medium text-indigo-900">Auto-call new digital leads</p>
-              <p className="text-xs text-indigo-700/70 mt-1 leading-relaxed">
+              <p className="text-xs font-medium text-indigo-900">Auto-call new digital leads</p>
+              <p className="text-[10px] text-indigo-700/70 mt-0.5 leading-relaxed">
                 Automatically trigger voice calls for fresh leads (score 0). Branch auto-call must also be enabled.
               </p>
             </div>
           </div>
         )}
 
-        <div className="mt-auto pt-2">
+        <div className="mt-auto pt-1">
           <Button 
             className="w-full shadow-sm" 
-            size="lg"
+            size="md"
             isLoading={saveConfig.isPending} 
             onClick={() => handleSave()}
             disabled={!hasChanges}
@@ -203,27 +224,26 @@ export function AiAgentsPage() {
   const { data: configs, isLoading } = useAgentConfigs();
 
   return (
-    <div className="flex flex-col gap-8 p-4 md:p-6 lg:p-8">
-      <div className="mx-auto w-full max-w-7xl flex flex-col gap-8">
-        {/* Hero Section */}
-        <div className="relative overflow-hidden rounded-3xl bg-slate-900 px-8 py-10 shadow-2xl dark:bg-slate-950 sm:px-12 sm:py-14">
-          <div className="pointer-events-none absolute inset-0 overflow-hidden">
-            <div className="absolute -left-[10%] -top-[50%] h-[200%] w-[50%] rounded-full bg-violet-600/30 blur-[100px] dark:bg-violet-600/20" />
-            <div className="absolute -right-[20%] top-[-20%] h-[150%] w-[60%] rounded-full bg-blue-500/20 blur-[120px] dark:bg-blue-500/10" />
-          </div>
+    <div className="mx-auto w-full max-w-7xl flex flex-col gap-6">
+      {/* Hero Section */}
+      <div className="relative overflow-hidden rounded-3xl bg-slate-900 px-6 py-8 shadow-xl dark:bg-slate-950 sm:px-8 sm:py-10">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -left-[10%] -top-[50%] h-[200%] w-[50%] rounded-full bg-violet-600/30 blur-[100px] dark:bg-violet-600/20" />
+          <div className="absolute -right-[20%] top-[-20%] h-[150%] w-[60%] rounded-full bg-blue-500/20 blur-[120px] dark:bg-blue-500/10" />
+        </div>
 
-          <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-2xl">
-              <span className="inline-flex items-center rounded-full bg-violet-500/10 px-3 py-1 text-sm font-medium text-violet-300 ring-1 ring-inset ring-violet-500/20 backdrop-blur-md">
-                Intelligence Engine
-              </span>
-              <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-                AI Agents
-              </h1>
-              <p className="mt-3 text-lg text-slate-300">
-                Configure prompts and behavior for your outbound voice agent and messaging chatbots.
-              </p>
-            </div>
+        <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl">
+            <span className="inline-flex items-center rounded-full bg-violet-500/10 px-2.5 py-0.5 text-xs sm:text-sm font-medium text-violet-300 ring-1 ring-inset ring-violet-500/20 backdrop-blur-md">
+              Intelligence Engine
+            </span>
+            <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
+              AI Agents
+            </h1>
+            <p className="mt-2 text-sm sm:text-base text-slate-300">
+              Configure prompts and behavior for your outbound voice agent and messaging chatbots.
+            </p>
+          </div>
           </div>
         </div>
 
@@ -234,7 +254,6 @@ export function AiAgentsPage() {
           {configs?.map((config) => <AgentConfigCard key={config.type} config={config} />)}
         </div>
       )}
-      </div>
     </div>
   );
 }

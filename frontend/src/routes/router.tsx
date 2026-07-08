@@ -15,6 +15,7 @@ import { MediaLibraryPage } from "../pages/MediaLibraryPage";
 import { TemplatesPage } from "../pages/TemplatesPage";
 import { CallCampaignsPage } from "../pages/CallCampaignsPage";
 import { BulkMessagesPage } from "../pages/BulkMessagesPage";
+import { VehiclesPage } from "../pages/VehiclesPage";
 
 export const router = createBrowserRouter([
   { path: "/", element: <LandingPage /> },
@@ -29,6 +30,7 @@ export const router = createBrowserRouter([
           { path: "/leads", element: <LeadsPage /> },
           { path: "/leads/:leadId", element: <LeadDetailPage /> },
           { path: "/leads/:leadId/enquiries/:enquiryId", element: <LeadDetailPage /> },
+          { path: "/vehicles", element: <VehiclesPage /> },
           {
             element: <ProtectedRoute roles={["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER", "CR_TEAM"]} />,
             children: [

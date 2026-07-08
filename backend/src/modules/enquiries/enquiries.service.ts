@@ -1,7 +1,7 @@
 import { prisma } from "../../lib/prisma";
 import { NotFoundError, ValidationError } from "../../lib/errors";
 import { ALLOWED_TRANSITIONS, CONSULTANT_REQUIRED_AT_STATUS, TRANSACTION_OPTIONS } from "../../config/constants";
-import { ChangeStatusInput, ReassignInput } from "./enquiries.schema";
+import { ChangeStatusInput, ReassignInput, EnquiryDetailsInput } from "./enquiries.schema";
 
 export async function getEnquiry(enquiryId: string) {
   const enquiry = await prisma.enquiry.findUnique({
@@ -68,6 +68,52 @@ export async function changeStatus(enquiryId: string, input: ChangeStatusInput, 
     });
 
     return updated;
+  }, TRANSACTION_OPTIONS);
+}
+
+// Fills in the rich intake fields for an enquiry that started lightweight (a digital lead),
+// once a CR is assigned and opens it — updates the parent Lead's profile fields and the
+// Enquiry's vehicle/appointment/exchange/assignment fields together. Only fields actually
+// present in the input are touched, so a CR completing "customer details" today doesn't
+// wipe out "exchange car" info someone else fills in tomorrow.
+export async function updateEnquiryDetails(enquiryId: string, input: EnquiryDetailsInput) {
+  return prisma.$transaction(async (tx) => {
+    const enquiry = await tx.enquiry.findUnique({ where: { id: enquiryId } });
+    if (!enquiry) throw new NotFoundError("Enquiry not found");
+
+    await tx.lead.update({
+      where: { id: enquiry.leadId },
+      data: {
+        alternateMobile: input.alternateMobile,
+        dob: input.dob ? new Date(input.dob) : undefined,
+        profession: input.profession,
+        pincode: input.pincode,
+        address: input.address,
+      },
+    });
+
+    return tx.enquiry.update({
+      where: { id: enquiryId },
+      data: {
+        department: input.department,
+        subsource: input.subsource,
+        variant: input.variant,
+        enquiryCategory: input.enquiryCategory,
+        financeRequired: input.financeRequired,
+        financeRemarks: input.financeRemarks,
+        appointmentScheduled: input.appointmentScheduled,
+        appointmentAt: input.appointmentAt ? new Date(input.appointmentAt) : undefined,
+        testDriveInterested: input.testDriveInterested,
+        testDriveCount: input.testDriveCount,
+        exchangeCarModel: input.exchangeCarModel,
+        exchangeCarYear: input.exchangeCarYear,
+        exchangeCarKms: input.exchangeCarKms,
+        exchangeCarOwners: input.exchangeCarOwners,
+        calledDate: input.calledDate ? new Date(input.calledDate) : undefined,
+        remarks: input.remarks,
+      },
+      include: { lead: true },
+    });
   }, TRANSACTION_OPTIONS);
 }
 

@@ -1,0 +1,500 @@
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Check, ChevronLeft, ChevronRight, Save } from "lucide-react";
+import clsx from "clsx";
+import { Modal } from "../common/Modal";
+import { Input, Select, Textarea } from "../common/Input";
+import { Button } from "../common/Button";
+import { addLeadFormSchema } from "../../schemas/lead.schema";
+import type { AddLeadFormValues, AddLeadFormInput } from "../../schemas/lead.schema";
+import { useCreateWalkInLead, useSaveDraft, useUpdateDraft, useDeleteDraft } from "../../hooks/useLeads";
+import { useUpdateEnquiryDetails } from "../../hooks/useEnquiry";
+import { useBranches } from "../../hooks/useBranches";
+import { useBranchStaff } from "../../hooks/useUsers";
+import { useVehicleModels } from "../../hooks/useVehicles";
+import { useAuth } from "../../context/AuthContext";
+import { ENQUIRY_TYPES, DEPARTMENTS, LEAD_SUBSOURCES, ENQUIRY_CATEGORIES } from "../../types";
+import type { LeadEnrichmentPayload, WalkInLeadPayload } from "../../api/leads.api";
+
+const STEP_TITLES = [
+  "Enquiry & Source",
+  "Customer Details",
+  "Vehicle Interest",
+  "Appointment & Test Drive",
+  "Exchange Car",
+  "Assignment & Follow-up",
+];
+
+const STEP_FIELDS: (keyof AddLeadFormInput)[][] = [
+  ["assignedCrId", "branchId", "department", "subsource"],
+  ["name", "phone", "alternateMobile", "email", "dob", "profession", "pincode", "location", "address"],
+  ["carModel", "variant", "enquiryType", "enquiryCategory", "financeRequired", "financeRemarks"],
+  ["appointmentScheduled", "appointmentAt", "testDriveInterested", "testDriveCount"],
+  ["exchangeCarModel", "exchangeCarYear", "exchangeCarKms", "exchangeCarOwners"],
+  ["calledDate", "remarks"],
+];
+
+const toIso = (value?: string) => (value ? new Date(value).toISOString() : undefined);
+
+interface AddLeadWizardProps {
+  isOpen: boolean;
+  onClose: () => void;
+  /** "create" opens a fresh walk-in intake; "complete" patches an existing (usually digital) enquiry. */
+  mode?: "create" | "complete";
+  enquiryId?: string;
+  initialValues?: Partial<AddLeadFormInput>;
+  /** Read-only context shown in complete mode, e.g. "MTP Road · Google Sheets". */
+  contextLabel?: string;
+  /** Resume an existing draft (create mode) — deleted once the enquiry is successfully saved. */
+  draftId?: string;
+}
+
+export function AddLeadWizard({
+  isOpen,
+  onClose,
+  mode = "create",
+  enquiryId,
+  initialValues,
+  contextLabel,
+  draftId: initialDraftId,
+}: AddLeadWizardProps) {
+  const { user } = useAuth();
+  const { data: branches } = useBranches();
+  const createWalkIn = useCreateWalkInLead();
+  const updateDetails = useUpdateEnquiryDetails(enquiryId ?? "");
+  const saveDraft = useSaveDraft();
+  const updateDraft = useUpdateDraft();
+  const deleteDraft = useDeleteDraft();
+
+  const [step, setStep] = useState(1);
+  const [resultMessage, setResultMessage] = useState<string | null>(null);
+  const [draftMessage, setDraftMessage] = useState<string | null>(null);
+  const [showConfirmClose, setShowConfirmClose] = useState(false);
+  const [draftId, setDraftId] = useState<string | undefined>(initialDraftId);
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    trigger,
+    getValues,
+    setValue,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<AddLeadFormInput, unknown, AddLeadFormValues>({
+    resolver: zodResolver(addLeadFormSchema),
+    defaultValues: {
+      branchId: user?.branchId ?? "",
+      assignedCrId: user?.role === "CR_TEAM" ? user.id : "",
+      financeRequired: false,
+      appointmentScheduled: false,
+      testDriveInterested: false,
+      ...initialValues,
+    },
+  });
+
+  const { data: crStaff } = useBranchStaff(watch("branchId"), "CR_TEAM");
+  const { data: vehicleModels } = useVehicleModels();
+  const financeRequired = watch("financeRequired");
+  const appointmentScheduled = watch("appointmentScheduled");
+  const testDriveInterested = watch("testDriveInterested");
+  const selectedModelName = watch("carModel") as string | undefined;
+  const activeModels = vehicleModels?.filter((m) => m.isActive) ?? [];
+  const selectedModel = vehicleModels?.find((m) => m.name === selectedModelName);
+  const variantOptions = selectedModel?.variants.filter((v) => v.isActive) ?? [];
+
+  useEffect(() => {
+    if (isOpen) {
+      setStep(1);
+      setResultMessage(null);
+      setDraftMessage(null);
+      setDraftId(initialDraftId);
+    }
+    // Only re-sync when the modal is (re)opened — not on every keystroke.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
+  const isComplete = mode === "complete";
+  const totalSteps = STEP_TITLES.length;
+
+  const goNext = async () => {
+    const fields = isComplete ? [] : STEP_FIELDS[step - 1];
+    const valid = fields.length === 0 || (await trigger(fields));
+    if (valid) setStep((s) => Math.min(totalSteps, s + 1));
+  };
+  const goBack = () => setStep((s) => Math.max(1, s - 1));
+
+  const buildEnrichmentPayload = (values: AddLeadFormValues): LeadEnrichmentPayload => ({
+    alternateMobile: values.alternateMobile || undefined,
+    dob: toIso(values.dob),
+    profession: values.profession || undefined,
+    pincode: values.pincode || undefined,
+    address: values.address || undefined,
+    department: values.department || undefined,
+    subsource: values.subsource || undefined,
+    variant: values.variant || undefined,
+    enquiryCategory: values.enquiryCategory || undefined,
+    financeRequired: values.financeRequired,
+    financeRemarks: values.financeRemarks || undefined,
+    appointmentScheduled: values.appointmentScheduled,
+    appointmentAt: toIso(values.appointmentAt),
+    testDriveInterested: values.testDriveInterested,
+    testDriveCount: values.testDriveCount,
+    exchangeCarModel: values.exchangeCarModel || undefined,
+    exchangeCarYear: values.exchangeCarYear,
+    exchangeCarKms: values.exchangeCarKms,
+    exchangeCarOwners: values.exchangeCarOwners,
+    calledDate: toIso(values.calledDate),
+    remarks: values.remarks || undefined,
+  });
+
+  const onSubmit = async (values: AddLeadFormValues) => {
+    setResultMessage(null);
+    if (isComplete) {
+      await updateDetails.mutateAsync(buildEnrichmentPayload(values));
+      onClose();
+      return;
+    }
+
+    const payload: WalkInLeadPayload = {
+      name: values.name,
+      phone: values.phone,
+      email: values.email || undefined,
+      carModel: values.carModel,
+      enquiryType: values.enquiryType,
+      location: values.location || undefined,
+      branchId: values.branchId,
+      assignedCrId: values.assignedCrId || undefined,
+      ...buildEnrichmentPayload(values),
+    };
+    const result = await createWalkIn.mutateAsync(payload);
+    if (draftId) await deleteDraft.mutateAsync(draftId);
+
+    setResultMessage(
+      result.attachedToExisting
+        ? "This customer already has an active enquiry — this visit was recorded on it (no duplicate created)."
+        : result.isRepeatLead
+          ? `Returning customer (${result.priorEnquiryCount} past enquiry(ies)) — new enquiry started.`
+          : "New lead created."
+    );
+    setDraftId(undefined);
+    setStep(1);
+    reset({ branchId: values.branchId, assignedCrId: values.assignedCrId });
+  };
+
+  const onSaveDraft = async () => {
+    const values = getValues() as unknown as Record<string, unknown>;
+    if (draftId) {
+      await updateDraft.mutateAsync({ id: draftId, data: values });
+    } else {
+      const saved = await saveDraft.mutateAsync({ branchId: values.branchId as string | undefined, data: values });
+      setDraftId(saved.id);
+    }
+    setDraftMessage("Draft saved — resume it any time from Drafts.");
+  };
+
+  const handleClose = () => setShowConfirmClose(true);
+  const confirmClose = () => {
+    setShowConfirmClose(false);
+    onClose();
+    reset();
+  };
+
+  const fieldError = (name: keyof AddLeadFormInput) => errors[name]?.message as string | undefined;
+
+  return (
+    <>
+      <Modal
+        isOpen={isOpen}
+        onClose={handleClose}
+        title={isComplete ? "Complete Customer Details" : "Add Lead"}
+        maxWidth="max-w-2xl"
+      >
+        {contextLabel && (
+          <p className="-mt-2 mb-4 text-xs font-medium text-slate-500 dark:text-slate-400">{contextLabel}</p>
+        )}
+
+        {/* Step indicator */}
+        <div className="mb-6 flex items-center gap-0.5 overflow-x-auto pb-1">
+          {STEP_TITLES.map((title, index) => {
+            const stepNumber = index + 1;
+            const active = stepNumber === step;
+            const done = stepNumber < step;
+            return (
+              <div key={title} className="flex items-center">
+                {index > 0 && (
+                  <div className={clsx("h-0.5 w-5 shrink-0 sm:w-8", done ? "bg-blue-500" : "bg-slate-200 dark:bg-slate-700")} />
+                )}
+                <div className="flex flex-col items-center gap-1 px-0.5">
+                  <span
+                    className={clsx(
+                      "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-colors",
+                      done && "bg-blue-500 text-white",
+                      active && "bg-blue-600 text-white ring-4 ring-blue-100 dark:ring-blue-500/20",
+                      !done && !active && "border-2 border-slate-200 bg-white text-slate-400 dark:border-slate-700 dark:bg-slate-900"
+                    )}
+                  >
+                    {done ? <Check size={12} strokeWidth={3} /> : stepNumber}
+                  </span>
+                  <span
+                    className={clsx(
+                      "hidden max-w-[70px] text-center text-[10px] leading-tight sm:block",
+                      active ? "font-semibold text-blue-700 dark:text-blue-400" : "text-slate-400"
+                    )}
+                  >
+                    {title}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+          {/* Step 1 — Enquiry & source */}
+          {step === 1 && (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {isComplete ? (
+                <p className="sm:col-span-2 text-sm text-slate-500 dark:text-slate-400">
+                  Branch, source, and assigned CR are already set for this enquiry — fill in department/sub-source
+                  below if known.
+                </p>
+              ) : (
+                <>
+                  <Select label="CR (handled by)" error={fieldError("assignedCrId")} {...register("assignedCrId")}>
+                    <option value="">Select CR</option>
+                    {crStaff?.map((cr) => (
+                      <option key={cr.id} value={cr.id}>
+                        {cr.name}
+                      </option>
+                    ))}
+                  </Select>
+                  <Select label="Dealer / Branch" error={fieldError("branchId")} {...register("branchId")}>
+                    <option value="">Select branch</option>
+                    {branches?.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.code} - {b.name}
+                      </option>
+                    ))}
+                  </Select>
+                </>
+              )}
+              <Select label="Department" error={fieldError("department")} {...register("department")}>
+                <option value="">Select department</option>
+                {DEPARTMENTS.map((d) => (
+                  <option key={d} value={d}>
+                    {d.replaceAll("_", " ")}
+                  </option>
+                ))}
+              </Select>
+              <Select label="Subsource" error={fieldError("subsource")} {...register("subsource")}>
+                <option value="">Select subsource</option>
+                {LEAD_SUBSOURCES.map((s) => (
+                  <option key={s} value={s}>
+                    {s.replaceAll("_", " ")}
+                  </option>
+                ))}
+              </Select>
+              {!isComplete && (
+                <p className="sm:col-span-2 text-xs text-slate-400 dark:text-slate-500">
+                  Enquiry date: {new Date().toLocaleDateString()}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Step 2 — Customer details */}
+          {step === 2 && (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Input label="Name" disabled={isComplete} error={fieldError("name")} {...register("name")} />
+              <Input label="Phone" disabled={isComplete} error={fieldError("phone")} {...register("phone")} />
+              <Input label="Alternate mobile" error={fieldError("alternateMobile")} {...register("alternateMobile")} />
+              <Input label="Email" type="email" disabled={isComplete} error={fieldError("email")} {...register("email")} />
+              <Input label="Date of birth" type="date" error={fieldError("dob")} {...register("dob")} />
+              <Input label="Profession" error={fieldError("profession")} {...register("profession")} />
+              <Input label="Pincode" error={fieldError("pincode")} {...register("pincode")} />
+              <Input label="Location" disabled={isComplete} error={fieldError("location")} {...register("location")} />
+              <div className="sm:col-span-2">
+                <Textarea label="Address" rows={2} error={fieldError("address")} {...register("address")} />
+              </div>
+            </div>
+          )}
+
+          {/* Step 3 — Vehicle interest */}
+          {step === 3 && (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Select
+                label="Model"
+                disabled={isComplete}
+                error={fieldError("carModel")}
+                {...register("carModel", { onChange: () => setValue("variant", "") })}
+              >
+                <option value="">Select model</option>
+                {selectedModelName && !activeModels.some((m) => m.name === selectedModelName) && (
+                  <option value={selectedModelName}>{selectedModelName}</option>
+                )}
+                {activeModels.map((m) => (
+                  <option key={m.id} value={m.name}>
+                    {m.name}
+                  </option>
+                ))}
+              </Select>
+              <Select label="Variant" disabled={isComplete || !selectedModelName} error={fieldError("variant")} {...register("variant")}>
+                <option value="">Select variant</option>
+                {watch("variant") && !variantOptions.some((v) => v.name === watch("variant")) && (
+                  <option value={watch("variant") as string}>{watch("variant") as string}</option>
+                )}
+                {variantOptions.map((v) => (
+                  <option key={v.id} value={v.name}>
+                    {v.name} · {v.transmissionType} · {v.fuelType.replaceAll("_", " + ")}
+                  </option>
+                ))}
+              </Select>
+              <Select label="Enquiry Type" disabled={isComplete} error={fieldError("enquiryType")} {...register("enquiryType")}>
+                {ENQUIRY_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {type.replaceAll("_", " ")}
+                  </option>
+                ))}
+              </Select>
+              <Select label="Enquiry Category" error={fieldError("enquiryCategory")} {...register("enquiryCategory")}>
+                <option value="">Select category</option>
+                {ENQUIRY_CATEGORIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </Select>
+              <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                <input type="checkbox" {...register("financeRequired")} />
+                Finance required
+              </label>
+              {financeRequired && (
+                <Input label="Finance remarks" error={fieldError("financeRemarks")} {...register("financeRemarks")} />
+              )}
+            </div>
+          )}
+
+          {/* Step 4 — Appointment & test drive */}
+          {step === 4 && (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                <input type="checkbox" {...register("appointmentScheduled")} />
+                Appointment scheduled
+              </label>
+              {appointmentScheduled && (
+                <Input
+                  label="Appointment date/time"
+                  type="datetime-local"
+                  error={fieldError("appointmentAt")}
+                  {...register("appointmentAt")}
+                />
+              )}
+              <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                <input type="checkbox" {...register("testDriveInterested")} />
+                Test drive interested
+              </label>
+              {testDriveInterested && (
+                <Input
+                  label="No. of test drives"
+                  type="number"
+                  min={0}
+                  error={fieldError("testDriveCount")}
+                  {...register("testDriveCount")}
+                />
+              )}
+            </div>
+          )}
+
+          {/* Step 5 — Exchange car */}
+          {step === 5 && (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <p className="sm:col-span-2 text-sm text-slate-500 dark:text-slate-400">Optional — only if the customer mentioned an exchange car.</p>
+              <Input label="Model name" error={fieldError("exchangeCarModel")} {...register("exchangeCarModel")} />
+              <Input label="Year" type="number" error={fieldError("exchangeCarYear")} {...register("exchangeCarYear")} />
+              <Input label="KMs driven" type="number" min={0} error={fieldError("exchangeCarKms")} {...register("exchangeCarKms")} />
+              <Input label="No. of owners" type="number" min={0} error={fieldError("exchangeCarOwners")} {...register("exchangeCarOwners")} />
+            </div>
+          )}
+
+          {/* Step 6 — Assignment & follow-up */}
+          {step === 6 && (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Input label="Called date" type="date" error={fieldError("calledDate")} {...register("calledDate")} />
+              <div className="sm:col-span-2">
+                <Textarea label="Remarks (others)" rows={2} error={fieldError("remarks")} {...register("remarks")} />
+              </div>
+            </div>
+          )}
+
+          {resultMessage && <p className="text-sm font-medium text-emerald-600">{resultMessage}</p>}
+          {draftMessage && <p className="text-sm font-medium text-blue-600 dark:text-blue-400">{draftMessage}</p>}
+
+          <div className="mt-2 flex items-center justify-between gap-3 pt-2">
+            <div>
+              {step > 1 && (
+                <Button type="button" variant="secondary" icon={<ChevronLeft size={15} />} onClick={goBack}>
+                  Back
+                </Button>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              <Button type="button" variant="secondary" onClick={handleClose}>
+                Cancel
+              </Button>
+              {step < totalSteps && (
+                <Button type="button" onClick={goNext}>
+                  Next
+                  <ChevronRight size={15} />
+                </Button>
+              )}
+              {step === totalSteps && (
+                <>
+                  {!isComplete && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      icon={<Save size={15} />}
+                      isLoading={saveDraft.isPending || updateDraft.isPending}
+                      onClick={onSaveDraft}
+                    >
+                      Save as Draft
+                    </Button>
+                  )}
+                  <Button type="submit" isLoading={isSubmitting}>
+                    {isComplete ? "Save Details" : "Save Enquiry"}
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Confirm-close dialog */}
+      <Modal isOpen={showConfirmClose} onClose={() => setShowConfirmClose(false)} maxWidth="max-w-sm">
+        <div className="mt-2 flex flex-col items-center text-center">
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 ring-4 ring-amber-50 dark:bg-amber-500/20 dark:ring-amber-500/10">
+            <svg className="h-6 w-6 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h3 className="mb-2 text-lg font-bold text-slate-900 dark:text-white">Discard Changes?</h3>
+          <p className="mb-6 px-2 text-sm text-slate-500 dark:text-slate-400">
+            Are you sure you want to close this form? Any unsaved data will be permanently lost
+            {!isComplete && " (unless you Save as Draft first)"}.
+          </p>
+        </div>
+        <div className="flex w-full gap-3">
+          <Button type="button" variant="secondary" className="flex-1 justify-center" onClick={() => setShowConfirmClose(false)}>
+            No, keep editing
+          </Button>
+          <Button type="button" variant="danger" className="flex-1 justify-center shadow-md shadow-rose-500/20" onClick={confirmClose}>
+            Yes, discard
+          </Button>
+        </div>
+      </Modal>
+    </>
+  );
+}

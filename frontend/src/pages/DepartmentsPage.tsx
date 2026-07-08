@@ -9,15 +9,19 @@ import {
   Trash2,
   UserCircle2,
   Landmark,
+  Car,
 } from "lucide-react";
 import { useBranches } from "../hooks/useBranches";
 import { useBranchStaff, useDeleteUser } from "../hooks/useUsers";
 import { useRoles, useDeleteRole, useUpdateRole, useDirectory } from "../hooks/useRoles";
+import { useVehicleModels } from "../hooks/useVehicles";
 import { BranchList } from "../components/departments/BranchList";
 import { BranchForm } from "../components/departments/BranchForm";
 import { AddStaffModal } from "../components/departments/AddStaffModal";
 import { EditStaffModal } from "../components/departments/EditStaffModal";
 import { RoleModal } from "../components/departments/RoleModal";
+import { VehicleModelForm } from "../components/departments/VehicleModelForm";
+import { VehicleModelList } from "../components/departments/VehicleModelList";
 import { Button } from "../components/common/Button";
 import { Modal } from "../components/common/Modal";
 import { Card, CardHeader } from "../components/common/Card";
@@ -26,13 +30,14 @@ import { Select } from "../components/common/Input";
 import { MODULES } from "../types";
 import type { RoleDefinition } from "../types";
 
-type Tab = "overview" | "branches" | "roles" | "staff";
+type Tab = "overview" | "branches" | "roles" | "staff" | "vehicles";
 
 const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
   { key: "overview", label: "Overview", icon: <LayoutGrid size={15} /> },
   { key: "branches", label: "Branches", icon: <Building2 size={15} /> },
   { key: "roles", label: "Roles & Permissions", icon: <ShieldCheck size={15} /> },
   { key: "staff", label: "Staff", icon: <Users size={15} /> },
+  { key: "vehicles", label: "Vehicle Models", icon: <Car size={15} /> },
 ];
 
 const ROLE_BADGES: Record<string, string> = {
@@ -372,35 +377,59 @@ function StaffTab() {
   );
 }
 
+/* ---------- Vehicle Models ---------- */
+
+function VehicleModelsTab() {
+  const { data: models, isLoading } = useVehicleModels();
+  const [showModelForm, setShowModelForm] = useState(false);
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex justify-end">
+        <Button icon={<Plus size={15} />} onClick={() => setShowModelForm(true)}>
+          Add Model
+        </Button>
+      </div>
+      {isLoading ? (
+        <p className="text-sm text-gray-500">Loading…</p>
+      ) : (
+        <VehicleModelList models={models ?? []} />
+      )}
+      <Modal isOpen={showModelForm} onClose={() => setShowModelForm(false)} title="Create Vehicle Model">
+        <VehicleModelForm onSuccess={() => setShowModelForm(false)} />
+      </Modal>
+    </div>
+  );
+}
+
 /* ---------- Page ---------- */
 
 export function DepartmentsPage() {
   const [tab, setTab] = useState<Tab>("overview");
 
   return (
-    <div className="flex flex-col gap-8 p-4 md:p-6 lg:p-8">
-      <div className="mx-auto w-full max-w-7xl flex flex-col gap-8">
-        {/* Hero Section */}
-        <div className="relative overflow-hidden rounded-3xl bg-slate-900 px-8 py-10 shadow-2xl dark:bg-slate-950 sm:px-12 sm:py-14">
-          <div className="pointer-events-none absolute inset-0 overflow-hidden">
-            <div className="absolute -left-[10%] -top-[50%] h-[200%] w-[50%] rounded-full bg-blue-600/30 blur-[100px] dark:bg-blue-600/20" />
-            <div className="absolute -right-[20%] top-[-20%] h-[150%] w-[60%] rounded-full bg-indigo-500/20 blur-[120px] dark:bg-indigo-500/10" />
-          </div>
+    <div className="mx-auto w-full max-w-7xl flex flex-col gap-6">
+      {/* Hero Section */}
+      <div className="relative overflow-hidden rounded-3xl bg-slate-900 px-6 py-8 shadow-xl dark:bg-slate-950 sm:px-8 sm:py-10">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -left-[10%] -top-[50%] h-[200%] w-[50%] rounded-full bg-blue-600/30 blur-[100px] dark:bg-blue-600/20" />
+          <div className="absolute -right-[20%] top-[-20%] h-[150%] w-[60%] rounded-full bg-indigo-500/20 blur-[120px] dark:bg-indigo-500/10" />
+        </div>
 
-          <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-2xl">
-              <span className="inline-flex items-center rounded-full bg-blue-500/10 px-3 py-1 text-sm font-medium text-blue-300 ring-1 ring-inset ring-blue-500/20 backdrop-blur-md">
-                Organization Hub
-              </span>
-              <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-                Departments
-              </h1>
-              <p className="mt-3 text-lg text-slate-300">
-                Manage branches, roles, and your staff — all in one place.
-              </p>
-            </div>
+        <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl">
+            <span className="inline-flex items-center rounded-full bg-blue-500/10 px-2.5 py-0.5 text-xs sm:text-sm font-medium text-blue-300 ring-1 ring-inset ring-blue-500/20 backdrop-blur-md">
+              Organization Hub
+            </span>
+            <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
+              Departments
+            </h1>
+            <p className="mt-2 text-sm sm:text-base text-slate-300">
+              Manage branches, roles, and your staff — all in one place.
+            </p>
           </div>
         </div>
+      </div>
 
         <div className="flex gap-1 rounded-xl border border-slate-200/60 bg-white p-1.5 shadow-sm w-fit overflow-x-auto">
           {TABS.map((t) => (
@@ -424,8 +453,8 @@ export function DepartmentsPage() {
           {tab === "branches" && <BranchesTab />}
           {tab === "roles" && <RolesTab />}
           {tab === "staff" && <StaffTab />}
+          {tab === "vehicles" && <VehicleModelsTab />}
         </main>
-      </div>
     </div>
   );
 }

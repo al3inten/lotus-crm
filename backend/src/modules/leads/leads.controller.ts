@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { Prisma } from "@prisma/client";
 import { UnauthorizedError, ValidationError } from "../../lib/errors";
 import * as leadsService from "./leads.service";
 import * as importService from "./import.service";
@@ -45,4 +46,28 @@ export async function downloadLeadImportTemplateHandler(req: Request, res: Respo
   res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
   res.setHeader("Content-Disposition", 'attachment; filename="lead-import-template.xlsx"');
   res.send(buffer);
+}
+
+export async function listDraftsHandler(req: Request, res: Response) {
+  if (!req.user) throw new UnauthorizedError();
+  const drafts = await leadsService.listDrafts(req.user.id);
+  res.json(drafts);
+}
+
+export async function saveDraftHandler(req: Request, res: Response) {
+  if (!req.user) throw new UnauthorizedError();
+  const draft = await leadsService.saveDraft(req.user.id, req.body.branchId, req.body.data as Prisma.InputJsonValue);
+  res.status(201).json(draft);
+}
+
+export async function updateDraftHandler(req: Request, res: Response) {
+  if (!req.user) throw new UnauthorizedError();
+  const draft = await leadsService.updateDraft(req.params.id, req.user.id, req.body.data as Prisma.InputJsonValue);
+  res.json(draft);
+}
+
+export async function deleteDraftHandler(req: Request, res: Response) {
+  if (!req.user) throw new UnauthorizedError();
+  await leadsService.deleteDraft(req.params.id, req.user.id);
+  res.status(204).send();
 }

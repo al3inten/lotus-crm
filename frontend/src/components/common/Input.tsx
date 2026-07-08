@@ -26,7 +26,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(({ label, error, c
     <input
       ref={ref}
       className={clsx(
-        "rounded-lg border px-3 py-2.5 text-sm shadow-sm transition-all bg-white text-slate-900 dark:bg-slate-950 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 dark:focus:ring-blue-500/50",
+        "rounded-lg border px-3 py-2.5 text-sm shadow-sm transition-all bg-white text-slate-900 dark:bg-slate-950 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 dark:focus:ring-blue-500/50 disabled:cursor-not-allowed disabled:opacity-60",
         error ? "border-red-400 dark:border-red-500/50" : "border-slate-300 dark:border-slate-700",
         className
       )}
@@ -44,7 +44,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(({ label, error
       <select
         ref={ref}
         className={clsx(
-          "appearance-none w-full rounded-lg border px-3 py-2.5 pr-10 text-sm shadow-sm transition-all bg-white text-slate-900 dark:bg-slate-950 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 dark:focus:ring-blue-500/50",
+          "appearance-none w-full rounded-lg border px-3 py-2.5 pr-10 text-sm shadow-sm transition-all bg-white text-slate-900 dark:bg-slate-950 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 dark:focus:ring-blue-500/50 disabled:cursor-not-allowed disabled:opacity-60",
           error ? "border-red-400 dark:border-red-500/50" : "border-slate-300 dark:border-slate-700",
           className
         )}

@@ -77,6 +77,134 @@ async function main() {
     },
   });
 
+  const VEHICLE_CATALOG: {
+    model: string;
+    variants: { name: string; transmissionType: "MANUAL" | "AUTOMATIC"; fuelType: "PETROL" | "DIESEL" | "CNG_PETROL" | "ELECTRIC" }[];
+  }[] = [
+    {
+      model: "GRAND I10 NIOS",
+      variants: [
+        { name: "1.2 MT", transmissionType: "MANUAL", fuelType: "PETROL" },
+        { name: "1.2 AMT", transmissionType: "AUTOMATIC", fuelType: "PETROL" },
+        { name: "1.2 MT", transmissionType: "MANUAL", fuelType: "CNG_PETROL" },
+      ],
+    },
+    {
+      model: "AURA",
+      variants: [
+        { name: "1.2 MT", transmissionType: "MANUAL", fuelType: "PETROL" },
+        { name: "1.2 AMT", transmissionType: "AUTOMATIC", fuelType: "PETROL" },
+        { name: "1.2 MT", transmissionType: "MANUAL", fuelType: "CNG_PETROL" },
+      ],
+    },
+    {
+      model: "AURA - PRIME TAXI",
+      variants: [{ name: "1.2 MT", transmissionType: "MANUAL", fuelType: "CNG_PETROL" }],
+    },
+    {
+      model: "I10 - PRIME TAXI",
+      variants: [{ name: "1.2 MT", transmissionType: "MANUAL", fuelType: "CNG_PETROL" }],
+    },
+    {
+      model: "EXTER",
+      variants: [
+        { name: "1.2 MT", transmissionType: "MANUAL", fuelType: "PETROL" },
+        { name: "1.2 AMT", transmissionType: "AUTOMATIC", fuelType: "PETROL" },
+        { name: "1.2 MT", transmissionType: "MANUAL", fuelType: "CNG_PETROL" },
+      ],
+    },
+    {
+      model: "I20",
+      variants: [
+        { name: "1.2 MT", transmissionType: "MANUAL", fuelType: "PETROL" },
+        { name: "1.2 IVT", transmissionType: "AUTOMATIC", fuelType: "PETROL" },
+      ],
+    },
+    {
+      model: "VENUE",
+      variants: [
+        { name: "1.2 MT", transmissionType: "MANUAL", fuelType: "PETROL" },
+        { name: "1.0 MT Turbo", transmissionType: "MANUAL", fuelType: "PETROL" },
+        { name: "1.0 DCT", transmissionType: "AUTOMATIC", fuelType: "PETROL" },
+        { name: "1.5 MT", transmissionType: "MANUAL", fuelType: "DIESEL" },
+      ],
+    },
+    {
+      model: "CRETA",
+      variants: [
+        { name: "1.5 MT", transmissionType: "MANUAL", fuelType: "PETROL" },
+        { name: "1.5 IVT", transmissionType: "AUTOMATIC", fuelType: "PETROL" },
+        { name: "1.5 DCT Turbo", transmissionType: "AUTOMATIC", fuelType: "PETROL" },
+        { name: "1.5 MT", transmissionType: "MANUAL", fuelType: "DIESEL" },
+        { name: "1.5 AT", transmissionType: "AUTOMATIC", fuelType: "DIESEL" },
+      ],
+    },
+    {
+      model: "ALCAZAR",
+      variants: [
+        { name: "1.5 MT Turbo", transmissionType: "MANUAL", fuelType: "PETROL" },
+        { name: "1.5 DCT Turbo", transmissionType: "AUTOMATIC", fuelType: "PETROL" },
+        { name: "1.5 MT", transmissionType: "MANUAL", fuelType: "DIESEL" },
+        { name: "1.5 AT", transmissionType: "AUTOMATIC", fuelType: "DIESEL" },
+      ],
+    },
+    {
+      model: "VERNA",
+      variants: [
+        { name: "1.5 MT", transmissionType: "MANUAL", fuelType: "PETROL" },
+        { name: "1.5 IVT", transmissionType: "AUTOMATIC", fuelType: "PETROL" },
+        { name: "1.5 MT Turbo", transmissionType: "MANUAL", fuelType: "PETROL" },
+        { name: "1.5 DCT Turbo", transmissionType: "AUTOMATIC", fuelType: "PETROL" },
+      ],
+    },
+    {
+      model: "I20 NLINE",
+      variants: [
+        { name: "1.0 MT Turbo", transmissionType: "MANUAL", fuelType: "PETROL" },
+        { name: "1.0 DCT Turbo", transmissionType: "AUTOMATIC", fuelType: "PETROL" },
+      ],
+    },
+    {
+      model: "VENUE NLINE",
+      variants: [
+        { name: "1.0 MT Turbo", transmissionType: "MANUAL", fuelType: "PETROL" },
+        { name: "1.0 DCT Turbo", transmissionType: "AUTOMATIC", fuelType: "PETROL" },
+      ],
+    },
+    {
+      model: "CRETA NLINE",
+      variants: [
+        { name: "1.5 MT Turbo", transmissionType: "MANUAL", fuelType: "PETROL" },
+        { name: "1.5 DCT Turbo", transmissionType: "AUTOMATIC", fuelType: "PETROL" },
+      ],
+    },
+    {
+      model: "IONIQ 5",
+      variants: [{ name: "AT Electric", transmissionType: "AUTOMATIC", fuelType: "ELECTRIC" }],
+    },
+    {
+      model: "CRETA EV",
+      variants: [{ name: "AT Electric", transmissionType: "AUTOMATIC", fuelType: "ELECTRIC" }],
+    },
+  ];
+
+  for (const { model, variants } of VEHICLE_CATALOG) {
+    const vehicleModel = await prisma.vehicleModel.upsert({
+      where: { name: model },
+      update: {},
+      create: { name: model },
+    });
+    for (const variant of variants) {
+      await prisma.vehicleVariant.upsert({
+        where: {
+          modelId_name_fuelType: { modelId: vehicleModel.id, name: variant.name, fuelType: variant.fuelType },
+        },
+        update: {},
+        create: { ...variant, modelId: vehicleModel.id },
+      });
+    }
+  }
+
   console.log({
     superAdmin: superAdmin.email,
     branchManager: branchManager.email,
@@ -84,6 +212,7 @@ async function main() {
     cr2: cr2.email,
     consultant1: consultant1.email,
     branches: [branchA.code, branchB.code],
+    vehicleModels: VEHICLE_CATALOG.length,
   });
   console.log("Seed password for all demo users: Password123!");
 }

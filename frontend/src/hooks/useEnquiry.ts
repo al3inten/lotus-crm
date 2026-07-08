@@ -29,6 +29,15 @@ export function useChangeStatus(enquiryId: string) {
   });
 }
 
+export function useUpdateEnquiryDetails(enquiryId: string) {
+  const invalidate = useInvalidateEnquiry(enquiryId);
+  return useMutation({
+    mutationFn: (payload: Parameters<typeof enquiriesApi.updateEnquiryDetails>[1]) =>
+      enquiriesApi.updateEnquiryDetails(enquiryId, payload),
+    onSuccess: invalidate,
+  });
+}
+
 export function useReassign(enquiryId: string) {
   const invalidate = useInvalidateEnquiry(enquiryId);
   return useMutation({

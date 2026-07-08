@@ -7,7 +7,7 @@ import { useConvertConversation } from "../../hooks/useSocialInbox";
 import { useBranches } from "../../hooks/useBranches";
 import { ENQUIRY_TYPES } from "../../types";
 import { walkInLeadFormSchema } from "../../schemas/lead.schema";
-import type { WalkInLeadFormValues } from "../../schemas/lead.schema";
+import type { WalkInLeadFormValues, WalkInLeadFormInput } from "../../schemas/lead.schema";
 
 export function ConvertToLeadModal({
   conversationId,
@@ -27,7 +27,7 @@ export function ConvertToLeadModal({
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<WalkInLeadFormValues>({
+  } = useForm<WalkInLeadFormInput, unknown, WalkInLeadFormValues>({
     resolver: zodResolver(walkInLeadFormSchema),
     defaultValues: { name: suggestedName ?? "" },
   });

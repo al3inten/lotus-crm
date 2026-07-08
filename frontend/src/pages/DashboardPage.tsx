@@ -118,29 +118,30 @@ export function DashboardPage() {
   const statsLoading = canSeeStats && !summary;
 
   return (
-    <motion.div variants={pageFade} initial="hidden" animate="show" className="mx-auto flex max-w-7xl flex-col gap-10">
+    <motion.div variants={pageFade} initial="hidden" animate="show" className="mx-auto w-full max-w-7xl flex flex-col gap-6">
       {/* Hero Section */}
-      <div className="relative overflow-hidden rounded-3xl bg-slate-900 px-8 py-12 shadow-2xl dark:bg-slate-950 sm:px-12 sm:py-16">
-        {/* Static gradient mesh — soft color glow with no per-frame blur compositing. */}
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(60% 120% at 12% 0%, rgba(37,99,235,0.40), transparent 60%)," +
-              "radial-gradient(55% 100% at 92% 8%, rgba(99,102,241,0.28), transparent 60%)," +
-              "radial-gradient(60% 120% at 45% 130%, rgba(217,70,239,0.22), transparent 60%)",
-          }}
-        />
+      <div className="relative overflow-hidden rounded-3xl bg-slate-900 px-6 py-8 shadow-xl dark:bg-slate-950 sm:px-8 sm:py-10">
+        {/* Lag-free animated gradient mesh - CSS driven */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden mix-blend-screen opacity-50">
+          <div 
+            className="absolute -top-[50%] -left-[10%] w-[60%] h-[200%] animate-pulse rounded-full bg-blue-600/30 blur-[100px] dark:bg-blue-600/20" 
+            style={{ animationDuration: '4s' }} 
+          />
+          <div 
+            className="absolute top-[-20%] -right-[20%] w-[60%] h-[150%] animate-pulse rounded-full bg-indigo-500/20 blur-[120px] dark:bg-indigo-500/10" 
+            style={{ animationDuration: '6s', animationDelay: '2s' }} 
+          />
+        </div>
 
-        <div className="relative z-10 flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+        <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
-            <span className="inline-flex items-center rounded-full bg-blue-500/10 px-3 py-1 text-sm font-medium text-blue-300 ring-1 ring-inset ring-blue-500/20 backdrop-blur-md">
+            <span className="inline-flex items-center rounded-full bg-blue-500/10 px-2.5 py-0.5 text-xs sm:text-sm font-medium text-blue-300 ring-1 ring-inset ring-blue-500/20 backdrop-blur-md">
               {today}
             </span>
-            <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
+            <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
               Welcome back{user?.name ? `, ${user.name.split(" ")[0]}` : ""}!
             </h1>
-            <p className="mt-4 text-lg text-slate-300">
+            <p className="mt-2 text-sm sm:text-base text-slate-300">
               Here is what's happening with your leads and campaigns today.
             </p>
           </div>
@@ -149,14 +150,16 @@ export function DashboardPage() {
           <div className="flex flex-wrap items-center gap-3">
             {visibleActions.map((action) => (
               <Link key={action.to} to={action.to}>
-                <button
-                  className="group relative flex cursor-pointer items-center gap-2 overflow-hidden rounded-xl bg-white/10 px-5 py-3 text-sm font-semibold text-white shadow-lg ring-1 ring-inset ring-white/20 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:bg-white/20 hover:shadow-xl hover:ring-white/30 active:scale-95"
+                <motion.button
+                  whileHover={{ y: -3, scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
+                  className="group relative flex cursor-pointer items-center gap-2 overflow-hidden rounded-xl bg-white/[0.08] px-4 py-2.5 text-sm font-medium text-white shadow-lg ring-1 ring-inset ring-white/[0.15] backdrop-blur-md transition-colors hover:bg-white/[0.15] hover:ring-white/30"
                 >
-                  <span className="text-white/70 transition-transform duration-300 group-hover:scale-110 group-hover:text-white">
+                  <span className="text-blue-300 transition-colors group-hover:text-blue-200">
                     {action.icon}
                   </span>
                   {action.title}
-                </button>
+                </motion.button>
               </Link>
             ))}
           </div>

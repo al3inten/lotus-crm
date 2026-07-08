@@ -73,6 +73,53 @@ enum FinanceStatus {
   REJECTED
 }
 
+// Business department the enquiry belongs to — distinct from EnquiryType (which is
+// "what kind of car interest": new/used/service/accessory). Captured on the offline
+// intake form alongside EnquiryType, not a replacement for it.
+enum Department {
+  SALES
+  SERVICE
+  USED_CAR
+  ACCESSORIES
+  HR
+  OTHER_TERRITORY
+  OTHERS
+}
+
+enum LeadSubsource {
+  WALK_IN
+  HMIL_WEBSITE
+  HMIL_SOCIAL_MEDIA
+  HMIL_CHATBOT
+  SOCIAL_MEDIA
+  HYPERLOCAL
+  CARPORTAL
+  CRM
+  REFERRAL
+  INCOMING_CALL
+  DEALER_ACTIVITY
+  SC_OWN_SOURCE
+  HMIL_EVENT
+}
+
+enum EnquiryCategory {
+  HOT
+  WARM
+  COLD
+}
+
+enum TransmissionType {
+  MANUAL
+  AUTOMATIC
+}
+
+enum FuelType {
+  PETROL
+  DIESEL
+  CNG_PETROL
+  ELECTRIC
+}
+
 enum IntegrationKey {
   META_ADS
   WHATSAPP
@@ -156,6 +203,39 @@ enum NextAction {
   MARK_LOST
 }
 
+// ---------- VEHICLE CATALOG ----------
+// A pure pick-list for the Add Lead form's Model/Variant dropdowns. Deliberately NOT
+// foreign-keyed from Enquiry — Enquiry.carModel/variant stay plain-string snapshots (like
+// every other Enquiry field), so editing/deactivating/deleting a catalog entry later can
+// never mutate or orphan a historical enquiry.
+
+model VehicleModel {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  variants VehicleVariant[]
+
+  @@map("vehicle_models")
+}
+
+model VehicleVariant {
+  id               String           @id @default(cuid())
+  modelId          String
+  model            VehicleModel     @relation(fields: [modelId], references: [id])
+  name             String
+  transmissionType TransmissionType
+  fuelType         FuelType
+  isActive         Boolean          @default(true)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@unique([modelId, name, fuelType])
+  @@map("vehicle_variants")
+}
+
 // ---------- CORE ----------
 
 model Branch {
@@ -176,6 +256,7 @@ model Branch {
   users           User[]
   enquiries       Enquiry[]
   roleDefinitions RoleDefinition[]
+  leadDrafts      LeadDraft[]
 
   @@map("branches")
 }
@@ -201,20 +282,20 @@ model RoleDefinition {
 }
 
 model User {
-  id                    String   @id @default(cuid())
+  id                    String          @id @default(cuid())
   name                  String
-  email                 String   @unique
+  email                 String          @unique
   phone                 String?
   passwordHash          String
   role                  Role
   roleDefinitionId      String?
   roleDefinition        RoleDefinition? @relation(fields: [roleDefinitionId], references: [id])
   branchId              String?
-  branch                Branch?  @relation(fields: [branchId], references: [id])
-  isActive              Boolean  @default(true)
-  isAvailableForRouting Boolean  @default(true)
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  branch                Branch?         @relation(fields: [branchId], references: [id])
+  isActive              Boolean         @default(true)
+  isAvailableForRouting Boolean         @default(true)
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
 
   assignedEnquiries       Enquiry[]              @relation("AssignedCr")
   consultantEnquiries     Enquiry[]              @relation("AssignedConsultant")
@@ -232,6 +313,7 @@ model User {
   createdTemplates        MessageTemplate[]      @relation("TemplateCreatedBy")
   createdCallCampaigns    OutboundCallCampaign[] @relation("CallCampaignCreatedBy")
   createdMessageCampaigns MessageCampaign[]      @relation("MessageCampaignCreatedBy")
+  leadDrafts              LeadDraft[]
 
   @@index([branchId, role])
   @@map("users")
@@ -240,13 +322,20 @@ model User {
 // ---------- LEAD / DEDUP ----------
 
 model Lead {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   name            String
   phoneRaw        String
-  phoneNormalized String   @unique
+  phoneNormalized String    @unique
   email           String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  // Extended profile fields — captured on offline (walk-in) intake, or filled in later by
+  // a CR completing a digital lead's profile. All optional: a fresh digital lead has none of these.
+  alternateMobile String?
+  dob             DateTime?
+  profession      String?
+  pincode         String?
+  address         String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   enquiries     Enquiry[]
   conversations Conversation[]
@@ -284,6 +373,30 @@ model Enquiry {
   source      LeadSource
   enquiryType EnquiryType
   location    String?
+
+  // Offline-intake enrichment — optional, filled by the CR either at walk-in intake or
+  // later via the "Complete Customer Details" flow for a digital lead. See Department vs
+  // EnquiryType note on the Department enum above.
+  department           Department?
+  subsource            LeadSubsource?
+  variant              String?
+  enquiryCategory      EnquiryCategory?
+  financeRequired      Boolean?
+  financeRemarks       String?
+  appointmentScheduled Boolean          @default(false)
+  appointmentAt        DateTime?
+  // Customer's stated test-drive interest/history at intake — distinct from
+  // TestDriveFeedback, which records the actual conducted test drive later in the pipeline.
+  testDriveInterested  Boolean          @default(false)
+  testDriveCount       Int?
+  // Customer-stated exchange car snapshot at intake — distinct from ExchangeEvaluation,
+  // which records the formal trade-in valuation later in the pipeline.
+  exchangeCarModel     String?
+  exchangeCarYear      Int?
+  exchangeCarKms       Int?
+  exchangeCarOwners    Int?
+  calledDate           DateTime?
+  remarks              String?
 
   status        EnquiryStatus @default(NEW)
   followUpDueAt DateTime?
@@ -349,6 +462,24 @@ model ReassignmentLog {
   createdAt      DateTime @default(now())
 
   @@map("reassignment_logs")
+}
+
+// A CR's in-progress offline intake, saved before all required fields are filled.
+// Deliberately separate from Enquiry (rather than an EnquiryStatus value) so a draft never
+// participates in routing/reporting/pipeline logic that assumes a real enquiry exists —
+// `data` is a free-form snapshot of whatever the wizard had at save time.
+model LeadDraft {
+  id          String   @id @default(cuid())
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  branchId    String?
+  branch      Branch?  @relation(fields: [branchId], references: [id])
+  data        Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([createdById])
+  @@map("lead_drafts")
 }
 
 // ---------- PIPELINE SUB-TABLES ----------
@@ -463,16 +594,16 @@ model IntegrationConfig {
 // The IntegrationConfig(key=META_ADS) row holds the FB user identity + long-lived user token;
 // each Page gets its own row here since Page access tokens differ per Page.
 model MetaAdsPage {
-  id                    String    @id @default(cuid())
-  pageId                String    @unique
-  pageName              String
+  id                   String    @id @default(cuid())
+  pageId               String    @unique
+  pageName             String
   // AES-256-GCM encrypted Page access token — see backend/src/lib/crypto.ts.
-  encryptedAccessToken  String
-  leadFormCount         Int       @default(0)
-  webhookSubscribed     Boolean   @default(false)
-  lastSyncedAt          DateTime?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  encryptedAccessToken String
+  leadFormCount        Int       @default(0)
+  webhookSubscribed    Boolean   @default(false)
+  lastSyncedAt         DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   @@map("meta_ads_pages")
 }
@@ -523,19 +654,19 @@ model ChatMessage {
 // and the system prompt that drives it. OpenAI is only used to help draft this text
 // (see modules/agent-configs); Gemini is what actually runs the agent at runtime.
 model AgentConfig {
-  id           String    @id @default(cuid())
-  type         AgentType @unique
-  name         String
-  systemPrompt String    @db.Text
-  voiceName    String?
-  model        String    @default("gemini-2.0-flash-live-001")
-  isActive     Boolean   @default(false)
+  id              String    @id @default(cuid())
+  type            AgentType @unique
+  name            String
+  systemPrompt    String    @db.Text
+  voiceName       String?
+  model           String    @default("gemini-2.0-flash-live-001")
+  isActive        Boolean   @default(false)
   // Global kill switch for the auto-dial pipeline (VOICE type only) — separate from
   // isActive, which gates the voice agent/manual campaigns generally.
-  autoCallEnabled Boolean @default(false)
-  updatedById  String?
-  updatedBy    User?     @relation("AgentConfigUpdatedBy", fields: [updatedById], references: [id])
-  updatedAt    DateTime  @updatedAt
+  autoCallEnabled Boolean   @default(false)
+  updatedById     String?
+  updatedBy       User?     @relation("AgentConfigUpdatedBy", fields: [updatedById], references: [id])
+  updatedAt       DateTime  @updatedAt
 
   @@map("agent_configs")
 }
@@ -599,19 +730,19 @@ model CallLog {
 }
 
 model OutboundCallCampaign {
-  id            String         @id @default(cuid())
-  name          String
-  agentConfigId String
-  branchId      String?
+  id                  String         @id @default(cuid())
+  name                String
+  agentConfigId       String
+  branchId            String?
   // Callmatic has no API to create campaigns — each one is created by hand in their
   // dashboard. This is that campaign's ID, pasted in so calls route to the right place.
   // Null falls back to the single campaignId stored in Integration settings.
   callmaticCampaignId String?
-  status        CampaignStatus @default(DRAFT)
-  createdById   String
-  createdBy     User           @relation("CallCampaignCreatedBy", fields: [createdById], references: [id])
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  status              CampaignStatus @default(DRAFT)
+  createdById         String
+  createdBy           User           @relation("CallCampaignCreatedBy", fields: [createdById], references: [id])
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
 
   tasks OutboundCallTask[]
 
@@ -619,22 +750,22 @@ model OutboundCallCampaign {
 }
 
 model OutboundCallTask {
-  id            String               @id @default(cuid())
-  campaignId    String
-  campaign      OutboundCallCampaign @relation(fields: [campaignId], references: [id])
-  enquiryId     String
-  enquiry       Enquiry              @relation(fields: [enquiryId], references: [id])
-  phoneNumber   String
+  id             String               @id @default(cuid())
+  campaignId     String
+  campaign       OutboundCallCampaign @relation(fields: [campaignId], references: [id])
+  enquiryId      String
+  enquiry        Enquiry              @relation(fields: [enquiryId], references: [id])
+  phoneNumber    String
   // Callmatic's own call ID — set as soon as the call is triggered, used to poll
   // GET /calls/{callId} for completion data when their webhook can't be relied on.
-  externalCallId String?             @unique
-  status        CallStatus           @default(QUEUED)
-  attemptCount  Int                  @default(0)
-  lastAttemptAt DateTime?
-  callLogId     String?              @unique
-  callLog       CallLog?             @relation(fields: [callLogId], references: [id])
-  createdAt     DateTime             @default(now())
-  updatedAt     DateTime             @updatedAt
+  externalCallId String?              @unique
+  status         CallStatus           @default(QUEUED)
+  attemptCount   Int                  @default(0)
+  lastAttemptAt  DateTime?
+  callLogId      String?              @unique
+  callLog        CallLog?             @relation(fields: [callLogId], references: [id])
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
 
   @@index([campaignId, status])
   @@map("outbound_call_tasks")

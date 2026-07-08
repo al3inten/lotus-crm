@@ -1,24 +1,38 @@
 import { useState } from "react";
-import { Car, ChevronLeft, ChevronRight, FileSpreadsheet } from "lucide-react";
+import { Car, ChevronLeft, ChevronRight, FileSpreadsheet, Users, MessageSquare, Building2 } from "lucide-react";
+import { motion } from "framer-motion";
 import { useLeads } from "../hooks/useLeads";
 import type { LeadFilters as LeadFiltersType } from "../api/leads.api";
 import { LeadFilters } from "../components/leads/LeadFilters";
 import { LeadTable } from "../components/leads/LeadTable";
-import { WalkInLeadForm } from "../components/leads/WalkInLeadForm";
+import { AddLeadWizard } from "../components/leads/AddLeadWizard";
+import { LeadDraftsButton } from "../components/leads/LeadDraftsButton";
 import { ImportLeadsModal } from "../components/leads/ImportLeadsModal";
 import { Button } from "../components/common/Button";
 import { Card } from "../components/common/Card";
 import { Modal } from "../components/common/Modal";
 import { GoogleSheetsSyncForm } from "../components/integrations/GoogleSheetsSyncForm";
 import { useIntegrations } from "../hooks/useIntegrations";
+import type { AddLeadFormValues } from "../schemas/lead.schema";
+import type { LeadDraft } from "../types";
 
 const PAGE_SIZE = 20;
 
+const pageVariants = {
+  hidden: { opacity: 0, y: 5 },
+  visible: { 
+    opacity: 1, 
+    y: 0, 
+    transition: { duration: 0.35, ease: "easeOut" as const } 
+  }
+};
+
 export function LeadsPage() {
   const [filters, setFilters] = useState<LeadFiltersType>({ page: 1, pageSize: PAGE_SIZE });
-  const [showWalkInForm, setShowWalkInForm] = useState(false);
+  const [showAddLeadForm, setShowAddLeadForm] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showSheetsSyncModal, setShowSheetsSyncModal] = useState(false);
+  const [resumeDraft, setResumeDraft] = useState<LeadDraft | undefined>(undefined);
 
   const { data, isLoading } = useLeads(filters);
   const { data: integrations } = useIntegrations();
@@ -26,7 +40,12 @@ export function LeadsPage() {
   const totalPages = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1;
 
   return (
-    <div className="flex flex-col gap-4">
+    <motion.div 
+      initial="hidden"
+      animate="visible"
+      variants={pageVariants}
+      className="flex flex-col gap-4"
+    >
       <div className="relative overflow-hidden rounded-3xl bg-slate-900 px-6 py-10 shadow-xl dark:bg-slate-950 sm:px-10 sm:py-12 mb-6">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute -left-[10%] -top-[50%] h-[200%] w-[50%] rounded-full bg-blue-600/20 blur-[100px] dark:bg-blue-600/10" />
@@ -39,8 +58,23 @@ export function LeadsPage() {
               <Car size={26} />
             </span>
             <div>
-              <h1 className="text-3xl font-extrabold tracking-tight text-white">Leads</h1>
-              <p className="mt-1 text-base font-medium text-slate-300">Manage and follow up every enquiry across your showrooms.</p>
+              <h1 className="text-3xl font-extrabold tracking-tight text-white">Leads Management</h1>
+              <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-medium text-slate-300">
+                <span className="flex items-center gap-1.5">
+                  <Users size={16} className="text-blue-400" /> 
+                  Customer Relationships
+                </span>
+                <span className="hidden h-1 w-1 rounded-full bg-slate-600 sm:block" />
+                <span className="flex items-center gap-1.5">
+                  <MessageSquare size={16} className="text-emerald-400" /> 
+                  Follow-ups
+                </span>
+                <span className="hidden h-1 w-1 rounded-full bg-slate-600 sm:block" />
+                <span className="flex items-center gap-1.5">
+                  <Building2 size={16} className="text-indigo-400" /> 
+                  Across Showrooms
+                </span>
+              </div>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -52,7 +86,20 @@ export function LeadsPage() {
             <Button variant="secondary" onClick={() => setShowImportModal(true)}>
               Import
             </Button>
-            <Button onClick={() => setShowWalkInForm(true)}>+ Add Walk-in Lead</Button>
+            <LeadDraftsButton
+              onResume={(draft) => {
+                setResumeDraft(draft);
+                setShowAddLeadForm(true);
+              }}
+            />
+            <Button
+              onClick={() => {
+                setResumeDraft(undefined);
+                setShowAddLeadForm(true);
+              }}
+            >
+              + Add Lead
+            </Button>
           </div>
         </div>
       </div>
@@ -96,11 +143,16 @@ export function LeadsPage() {
         </Card>
       )}
 
-      <WalkInLeadForm isOpen={showWalkInForm} onClose={() => setShowWalkInForm(false)} />
+      <AddLeadWizard
+        isOpen={showAddLeadForm}
+        onClose={() => setShowAddLeadForm(false)}
+        draftId={resumeDraft?.id}
+        initialValues={resumeDraft?.data as Partial<AddLeadFormValues> | undefined}
+      />
       <ImportLeadsModal isOpen={showImportModal} onClose={() => setShowImportModal(false)} />
-      <Modal isOpen={showSheetsSyncModal} onClose={() => setShowSheetsSyncModal(false)} title="">
+      <Modal isOpen={showSheetsSyncModal} onClose={() => setShowSheetsSyncModal(false)} title="Sync from Google Sheets" maxWidth="max-w-lg">
         <GoogleSheetsSyncForm />
       </Modal>
-    </div>
+    </motion.div>
   );
 }

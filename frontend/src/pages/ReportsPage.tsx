@@ -126,27 +126,26 @@ export function ReportsPage() {
   const maxStageHours = Math.max(1, ...(timeInStage ?? []).map((r) => r.avgHours ?? 0));
 
   return (
-    <div className="flex flex-col gap-8 p-4 md:p-6 lg:p-8">
-      <div className="mx-auto w-full max-w-7xl flex flex-col gap-8">
-        {/* Hero Section */}
-        <div className="relative overflow-hidden rounded-3xl bg-slate-900 px-8 py-10 shadow-2xl dark:bg-slate-950 sm:px-12 sm:py-14">
-          <div className="pointer-events-none absolute inset-0 overflow-hidden">
-            <div className="absolute -left-[10%] -top-[50%] h-[200%] w-[50%] rounded-full bg-blue-600/30 blur-[100px] dark:bg-blue-600/20" />
-            <div className="absolute -right-[20%] top-[-20%] h-[150%] w-[60%] rounded-full bg-emerald-500/20 blur-[120px] dark:bg-emerald-500/10" />
-          </div>
+    <div className="mx-auto w-full max-w-7xl flex flex-col gap-6">
+      {/* Hero Section */}
+      <div className="relative overflow-hidden rounded-3xl bg-slate-900 px-6 py-8 shadow-xl dark:bg-slate-950 sm:px-8 sm:py-10">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -left-[10%] -top-[50%] h-[200%] w-[50%] rounded-full bg-blue-600/30 blur-[100px] dark:bg-blue-600/20" />
+          <div className="absolute -right-[20%] top-[-20%] h-[150%] w-[60%] rounded-full bg-emerald-500/20 blur-[120px] dark:bg-emerald-500/10" />
+        </div>
 
-          <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-2xl">
-              <span className="inline-flex items-center rounded-full bg-blue-500/10 px-3 py-1 text-sm font-medium text-blue-300 ring-1 ring-inset ring-blue-500/20 backdrop-blur-md">
-                Analytics & Insights
-              </span>
-              <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-                Reports
-              </h1>
-              <p className="mt-3 text-lg text-slate-300">
-                Track conversion rates, team performance, and lead sources in real-time.
-              </p>
-            </div>
+        <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl">
+            <span className="inline-flex items-center rounded-full bg-blue-500/10 px-2.5 py-0.5 text-xs sm:text-sm font-medium text-blue-300 ring-1 ring-inset ring-blue-500/20 backdrop-blur-md">
+              Analytics & Insights
+            </span>
+            <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
+              Reports
+            </h1>
+            <p className="mt-2 text-sm sm:text-base text-slate-300">
+              Track conversion rates, team performance, and lead sources in real-time.
+            </p>
+          </div>
             <div className="shrink-0">
               <Button 
                 variant="secondary" 
@@ -325,7 +324,6 @@ export function ReportsPage() {
           </div>
         </Section>
       )}
-    </div>
     </div>
   );
 }

@@ -37,3 +37,32 @@ export function useImportLeads() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["leads"] }),
   });
 }
+
+export function useDrafts() {
+  return useQuery({ queryKey: ["leads", "drafts"], queryFn: leadsApi.fetchDrafts });
+}
+
+export function useSaveDraft() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ branchId, data }: { branchId?: string; data: Record<string, unknown> }) =>
+      leadsApi.saveDraft(branchId, data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["leads", "drafts"] }),
+  });
+}
+
+export function useUpdateDraft() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) => leadsApi.updateDraft(id, data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["leads", "drafts"] }),
+  });
+}
+
+export function useDeleteDraft() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => leadsApi.deleteDraft(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["leads", "drafts"] }),
+  });
+}

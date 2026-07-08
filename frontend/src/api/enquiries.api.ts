@@ -10,6 +10,7 @@ import type {
   FinanceStatus,
   DeliveryDetails,
 } from "../types";
+import type { LeadEnrichmentPayload } from "./leads.api";
 
 export async function fetchEnquiry(enquiryId: string): Promise<Enquiry> {
   const { data } = await axiosClient.get<Enquiry>(`/enquiries/${enquiryId}`);
@@ -26,6 +27,11 @@ export interface ChangeStatusPayload {
 
 export async function changeEnquiryStatus(enquiryId: string, payload: ChangeStatusPayload): Promise<Enquiry> {
   const { data } = await axiosClient.patch<Enquiry>(`/enquiries/${enquiryId}/status`, payload);
+  return data;
+}
+
+export async function updateEnquiryDetails(enquiryId: string, payload: LeadEnrichmentPayload): Promise<Enquiry> {
+  const { data } = await axiosClient.patch<Enquiry>(`/enquiries/${enquiryId}/details`, payload);
   return data;
 }
 

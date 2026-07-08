@@ -1,8 +1,24 @@
 import { useNavigate } from "react-router-dom";
 import { ChevronRight, Inbox } from "lucide-react";
-import type { Enquiry } from "../../types";
+import clsx from "clsx";
+import type { Enquiry, EnquiryCategory } from "../../types";
 import { StatusBadge } from "../common/StatusBadge";
 import { Avatar } from "../common/Avatar";
+
+const CATEGORY_STYLES: Record<EnquiryCategory, string> = {
+  HOT: "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300",
+  WARM: "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300",
+  COLD: "bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300",
+};
+
+function CategoryPill({ category }: { category?: EnquiryCategory | null }) {
+  if (!category) return <span className="text-xs text-slate-400 dark:text-slate-500">—</span>;
+  return (
+    <span className={clsx("inline-block rounded-full px-2 py-0.5 text-xs font-medium", CATEGORY_STYLES[category])}>
+      {category}
+    </span>
+  );
+}
 
 export function LeadTable({ enquiries }: { enquiries: Enquiry[] }) {
   const navigate = useNavigate();
@@ -27,6 +43,7 @@ export function LeadTable({ enquiries }: { enquiries: Enquiry[] }) {
             <th className="px-4 py-3">Source</th>
             <th className="px-4 py-3">Enquiry Type</th>
             <th className="px-4 py-3">Enquiries</th>
+            <th className="px-4 py-3">Category</th>
             <th className="px-4 py-3">Location</th>
             <th className="px-4 py-3">Status</th>
             <th className="px-4 py-3">Assigned Rep</th>
@@ -61,6 +78,9 @@ export function LeadTable({ enquiries }: { enquiries: Enquiry[] }) {
                 ) : (
                   <span className="text-xs text-slate-400 dark:text-slate-500">1st</span>
                 )}
+              </td>
+              <td className="px-4 py-2.5">
+                <CategoryPill category={enquiry.enquiryCategory} />
               </td>
               <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">{enquiry.location ?? "—"}</td>
               <td className="px-4 py-2.5">

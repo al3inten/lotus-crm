@@ -102,3 +102,24 @@ body {
   from { opacity: 0; transform: translateY(16px) scale(0.96); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
+
+/* Slow-drifting gradient blobs for the login backdrop. GPU-cheap (transform-only),
+   pointer-events disabled by the utility that uses them. */
+@keyframes blob-drift-a {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(6%, 8%) scale(1.12); }
+  66%      { transform: translate(-5%, 4%) scale(0.95); }
+}
+
+@keyframes blob-drift-b {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(-8%, -6%) scale(1.08); }
+  66%      { transform: translate(5%, -9%) scale(1.15); }
+}
+
+.animate-blob-a { animation: blob-drift-a 18s ease-in-out infinite; }
+.animate-blob-b { animation: blob-drift-b 22s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-blob-a, .animate-blob-b { animation: none; }
+}

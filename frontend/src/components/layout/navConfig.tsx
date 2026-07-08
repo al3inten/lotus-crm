@@ -11,6 +11,7 @@ import {
   PhoneCall,
   Megaphone,
   Plug,
+  CarFront,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import type { Role, ModuleKey } from "../../types";
@@ -30,6 +31,7 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { to: "/dashboard", label: "Dashboard", short: "Home", icon: Gauge, module: "dashboard" },
   { to: "/leads", label: "Leads", icon: Car, module: "leads" },
+  { to: "/vehicles", label: "Vehicles", icon: CarFront, module: "vehicles" },
   {
     to: "/social-inbox",
     label: "Social Inbox",

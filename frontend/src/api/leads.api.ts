@@ -1,5 +1,15 @@
 import { axiosClient } from "./axiosClient";
-import type { Enquiry, LeadSource, EnquiryType, LeadWithHistory, PaginatedEnquiries } from "../types";
+import type {
+  Enquiry,
+  LeadSource,
+  EnquiryType,
+  Department,
+  LeadSubsource,
+  EnquiryCategory,
+  LeadDraft,
+  LeadWithHistory,
+  PaginatedEnquiries,
+} from "../types";
 
 export interface LeadFilters {
   search?: string;
@@ -13,7 +23,32 @@ export interface LeadFilters {
   pageSize?: number;
 }
 
-export interface CreateEnquiryPayload {
+/** Offline-intake enrichment fields — all optional, shared by create and complete-details payloads. */
+export interface LeadEnrichmentPayload {
+  alternateMobile?: string;
+  dob?: string;
+  profession?: string;
+  pincode?: string;
+  address?: string;
+  department?: Department;
+  subsource?: LeadSubsource;
+  variant?: string;
+  enquiryCategory?: EnquiryCategory;
+  financeRequired?: boolean;
+  financeRemarks?: string;
+  appointmentScheduled?: boolean;
+  appointmentAt?: string;
+  testDriveInterested?: boolean;
+  testDriveCount?: number;
+  exchangeCarModel?: string;
+  exchangeCarYear?: number;
+  exchangeCarKms?: number;
+  exchangeCarOwners?: number;
+  calledDate?: string;
+  remarks?: string;
+}
+
+export interface CreateEnquiryPayload extends LeadEnrichmentPayload {
   name: string;
   phone: string;
   email?: string;
@@ -72,6 +107,25 @@ export async function importLeadsFile(file: File, branchId: string): Promise<Imp
     headers: { "Content-Type": "multipart/form-data" },
   });
   return data;
+}
+
+export async function fetchDrafts(): Promise<LeadDraft[]> {
+  const { data } = await axiosClient.get<LeadDraft[]>("/leads/drafts");
+  return data;
+}
+
+export async function saveDraft(branchId: string | undefined, data: Record<string, unknown>): Promise<LeadDraft> {
+  const { data: draft } = await axiosClient.post<LeadDraft>("/leads/drafts", { branchId, data });
+  return draft;
+}
+
+export async function updateDraft(id: string, data: Record<string, unknown>): Promise<LeadDraft> {
+  const { data: draft } = await axiosClient.patch<LeadDraft>(`/leads/drafts/${id}`, { data });
+  return draft;
+}
+
+export async function deleteDraft(id: string): Promise<void> {
+  await axiosClient.delete(`/leads/drafts/${id}`);
 }
 
 export async function downloadLeadImportTemplate(): Promise<void> {

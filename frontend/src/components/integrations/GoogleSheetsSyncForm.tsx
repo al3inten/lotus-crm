@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -19,12 +20,18 @@ import type { GoogleSheetSyncFormValues } from "../../schemas/integration.schema
 import { useSyncGoogleSheet } from "../../hooks/useIntegrations";
 import { useBranches } from "../../hooks/useBranches";
 import type { ImportSummary } from "../../api/integrations.api";
-import { useState } from "react";
 
 interface SyncResult {
   summary: ImportSummary;
   branchName: string;
 }
+
+const TONE_CLASSES = {
+  blue: "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300",
+  green: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300",
+  amber: "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300",
+  red: "bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300",
+};
 
 function StatTile({
   icon,
@@ -35,19 +42,12 @@ function StatTile({
   icon: ReactNode;
   label: string;
   value: number;
-  tone: "blue" | "green" | "amber" | "red";
+  tone: keyof typeof TONE_CLASSES;
 }) {
-  const toneClasses = {
-    blue: "bg-blue-50 text-blue-700",
-    green: "bg-green-50 text-green-700",
-    amber: "bg-amber-50 text-amber-700",
-    red: "bg-red-50 text-red-700",
-  }[tone];
-
   return (
-    <div className={`flex flex-col items-center gap-1 rounded-lg p-3 ${toneClasses}`}>
+    <div className={`flex flex-col items-center gap-1 rounded-xl p-3 ${TONE_CLASSES[tone]}`}>
       {icon}
-      <span className="text-xl font-semibold">{value}</span>
+      <span className="text-xl font-semibold tabular-nums">{value}</span>
       <span className="text-xs font-medium">{label}</span>
     </div>
   );
@@ -83,18 +83,18 @@ export function GoogleSheetsSyncForm() {
   const allSucceeded = result ? result.summary.failed === 0 : false;
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-5">
-      <div className="mb-4 flex items-center gap-2">
-        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-green-50 text-green-700">
+    <>
+      <div className="mb-5 flex items-start gap-3 rounded-xl bg-emerald-50 p-3.5 dark:bg-emerald-500/10">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-emerald-600 shadow-sm dark:bg-slate-900 dark:text-emerald-400">
           <FileSpreadsheet size={18} />
         </span>
-        <div>
-          <h3 className="text-sm font-semibold text-gray-900">Sync from Google Sheets</h3>
-          <p className="text-xs text-gray-500">Pull rows from a connected sheet straight into your leads.</p>
-        </div>
+        <p className="text-xs leading-relaxed text-emerald-800 dark:text-emerald-200">
+          Pull rows from a connected Google Sheet straight into your leads — new rows create leads, matching
+          contacts merge into their existing enquiry.
+        </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
         <Input
           label="Sheet URL or ID"
           placeholder="https://docs.google.com/spreadsheets/d/..."
@@ -110,7 +110,7 @@ export function GoogleSheetsSyncForm() {
             </option>
           ))}
         </Select>
-        <Button type="submit" isLoading={isSubmitting} className="w-fit">
+        <Button type="submit" isLoading={isSubmitting} className="mt-1 w-fit">
           Sync Now
         </Button>
       </form>
@@ -119,8 +119,10 @@ export function GoogleSheetsSyncForm() {
         {result && (
           <div className="flex flex-col gap-4">
             <div
-              className={`flex items-center gap-2 rounded-lg p-3 text-sm font-medium ${
-                allSucceeded ? "bg-green-50 text-green-800" : "bg-amber-50 text-amber-800"
+              className={`flex items-center gap-2 rounded-xl p-3 text-sm font-medium ${
+                allSucceeded
+                  ? "bg-emerald-50 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-300"
+                  : "bg-amber-50 text-amber-800 dark:bg-amber-500/10 dark:text-amber-300"
               }`}
             >
               {allSucceeded ? <PartyPopper size={16} /> : <AlertTriangle size={16} />}
@@ -129,9 +131,9 @@ export function GoogleSheetsSyncForm() {
                 : `${result.summary.failed} of ${result.summary.totalRows} row(s) needs attention.`}
             </div>
 
-            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+            <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
               <Building2 size={14} />
-              Synced into <span className="font-semibold text-gray-700">{result.branchName}</span>
+              Synced into <span className="font-semibold text-slate-700 dark:text-slate-300">{result.branchName}</span>
             </div>
 
             <div className="grid grid-cols-4 gap-2">
@@ -142,12 +144,12 @@ export function GoogleSheetsSyncForm() {
             </div>
 
             {result.summary.errors.length > 0 && (
-              <div className="rounded-lg border border-red-100 bg-red-50 p-3">
-                <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-red-800">
+              <div className="rounded-xl border border-rose-100 bg-rose-50 p-3 dark:border-rose-500/20 dark:bg-rose-500/10">
+                <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-rose-800 dark:text-rose-300">
                   <AlertTriangle size={14} />
                   Rows that failed
                 </p>
-                <ul className="max-h-40 space-y-1 overflow-y-auto text-xs text-red-700">
+                <ul className="max-h-40 space-y-1 overflow-y-auto text-xs text-rose-700 dark:text-rose-300/90">
                   {result.summary.errors.map((e) => (
                     <li key={e.row}>
                       Row {e.row}: {e.message}
@@ -168,8 +170,8 @@ export function GoogleSheetsSyncForm() {
 
       <Modal isOpen={errorModalMsg !== null} onClose={() => setErrorModalMsg(null)} title="Sync Failed">
         <div className="flex flex-col gap-4">
-          <div className="flex items-start gap-3 rounded-lg bg-red-50 p-4 text-sm text-red-800">
-            <AlertTriangle size={20} className="mt-0.5 shrink-0 text-red-600" />
+          <div className="flex items-start gap-3 rounded-xl bg-rose-50 p-4 text-sm text-rose-800 dark:bg-rose-500/10 dark:text-rose-300">
+            <AlertTriangle size={20} className="mt-0.5 shrink-0 text-rose-600 dark:text-rose-400" />
             <p>{errorModalMsg}</p>
           </div>
           <div className="mt-2 flex justify-end">
@@ -177,6 +179,6 @@ export function GoogleSheetsSyncForm() {
           </div>
         </div>
       </Modal>
-    </div>
+    </>
   );
 }

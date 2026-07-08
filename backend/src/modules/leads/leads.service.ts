@@ -28,12 +28,19 @@ export async function createOrAttachEnquiry(input: CreateEnquiryInput, createdBy
 
     const lead = await tx.lead.upsert({
       where: { phoneNormalized },
+      // Repeat contacts never overwrite an already-completed profile — only a brand-new
+      // lead gets the enrichment fields from this submission.
       update: {},
       create: {
         name: input.name,
         phoneRaw: input.phone,
         phoneNormalized,
         email: input.email,
+        alternateMobile: input.alternateMobile,
+        dob: input.dob ? new Date(input.dob) : undefined,
+        profession: input.profession,
+        pincode: input.pincode,
+        address: input.address,
       },
     });
 
@@ -93,6 +100,22 @@ export async function createOrAttachEnquiry(input: CreateEnquiryInput, createdBy
         location: input.location,
         assignedCrId,
         status: "NEW",
+        department: input.department,
+        subsource: input.subsource,
+        variant: input.variant,
+        enquiryCategory: input.enquiryCategory,
+        financeRequired: input.financeRequired,
+        financeRemarks: input.financeRemarks,
+        appointmentScheduled: input.appointmentScheduled,
+        appointmentAt: input.appointmentAt ? new Date(input.appointmentAt) : undefined,
+        testDriveInterested: input.testDriveInterested,
+        testDriveCount: input.testDriveCount,
+        exchangeCarModel: input.exchangeCarModel,
+        exchangeCarYear: input.exchangeCarYear,
+        exchangeCarKms: input.exchangeCarKms,
+        exchangeCarOwners: input.exchangeCarOwners,
+        calledDate: input.calledDate ? new Date(input.calledDate) : undefined,
+        remarks: input.remarks,
       },
     });
 
@@ -226,4 +249,28 @@ export async function getLeadWithHistory(leadId: string) {
   }
 
   return { ...lead, touchesBySource, messagesByChannel };
+}
+
+// ---------- DRAFTS ----------
+// A CR's in-progress offline intake, kept out of the Enquiry table entirely (see LeadDraft
+// comment in schema.prisma) so partial data never touches routing/reporting logic.
+
+export async function listDrafts(createdById: string) {
+  return prisma.leadDraft.findMany({ where: { createdById }, orderBy: { updatedAt: "desc" } });
+}
+
+export async function saveDraft(createdById: string, branchId: string | undefined, data: Prisma.InputJsonValue) {
+  return prisma.leadDraft.create({ data: { createdById, branchId, data } });
+}
+
+export async function updateDraft(id: string, createdById: string, data: Prisma.InputJsonValue) {
+  const draft = await prisma.leadDraft.findUnique({ where: { id } });
+  if (!draft || draft.createdById !== createdById) throw new NotFoundError("Draft not found");
+  return prisma.leadDraft.update({ where: { id }, data: { data } });
+}
+
+export async function deleteDraft(id: string, createdById: string) {
+  const draft = await prisma.leadDraft.findUnique({ where: { id } });
+  if (!draft || draft.createdById !== createdById) throw new NotFoundError("Draft not found");
+  await prisma.leadDraft.delete({ where: { id } });
 }

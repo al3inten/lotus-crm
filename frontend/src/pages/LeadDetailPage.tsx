@@ -11,6 +11,7 @@ import {
   PhoneCall,
   ArrowRightCircle,
   UserCog,
+  ClipboardEdit,
 } from "lucide-react";
 import { useLeadHistory } from "../hooks/useLeads";
 import { useEnquiry, useReassign } from "../hooks/useEnquiry";
@@ -31,13 +32,20 @@ import { Avatar } from "../components/common/Avatar";
 import { Button } from "../components/common/Button";
 import { Card, CardHeader } from "../components/common/Card";
 import { Select } from "../components/common/Input";
+import { AddLeadWizard } from "../components/leads/AddLeadWizard";
+import { DIGITAL_SOURCES } from "../types";
+import type { AddLeadFormValues } from "../schemas/lead.schema";
 
 const REASSIGN_ROLES = ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"];
+
+const toDateInput = (iso?: string | null) => (iso ? iso.slice(0, 10) : undefined);
+const toDatetimeLocalInput = (iso?: string | null) => (iso ? iso.slice(0, 16) : undefined);
 
 export function LeadDetailPage() {
   const { leadId, enquiryId: enquiryIdParam } = useParams<{ leadId: string; enquiryId?: string }>();
   const { user } = useAuth();
   const [showStatusModal, setShowStatusModal] = useState(false);
+  const [showDetailsWizard, setShowDetailsWizard] = useState(false);
   const [reassignTo, setReassignTo] = useState("");
 
   const { data: lead, isLoading: leadLoading } = useLeadHistory(leadId);
@@ -90,6 +98,17 @@ export function LeadDetailPage() {
               <p className="mt-3 w-fit rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800">
                 Repeat customer · {totalContacts} contacts
               </p>
+            )}
+            {enquiry && DIGITAL_SOURCES.includes(enquiry.source) && (!enquiry.department || !enquiry.enquiryCategory) && (
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<ClipboardEdit size={14} />}
+                className="mt-3 w-full justify-center"
+                onClick={() => setShowDetailsWizard(true)}
+              >
+                Complete Customer Details
+              </Button>
             )}
           </Card>
 
@@ -265,6 +284,46 @@ export function LeadDetailPage() {
                 currentStatus={enquiry.status}
                 isOpen={showStatusModal}
                 onClose={() => setShowStatusModal(false)}
+              />
+
+              <AddLeadWizard
+                isOpen={showDetailsWizard}
+                onClose={() => setShowDetailsWizard(false)}
+                mode="complete"
+                enquiryId={enquiry.id}
+                contextLabel={`${enquiry.branch.name} · ${enquiry.source.replaceAll("_", " ")}`}
+                initialValues={
+                  {
+                    name: lead.name,
+                    phone: lead.phoneRaw,
+                    email: lead.email ?? undefined,
+                    carModel: enquiry.carModel,
+                    enquiryType: enquiry.enquiryType,
+                    location: enquiry.location ?? undefined,
+                    branchId: enquiry.branchId,
+                    alternateMobile: lead.alternateMobile ?? undefined,
+                    dob: toDateInput(lead.dob),
+                    profession: lead.profession ?? undefined,
+                    pincode: lead.pincode ?? undefined,
+                    address: lead.address ?? undefined,
+                    department: enquiry.department ?? undefined,
+                    subsource: enquiry.subsource ?? undefined,
+                    variant: enquiry.variant ?? undefined,
+                    enquiryCategory: enquiry.enquiryCategory ?? undefined,
+                    financeRequired: enquiry.financeRequired ?? false,
+                    financeRemarks: enquiry.financeRemarks ?? undefined,
+                    appointmentScheduled: enquiry.appointmentScheduled,
+                    appointmentAt: toDatetimeLocalInput(enquiry.appointmentAt),
+                    testDriveInterested: enquiry.testDriveInterested,
+                    testDriveCount: enquiry.testDriveCount ?? undefined,
+                    exchangeCarModel: enquiry.exchangeCarModel ?? undefined,
+                    exchangeCarYear: enquiry.exchangeCarYear ?? undefined,
+                    exchangeCarKms: enquiry.exchangeCarKms ?? undefined,
+                    exchangeCarOwners: enquiry.exchangeCarOwners ?? undefined,
+                    calledDate: toDateInput(enquiry.calledDate),
+                    remarks: enquiry.remarks ?? undefined,
+                  } as Partial<AddLeadFormValues>
+                }
               />
             </>
           )}

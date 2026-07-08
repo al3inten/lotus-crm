@@ -1,4 +1,10 @@
 import { z } from "zod";
+import { leadEnrichmentSchema } from "../leads/leads.schema";
+
+// Same enrichment fields as the Add Lead wizard (leads.schema.ts), reused here for the
+// "Complete Customer Details" flow on an existing enquiry — a partial PATCH, so every
+// field stays optional (already the case on leadEnrichmentSchema).
+export const enquiryDetailsSchema = leadEnrichmentSchema;
 
 export const changeStatusSchema = z.object({
   toStatus: z.enum([
@@ -85,6 +91,7 @@ export const deliveryDetailsSchema = z.object({
   notes: z.string().optional(),
 });
 
+export type EnquiryDetailsInput = z.infer<typeof enquiryDetailsSchema>;
 export type ChangeStatusInput = z.infer<typeof changeStatusSchema>;
 export type ReassignInput = z.infer<typeof reassignSchema>;
 export type TestDriveInput = z.infer<typeof testDriveSchema>;
