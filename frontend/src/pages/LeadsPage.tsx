@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Car, ChevronLeft, ChevronRight, FileSpreadsheet, Users, MessageSquare, Building2, LayoutGrid, List } from "lucide-react";
 import { motion } from "framer-motion";
+import clsx from "clsx";
 import { useLeads } from "../hooks/useLeads";
 import type { LeadFilters as LeadFiltersType } from "../api/leads.api";
 import { LeadFilters } from "../components/leads/LeadFilters";
@@ -36,7 +37,7 @@ export function LeadsPage() {
   const [resumeDraft, setResumeDraft] = useState<LeadDraft | undefined>(undefined);
   const [view, setView] = useState<"list" | "kanban">("list");
 
-  const { data, isLoading } = useLeads(filters);
+  const { data, isLoading, isFetching } = useLeads(filters);
   const { data: integrations } = useIntegrations();
   const googleSheetsConnected = integrations?.find((i) => i.key === "GOOGLE_SHEETS")?.hasCredentials ?? false;
   const totalPages = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1;
@@ -133,40 +134,53 @@ export function LeadsPage() {
       </Card>
 
       {isLoading || !data ? (
-        <Card>
-          <p className="py-8 text-center text-sm font-medium text-slate-500 dark:text-slate-400">Loading leads…</p>
-        </Card>
-      ) : view === "kanban" ? (
-        <LeadKanbanBoard enquiries={data.items} />
-      ) : (
         <Card padded={false} className="overflow-hidden">
-          <LeadTable enquiries={data.items} />
-          <div className="flex items-center justify-between border-t border-slate-100 px-5 py-4 text-sm font-medium text-slate-500 dark:border-slate-800 dark:text-slate-400">
-            <span>
-              Page {data.page} of {totalPages} · {data.total} total
-            </span>
-            <div className="flex gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                icon={<ChevronLeft size={14} />}
-                disabled={data.page <= 1}
-                onClick={() => setFilters((f) => ({ ...f, page: (f.page ?? 1) - 1 }))}
-              >
-                Previous
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setFilters((f) => ({ ...f, page: (f.page ?? 1) + 1 }))}
-                disabled={data.page >= totalPages}
-              >
-                Next
-                <ChevronRight size={14} />
-              </Button>
-            </div>
+          <div className="flex flex-col gap-3 p-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <div className="h-10 w-10 shrink-0 animate-pulse rounded-full bg-slate-200 dark:bg-slate-800" />
+                <div className="h-4 flex-1 animate-pulse rounded bg-slate-200 dark:bg-slate-800" style={{ animationDelay: `${i * 60}ms` }} />
+                <div className="hidden h-4 w-24 animate-pulse rounded bg-slate-200 sm:block dark:bg-slate-800" />
+                <div className="hidden h-6 w-20 animate-pulse rounded-full bg-slate-200 md:block dark:bg-slate-800" />
+              </div>
+            ))}
           </div>
         </Card>
+      ) : (
+        <div className={clsx("transition-opacity duration-200", isFetching && "pointer-events-none opacity-60")}>
+          {view === "kanban" ? (
+            <LeadKanbanBoard enquiries={data.items} />
+          ) : (
+            <Card padded={false} className="overflow-hidden">
+              <LeadTable enquiries={data.items} />
+              <div className="flex items-center justify-between border-t border-slate-100 px-5 py-4 text-sm font-medium text-slate-500 dark:border-slate-800 dark:text-slate-400">
+                <span>
+                  Page {data.page} of {totalPages} · {data.total} total
+                </span>
+                <div className="flex gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    icon={<ChevronLeft size={14} />}
+                    disabled={data.page <= 1}
+                    onClick={() => setFilters((f) => ({ ...f, page: (f.page ?? 1) - 1 }))}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setFilters((f) => ({ ...f, page: (f.page ?? 1) + 1 }))}
+                    disabled={data.page >= totalPages}
+                  >
+                    Next
+                    <ChevronRight size={14} />
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          )}
+        </div>
       )}
 
       <AddLeadWizard

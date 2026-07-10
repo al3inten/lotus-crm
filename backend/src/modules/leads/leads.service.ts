@@ -1,4 +1,4 @@
-import { EnquiryStatus, LeadSource, Prisma } from "@prisma/client";
+import { EnquiryStatus, LeadSource, EnquiryCategory, Prisma } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { NotFoundError } from "../../lib/errors";
 import { normalizePhone } from "./phone.util";
@@ -153,6 +153,7 @@ export async function listEnquiries(query: LeadListQuery, branchFilter?: { branc
   if (query.branchId) where.branchId = query.branchId;
   if (query.status) where.status = query.status as EnquiryStatus;
   if (query.source) where.source = query.source as LeadSource;
+  if (query.enquiryCategory) where.enquiryCategory = query.enquiryCategory as EnquiryCategory;
   if (query.assignedCrId) where.assignedCrId = query.assignedCrId;
 
   if (query.dateFrom || query.dateTo) {
