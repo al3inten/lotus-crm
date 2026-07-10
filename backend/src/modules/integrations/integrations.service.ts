@@ -116,6 +116,16 @@ async function getCredentials<T>(key: IntegrationKey): Promise<T> {
   return decryptJson<T>(row.encryptedCredentials);
 }
 
+/**
+ * Cheap check for whether an integration is configured AND enabled, without decrypting
+ * credentials or throwing. Use this to skip background jobs (polling, sync) when an
+ * integration is off, so they don't spam errors from `getCredentials` on every tick.
+ */
+export async function isIntegrationEnabled(key: IntegrationKey): Promise<boolean> {
+  const row = await prisma.integrationConfig.findUnique({ where: { key: key as PrismaIntegrationKey } });
+  return !!row?.encryptedCredentials && row.enabled;
+}
+
 export const getMetaAdsCredentials = () => getCredentials<MetaAdsCredentials>("META_ADS");
 
 /**

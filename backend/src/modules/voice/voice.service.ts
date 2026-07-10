@@ -4,6 +4,7 @@ import { NotFoundError, ValidationError } from "../../lib/errors";
 import { CreateCallCampaignInput } from "./voice.schema";
 import { normalizePhone } from "../leads/phone.util";
 import * as callmaticService from "../integrations/callmatic.service";
+import { isIntegrationEnabled } from "../integrations/integrations.service";
 import { logger } from "../../lib/logger";
 import { getSystemUserId } from "../../lib/systemUser";
 import { applyCallResult, isTerminalCallStatus } from "../integrations/callmaticSync.service";
@@ -197,6 +198,11 @@ export async function pauseCampaign(campaignId: string) {
  * Safe to call repeatedly — each task is only touched while its status is non-terminal.
  */
 export async function pollPendingCalls() {
+  // Callmatic disabled/unconfigured means getCallDetails would throw for every pending
+  // task on every tick — skip the whole pass rather than spam errors. Once it's re-enabled
+  // the still-pending tasks get picked up on the next tick.
+  if (!(await isIntegrationEnabled("CALLMATIC"))) return;
+
   const pendingTasks = await prisma.outboundCallTask.findMany({
     where: {
       externalCallId: { not: null },
