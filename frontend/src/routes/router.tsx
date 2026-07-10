@@ -3,6 +3,7 @@ import { AppShell } from "../components/layout/AppShell";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { LandingPage } from "../pages/LandingPage";
 import { LoginPage } from "../pages/LoginPage";
+import { QuoteViewPage } from "../pages/QuoteViewPage";
 import { DashboardPage } from "../pages/DashboardPage";
 import { LeadsPage } from "../pages/LeadsPage";
 import { LeadDetailPage } from "../pages/LeadDetailPage";
@@ -16,10 +17,12 @@ import { TemplatesPage } from "../pages/TemplatesPage";
 import { CallCampaignsPage } from "../pages/CallCampaignsPage";
 import { BulkMessagesPage } from "../pages/BulkMessagesPage";
 import { VehiclesPage } from "../pages/VehiclesPage";
+import { SettingsPage } from "../pages/SettingsPage";
 
 export const router = createBrowserRouter([
   { path: "/", element: <LandingPage /> },
   { path: "/login", element: <LoginPage /> },
+  { path: "/quote/:id", element: <QuoteViewPage /> },
   {
     element: <ProtectedRoute />,
     children: [
@@ -53,6 +56,7 @@ export const router = createBrowserRouter([
             children: [
               { path: "/integrations", element: <IntegrationsPage /> },
               { path: "/ai-agents", element: <AiAgentsPage /> },
+              { path: "/settings", element: <SettingsPage /> },
             ],
           },
         ],

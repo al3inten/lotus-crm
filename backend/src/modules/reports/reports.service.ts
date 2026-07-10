@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { ReportQuery, TrendQuery } from "./reports.schema";
 
-const CONVERTED_STATUSES = ["SALE_CLOSED", "DELIVERY_IN_PROGRESS", "DELIVERED"] as const;
+const CONVERTED_STATUSES = ["RETAIL_DONE"] as const;
 
 function buildWhere(query: ReportQuery, branchFilter?: { branchId: string }): Prisma.EnquiryWhereInput {
   const where: Prisma.EnquiryWhereInput = {};
@@ -27,8 +27,8 @@ export async function getSummary(query: ReportQuery, branchFilter?: { branchId: 
 
   const statusCounts = Object.fromEntries(byStatus.map((row) => [row.status, row._count]));
   const converted = CONVERTED_STATUSES.reduce((sum, status) => sum + (statusCounts[status] ?? 0), 0);
-  const followUpPending = statusCounts["FOLLOW_UP"] ?? 0;
-  const lost = statusCounts["LOST"] ?? 0;
+  const followUpPending = statusCounts["UNDER_FOLLOW_UP"] ?? 0;
+  const lost = statusCounts["CLOSED"] ?? 0;
 
   return {
     totalEnquiries: total,
@@ -43,16 +43,34 @@ export async function getSummary(query: ReportQuery, branchFilter?: { branchId: 
 export async function getCrPerformance(query: ReportQuery, branchFilter?: { branchId: string }) {
   const where = buildWhere(query, branchFilter);
 
-  const [assignedCounts, convertedCounts] = await Promise.all([
+  const endOfToday = new Date();
+  endOfToday.setHours(23, 59, 59, 999);
+  const now = new Date();
+  
+  const TERMINAL_STATUSES = ["RETAIL_DONE", "CLOSED"] as const;
+
+  const [assignedCounts, convertedCounts, pendingCounts, overdueCounts] = await Promise.all([
     prisma.enquiry.groupBy({ by: ["assignedCrId"], where: { ...where, assignedCrId: { not: null } }, _count: true }),
     prisma.enquiry.groupBy({
       by: ["assignedCrId"],
       where: { ...where, assignedCrId: { not: null }, status: { in: [...CONVERTED_STATUSES] } },
       _count: true,
     }),
+    prisma.enquiry.groupBy({
+      by: ["assignedCrId"],
+      where: { ...where, assignedCrId: { not: null }, status: { notIn: [...TERMINAL_STATUSES] }, followUpDueAt: { not: null } },
+      _count: true,
+    }),
+    prisma.enquiry.groupBy({
+      by: ["assignedCrId"],
+      where: { ...where, assignedCrId: { not: null }, status: { notIn: [...TERMINAL_STATUSES] }, followUpDueAt: { lt: now } },
+      _count: true,
+    }),
   ]);
 
   const convertedMap = new Map(convertedCounts.map((row) => [row.assignedCrId, row._count]));
+  const pendingMap = new Map(pendingCounts.map((row) => [row.assignedCrId, row._count]));
+  const overdueMap = new Map(overdueCounts.map((row) => [row.assignedCrId, row._count]));
   const crIds = assignedCounts.map((row) => row.assignedCrId).filter((id): id is string => !!id);
 
   const crUsers = await prisma.user.findMany({
@@ -66,6 +84,8 @@ export async function getCrPerformance(query: ReportQuery, branchFilter?: { bran
     .map((row) => {
       const assigned = row._count;
       const converted = convertedMap.get(row.assignedCrId) ?? 0;
+      const pending = pendingMap.get(row.assignedCrId) ?? 0;
+      const overdue = overdueMap.get(row.assignedCrId) ?? 0;
       const user = userMap.get(row.assignedCrId!);
       return {
         crId: row.assignedCrId,
@@ -73,6 +93,8 @@ export async function getCrPerformance(query: ReportQuery, branchFilter?: { bran
         branchId: user?.branchId ?? null,
         assigned,
         converted,
+        followUpsPending: pending,
+        followUpsOverdue: overdue,
         conversionRate: assigned > 0 ? Number(((converted / assigned) * 100).toFixed(1)) : 0,
       };
     })
@@ -111,8 +133,8 @@ export async function getTrend(query: TrendQuery, branchFilter?: { branchId: str
       SELECT
         date_trunc(${query.granularity}, "createdAt") AS bucket,
         COUNT(*)::bigint AS total,
-        COUNT(*) FILTER (WHERE status IN ('SALE_CLOSED', 'DELIVERY_IN_PROGRESS', 'DELIVERED'))::bigint AS converted,
-        COUNT(*) FILTER (WHERE status = 'LOST')::bigint AS lost
+        COUNT(*) FILTER (WHERE status = 'RETAIL_DONE')::bigint AS converted,
+        COUNT(*) FILTER (WHERE status = 'CLOSED')::bigint AS lost
       FROM enquiries
       WHERE 1=1
         ${branchId ? Prisma.sql`AND "branchId" = ${branchId}` : Prisma.empty}

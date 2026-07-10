@@ -17,6 +17,7 @@ export async function getEnquiry(enquiryId: string) {
       exchangeEvaluation: true,
       financeApplication: true,
       deliveryDetails: true,
+      followUps: { orderBy: { createdAt: "desc" }, include: { createdBy: { select: { id: true, name: true } } } },
     },
   });
   if (!enquiry) throw new NotFoundError("Enquiry not found");
@@ -35,8 +36,8 @@ export async function changeStatus(enquiryId: string, input: ChangeStatusInput, 
       );
     }
 
-    if (input.toStatus === "LOST" && !input.lossReason) {
-      throw new ValidationError("lossReason is required when moving an enquiry to LOST");
+    if (input.toStatus === "CLOSED" && input.lossReason === undefined) {
+      // It's allowed if they are winning it (no lossReason)
     }
 
     if (input.toStatus === CONSULTANT_REQUIRED_AT_STATUS && !input.consultantId && !enquiry.consultantId) {
@@ -47,9 +48,9 @@ export async function changeStatus(enquiryId: string, input: ChangeStatusInput, 
       where: { id: enquiryId },
       data: {
         status: input.toStatus,
-        lossReason: input.toStatus === "LOST" ? input.lossReason : enquiry.lossReason,
-        lossNote: input.toStatus === "LOST" ? input.note : enquiry.lossNote,
-        followUpDueAt: input.toStatus === "FOLLOW_UP" ? (input.followUpDueAt ? new Date(input.followUpDueAt) : null) : enquiry.followUpDueAt,
+        lossReason: input.toStatus === "CLOSED" ? input.lossReason : enquiry.lossReason,
+        lossNote: input.toStatus === "CLOSED" ? input.note : enquiry.lossNote,
+        followUpDueAt: input.toStatus === "UNDER_FOLLOW_UP" ? (input.followUpDueAt ? new Date(input.followUpDueAt) : null) : enquiry.followUpDueAt,
         // "" means the Assign Consultant dropdown was left on its placeholder — not a real
         // value, so it must not overwrite an already-assigned consultant (|| falls back on
         // "" too, unlike ??, which would otherwise null out the FK and violate the constraint).
@@ -96,6 +97,7 @@ export async function updateEnquiryDetails(enquiryId: string, input: EnquiryDeta
       where: { id: enquiryId },
       data: {
         department: input.department,
+        sourceCategory: input.sourceCategory,
         subsource: input.subsource,
         variant: input.variant,
         enquiryCategory: input.enquiryCategory,
@@ -141,5 +143,37 @@ export async function reassign(enquiryId: string, input: ReassignInput, reassign
     });
 
     return updated;
+  }, TRANSACTION_OPTIONS);
+}
+
+import { CreateFollowUpInput } from "./enquiries.schema";
+
+export async function addFollowUp(enquiryId: string, input: CreateFollowUpInput, createdById: string) {
+  return prisma.$transaction(async (tx) => {
+    const enquiry = await tx.enquiry.findUnique({ where: { id: enquiryId } });
+    if (!enquiry) throw new NotFoundError("Enquiry not found");
+
+    const followUp = await tx.followUp.create({
+      data: {
+        enquiryId,
+        createdById,
+        followUpDate: new Date(input.followUpDate),
+        followUpTime: input.followUpTime,
+        type: input.type,
+        remark: input.remark,
+        nextFollowUpDate: input.nextFollowUpDate ? new Date(input.nextFollowUpDate) : undefined,
+        nextFollowUpTime: input.nextFollowUpTime,
+      },
+      include: { createdBy: { select: { id: true, name: true } } },
+    });
+
+    if (input.nextFollowUpDate) {
+      await tx.enquiry.update({
+        where: { id: enquiryId },
+        data: { followUpDueAt: new Date(input.nextFollowUpDate) },
+      });
+    }
+
+    return followUp;
   }, TRANSACTION_OPTIONS);
 }

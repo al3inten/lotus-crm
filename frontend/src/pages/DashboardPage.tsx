@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useSummaryReport, useYoyReport, useTrendReport, useSourcePerformanceReport } from "../hooks/useReports";
-import { useLeads } from "../hooks/useLeads";
+import { useLeads, useReminders } from "../hooks/useLeads";
 import { Card } from "../components/common/Card";
 import { StatTile } from "../components/reports/StatTile";
 import { TrendChart } from "../components/reports/TrendChart";
@@ -98,7 +98,19 @@ function SectionHeader({ title, to, cta }: { title: string; to?: string; cta?: s
 
 export function DashboardPage() {
   const { user } = useAuth();
-  const canSeeStats = !!user && REPORT_VISIBLE_ROLES.includes(user.role);
+  const canSeeStats = user?.role && REPORT_VISIBLE_ROLES.includes(user.role);
+
+  const { data: reminders } = useReminders();
+  const todayReminders = reminders?.filter(r => {
+    if (!r.followUpDueAt) return false;
+    return new Date(r.followUpDueAt).toDateString() === new Date().toDateString();
+  }) ?? [];
+  const overdueReminders = reminders?.filter(r => {
+    if (!r.followUpDueAt) return false;
+    const due = new Date(r.followUpDueAt);
+    const now = new Date();
+    return due < now && due.toDateString() !== now.toDateString();
+  }) ?? [];
   const { data: summary } = useSummaryReport({}, canSeeStats);
   const { data: yoy } = useYoyReport({}, canSeeStats);
   const { data: trend } = useTrendReport({ granularity: "week" }, canSeeStats);
@@ -320,6 +332,42 @@ export function DashboardPage() {
               </Card>
             </motion.div>
           </>
+        )}
+
+        {/* Today's Follow-ups (If any) */}
+        {(todayReminders.length > 0 || overdueReminders.length > 0) && (
+          <motion.div variants={fadeUp} className="lg:col-span-3">
+            <Card padded={false} className="overflow-hidden border-amber-200/50 dark:border-amber-900/50 bg-amber-50/10 dark:bg-amber-900/10">
+              <div className="border-b border-amber-100/50 px-6 py-5 dark:border-amber-900/50">
+                <div className="flex items-center gap-2">
+                  <PhoneOutgoing className="text-amber-600 dark:text-amber-400" size={18} />
+                  <SectionHeader title="Your Action Required" />
+                </div>
+              </div>
+              <div className="divide-y divide-amber-100/50 dark:divide-amber-900/50">
+                {[...overdueReminders, ...todayReminders].map((enquiry) => (
+                  <Link
+                    key={enquiry.id}
+                    to={`/leads/${enquiry.leadId}`}
+                    className="flex items-center gap-4 px-6 py-4 transition-colors hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                  >
+                    <Avatar name={enquiry.lead.name} size="sm" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-slate-900 dark:text-slate-200">{enquiry.lead.name}</p>
+                      <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+                        {enquiry.carModel} · {enquiry.status}
+                      </p>
+                    </div>
+                    {new Date(enquiry.followUpDueAt!) < new Date() && new Date(enquiry.followUpDueAt!).toDateString() !== new Date().toDateString() ? (
+                      <span className="rounded bg-rose-100 px-2 py-1 text-[10px] font-bold uppercase text-rose-700 dark:bg-rose-500/20 dark:text-rose-400">Overdue</span>
+                    ) : (
+                      <span className="rounded bg-amber-100 px-2 py-1 text-[10px] font-bold uppercase text-amber-700 dark:bg-amber-500/20 dark:text-amber-400">Due Today</span>
+                    )}
+                  </Link>
+                ))}
+              </div>
+            </Card>
+          </motion.div>
         )}
 
         {/* Recent leads */}

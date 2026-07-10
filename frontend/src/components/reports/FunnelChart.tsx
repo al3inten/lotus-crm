@@ -3,15 +3,12 @@ import type { FunnelStage } from "../../api/reports.api";
 
 const STAGE_LABELS: Record<string, string> = {
   NEW: "New",
-  CONTACTED: "Contacted",
-  APPOINTMENT_SCHEDULED: "Appointment",
-  TEST_DRIVE_DONE: "Test Drive",
-  FEEDBACK_COLLECTED: "Feedback",
-  QUOTATION_SHARED: "Quotation",
-  NEGOTIATION: "Negotiation",
-  BOOKING_CONFIRMED: "Booking",
-  SALE_CLOSED: "Sale Closed",
-  DELIVERED: "Delivered",
+  UNDER_FOLLOW_UP: "Under Follow-up",
+  APPOINTMENT_FIXED: "Appointment Fixed",
+  TEST_DRIVE: "Test Drive",
+  BOOKED: "Booked",
+  RETAIL_DONE: "Retail Done",
+  CLOSED: "Closed",
 };
 
 export function FunnelChart({ stages }: { stages: FunnelStage[] }) {

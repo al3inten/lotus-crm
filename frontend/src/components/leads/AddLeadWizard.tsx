@@ -8,13 +8,20 @@ import { Input, Select, Textarea } from "../common/Input";
 import { Button } from "../common/Button";
 import { addLeadFormSchema } from "../../schemas/lead.schema";
 import type { AddLeadFormValues, AddLeadFormInput } from "../../schemas/lead.schema";
-import { useCreateWalkInLead, useSaveDraft, useUpdateDraft, useDeleteDraft } from "../../hooks/useLeads";
+import { useCreateWalkInLead, useSaveDraft, useUpdateDraft, useDeleteDraft, useLeadLookup } from "../../hooks/useLeads";
 import { useUpdateEnquiryDetails } from "../../hooks/useEnquiry";
 import { useBranches } from "../../hooks/useBranches";
 import { useBranchStaff } from "../../hooks/useUsers";
 import { useVehicleModels } from "../../hooks/useVehicles";
 import { useAuth } from "../../context/AuthContext";
-import { ENQUIRY_TYPES, DEPARTMENTS, LEAD_SUBSOURCES, ENQUIRY_CATEGORIES } from "../../types";
+import {
+  ENQUIRY_TYPES,
+  DEPARTMENTS,
+  LEAD_SUBSOURCES,
+  SOURCE_CATEGORIES,
+  SOURCE_CATEGORY_SUBSOURCES,
+  ENQUIRY_CATEGORIES,
+} from "../../types";
 import type { LeadEnrichmentPayload, WalkInLeadPayload } from "../../api/leads.api";
 
 const STEP_TITLES = [
@@ -27,7 +34,7 @@ const STEP_TITLES = [
 ];
 
 const STEP_FIELDS: (keyof AddLeadFormInput)[][] = [
-  ["assignedCrId", "branchId", "department", "subsource"],
+  ["assignedCrId", "branchId", "department", "sourceCategory", "subsource"],
   ["name", "phone", "alternateMobile", "email", "dob", "profession", "pincode", "location", "address"],
   ["carModel", "variant", "enquiryType", "enquiryCategory", "financeRequired", "financeRemarks"],
   ["appointmentScheduled", "appointmentAt", "testDriveInterested", "testDriveCount"],
@@ -72,6 +79,7 @@ export function AddLeadWizard({
   const [draftMessage, setDraftMessage] = useState<string | null>(null);
   const [showConfirmClose, setShowConfirmClose] = useState(false);
   const [draftId, setDraftId] = useState<string | undefined>(initialDraftId);
+  const [autofilledPhone, setAutofilledPhone] = useState<string | null>(null);
 
   const {
     register,
@@ -90,12 +98,17 @@ export function AddLeadWizard({
       financeRequired: false,
       appointmentScheduled: false,
       testDriveInterested: false,
+      forceNew: false,
       ...initialValues,
     },
   });
 
   const { data: crStaff } = useBranchStaff(watch("branchId"), "CR_TEAM");
   const { data: vehicleModels } = useVehicleModels();
+  const selectedSourceCategory = watch("sourceCategory");
+  const subsourceOptions = selectedSourceCategory
+    ? SOURCE_CATEGORY_SUBSOURCES[selectedSourceCategory]
+    : LEAD_SUBSOURCES;
   const financeRequired = watch("financeRequired");
   const appointmentScheduled = watch("appointmentScheduled");
   const testDriveInterested = watch("testDriveInterested");
@@ -103,6 +116,25 @@ export function AddLeadWizard({
   const activeModels = vehicleModels?.filter((m) => m.isActive) ?? [];
   const selectedModel = vehicleModels?.find((m) => m.name === selectedModelName);
   const variantOptions = selectedModel?.variants.filter((v) => v.isActive) ?? [];
+
+  const phone = watch("phone") || "";
+  const { data: lookupResult, isFetching: lookupLoading } = useLeadLookup(phone);
+  const isComplete = mode === "complete";
+
+  useEffect(() => {
+    if (lookupResult && phone && phone !== autofilledPhone && !isComplete) {
+      if (lookupResult.name) setValue("name", lookupResult.name);
+      if (lookupResult.email) setValue("email", lookupResult.email);
+      if (lookupResult.alternateMobile) setValue("alternateMobile", lookupResult.alternateMobile);
+      if (lookupResult.dob) setValue("dob", lookupResult.dob.slice(0, 10));
+      if (lookupResult.profession) setValue("profession", lookupResult.profession);
+      if (lookupResult.pincode) setValue("pincode", lookupResult.pincode);
+      if (lookupResult.address) setValue("address", lookupResult.address);
+      setAutofilledPhone(phone);
+    }
+  }, [lookupResult, phone, autofilledPhone, setValue, isComplete]);
+
+  const totalSteps = STEP_TITLES.length;
 
   useEffect(() => {
     if (isOpen) {
@@ -114,9 +146,6 @@ export function AddLeadWizard({
     // Only re-sync when the modal is (re)opened — not on every keystroke.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
-
-  const isComplete = mode === "complete";
-  const totalSteps = STEP_TITLES.length;
 
   const goNext = async () => {
     const fields = isComplete ? [] : STEP_FIELDS[step - 1];
@@ -132,6 +161,7 @@ export function AddLeadWizard({
     pincode: values.pincode || undefined,
     address: values.address || undefined,
     department: values.department || undefined,
+    sourceCategory: values.sourceCategory || undefined,
     subsource: values.subsource || undefined,
     variant: values.variant || undefined,
     enquiryCategory: values.enquiryCategory || undefined,
@@ -166,6 +196,7 @@ export function AddLeadWizard({
       location: values.location || undefined,
       branchId: values.branchId,
       assignedCrId: values.assignedCrId || undefined,
+      forceNew: values.forceNew,
       ...buildEnrichmentPayload(values),
     };
     const result = await createWalkIn.mutateAsync(payload);
@@ -251,6 +282,23 @@ export function AddLeadWizard({
           })}
         </div>
 
+        {lookupResult && !isComplete && (
+          <div className="mb-4 flex flex-col gap-2">
+            <div className="rounded-md bg-emerald-50 p-3 border border-emerald-200">
+              <p className="text-sm text-emerald-800 font-medium flex items-center gap-2">
+                <Check size={16} /> Customer Found! Existing details have been auto-filled.
+              </p>
+            </div>
+            {lookupResult.hasActiveEnquiry && (
+              <div className="rounded-md bg-amber-50 p-3 border border-amber-200">
+                <p className="text-sm text-amber-800">
+                  <span className="font-bold">Active Enquiry Detected:</span> This customer currently has an active enquiry in the <span className="font-semibold">{lookupResult.activeEnquiryStatus?.replaceAll("_", " ")}</span> stage. Saving this form will attach this contact to their existing enquiry unless you check the "Force new enquiry" box below.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
           {/* Step 1 — Enquiry & source */}
           {step === 1 && (
@@ -288,18 +336,37 @@ export function AddLeadWizard({
                   </option>
                 ))}
               </Select>
+              <Select
+                label="Source"
+                error={fieldError("sourceCategory")}
+                {...register("sourceCategory", { onChange: () => setValue("subsource", "") })}
+              >
+                <option value="">Select source</option>
+                {SOURCE_CATEGORIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c.replaceAll("_", " ")}
+                  </option>
+                ))}
+              </Select>
               <Select label="Subsource" error={fieldError("subsource")} {...register("subsource")}>
                 <option value="">Select subsource</option>
-                {LEAD_SUBSOURCES.map((s) => (
+                {subsourceOptions.map((s) => (
                   <option key={s} value={s}>
                     {s.replaceAll("_", " ")}
                   </option>
                 ))}
               </Select>
+              
               {!isComplete && (
-                <p className="sm:col-span-2 text-xs text-slate-400 dark:text-slate-500">
-                  Enquiry date: {new Date().toLocaleDateString()}
-                </p>
+                <div className="sm:col-span-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-t border-slate-100 dark:border-slate-800 pt-3 mt-1">
+                  <p className="text-xs text-slate-400 dark:text-slate-500">
+                    Enquiry date: {new Date().toLocaleDateString()}
+                  </p>
+                  <label className="flex items-center gap-2 text-sm text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-3 py-1.5 rounded-md border border-amber-200 dark:border-amber-800/50">
+                    <input type="checkbox" {...register("forceNew")} className="text-amber-600 focus:ring-amber-500 rounded border-amber-300" />
+                    <span className="font-medium">Force new enquiry</span>
+                  </label>
+                </div>
               )}
             </div>
           )}
@@ -308,7 +375,14 @@ export function AddLeadWizard({
           {step === 2 && (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Input label="Name" disabled={isComplete} error={fieldError("name")} {...register("name")} />
-              <Input label="Phone" disabled={isComplete} error={fieldError("phone")} {...register("phone")} />
+              <div className="relative">
+                <Input label="Phone" disabled={isComplete} error={fieldError("phone")} {...register("phone")} />
+                {lookupLoading && (
+                  <div className="absolute right-3 top-[34px]">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600" />
+                  </div>
+                )}
+              </div>
               <Input label="Alternate mobile" error={fieldError("alternateMobile")} {...register("alternateMobile")} />
               <Input label="Email" type="email" disabled={isComplete} error={fieldError("email")} {...register("email")} />
               <Input label="Date of birth" type="date" error={fieldError("dob")} {...register("dob")} />

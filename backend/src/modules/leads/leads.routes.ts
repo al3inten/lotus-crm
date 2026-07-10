@@ -17,6 +17,8 @@ import {
   saveDraftHandler,
   updateDraftHandler,
   deleteDraftHandler,
+  lookupLeadHandler,
+  getRemindersHandler,
 } from "./leads.controller";
 
 const upload = multer({
@@ -41,6 +43,10 @@ router.get(
   requireRole("SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER", "CR_TEAM"),
   asyncHandler(downloadLeadImportTemplateHandler)
 );
+
+router.get("/lookup", asyncHandler(lookupLeadHandler));
+router.get("/reminders", asyncHandler(getRemindersHandler));
+
 // Registered before "/:leadId" so "drafts" isn't swallowed as a leadId param.
 router.get("/drafts", asyncHandler(listDraftsHandler));
 router.post("/drafts", validateBody(leadDraftSchema), asyncHandler(saveDraftHandler));

@@ -2,7 +2,7 @@
  * Demo/analytics seed — adds a realistic spread of enquiries across the past 18 months
  * (so year-over-year comparison has a base period), walks a portion of them through the
  * pipeline with believable time gaps (so time-in-stage and funnel have real data), and
- * marks some LOST with reasons. Idempotent-ish: skips if demo leads already exist.
+ * marks some ENQUIRY_CLOSED with reasons. Idempotent-ish: skips if demo leads already exist.
  *
  * Run with: npx tsx prisma/seed-demo.ts
  */
@@ -15,20 +15,15 @@ const SOURCES: LeadSource[] = ["WALK_IN", "META_ADS", "WHATSAPP", "GOOGLE_SHEETS
 const LOCATIONS = ["Anna Nagar", "Adyar", "Velachery", "T Nagar", "OMR", "Porur"];
 const FIRST_NAMES = ["Arjun", "Priya", "Karthik", "Divya", "Suresh", "Meena", "Rahul", "Anita", "Vijay", "Lakshmi", "Ravi", "Sneha"];
 const LAST_NAMES = ["Kumar", "Sharma", "Iyer", "Reddy", "Nair", "Patel", "Rao", "Menon"];
-const LOSS_REASONS: LossReason[] = ["PRICE_TOO_HIGH", "BOUGHT_COMPETITOR", "NOT_INTERESTED_ANYMORE", "FINANCE_REJECTED", "NO_RESPONSE"];
+const LOSS_REASONS: LossReason[] = ["OTHER_REASON", "CO_DEALER", "OUT_OF_TERRITORY"];
 
 // The happy path an enquiry walks through, with typical hours spent in each stage.
 const PIPELINE: { status: EnquiryStatus; typicalHours: number }[] = [
-  { status: "CONTACTED", typicalHours: 18 },
-  { status: "APPOINTMENT_SCHEDULED", typicalHours: 48 },
-  { status: "TEST_DRIVE_DONE", typicalHours: 72 },
-  { status: "FEEDBACK_COLLECTED", typicalHours: 24 },
-  { status: "QUOTATION_SHARED", typicalHours: 48 },
-  { status: "NEGOTIATION", typicalHours: 96 },
-  { status: "BOOKING_CONFIRMED", typicalHours: 72 },
-  { status: "SALE_CLOSED", typicalHours: 120 },
-  { status: "DELIVERY_IN_PROGRESS", typicalHours: 168 },
-  { status: "DELIVERED", typicalHours: 0 },
+  { status: "FOLLOW_UP", typicalHours: 18 },
+  { status: "APPOINTMENT_FIXED", typicalHours: 48 },
+  { status: "TEST_DRIVE", typicalHours: 72 },
+  { status: "BOOKED", typicalHours: 96 },
+  { status: "RETAIL_DONE", typicalHours: 120 },
 ];
 
 function pick<T>(arr: readonly T[]): T {
@@ -78,7 +73,7 @@ async function main() {
     const fate = Math.random();
     const stagesToWalk =
       fate < 0.3
-        ? PIPELINE.length // full conversion to DELIVERED
+        ? PIPELINE.length // full conversion to RETAIL_DONE
         : Math.floor(Math.random() * (PIPELINE.length - 1)); // partial progress
     const isLost = fate >= 0.3 && fate < 0.55 && stagesToWalk > 0;
 
@@ -112,8 +107,8 @@ async function main() {
 
     if (isLost && cursor + 24 * 3600 * 1000 < now) {
       cursor += jitter(48) * 3600 * 1000;
-      history.push({ toStatus: "LOST", fromStatus: currentStatus, at: new Date(cursor) });
-      currentStatus = "LOST";
+      history.push({ toStatus: "ENQUIRY_CLOSED", fromStatus: currentStatus, at: new Date(cursor) });
+      currentStatus = "ENQUIRY_CLOSED";
     }
 
     await prisma.enquiryStatusHistory.createMany({
@@ -130,9 +125,9 @@ async function main() {
       where: { id: enquiry.id },
       data: {
         status: currentStatus,
-        lossReason: currentStatus === "LOST" ? pick(LOSS_REASONS) : undefined,
+        lossReason: currentStatus === "ENQUIRY_CLOSED" ? pick(LOSS_REASONS) : undefined,
         consultantId:
-          consultants.length > 0 && history.some((h) => h.toStatus === "APPOINTMENT_SCHEDULED")
+          consultants.length > 0 && history.some((h) => h.toStatus === "APPOINTMENT_FIXED")
             ? pick(consultants).id
             : undefined,
       },

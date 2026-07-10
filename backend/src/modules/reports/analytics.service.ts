@@ -2,22 +2,11 @@ import { Prisma, EnquiryStatus } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { ReportQuery } from "./reports.schema";
 
-const CONVERTED_STATUSES: EnquiryStatus[] = ["SALE_CLOSED", "DELIVERY_IN_PROGRESS", "DELIVERED"];
+const CONVERTED_STATUSES: EnquiryStatus[] = ["RETAIL_DONE"];
 
-// Pipeline stages in funnel order. FOLLOW_UP / APPOINTMENT_NO_SHOW / LOST are detour or
+// Pipeline stages in funnel order. BOOKING_CANCEL / RETAIL_CANCEL / ENQUIRY_CLOSED are
 // terminal states, not funnel milestones, so they're excluded from stage-reach counting.
-const FUNNEL_STAGES: EnquiryStatus[] = [
-  "NEW",
-  "CONTACTED",
-  "APPOINTMENT_SCHEDULED",
-  "TEST_DRIVE_DONE",
-  "FEEDBACK_COLLECTED",
-  "QUOTATION_SHARED",
-  "NEGOTIATION",
-  "BOOKING_CONFIRMED",
-  "SALE_CLOSED",
-  "DELIVERED",
-];
+const FUNNEL_STAGES: EnquiryStatus[] = ["NEW", "UNDER_FOLLOW_UP", "APPOINTMENT_FIXED", "TEST_DRIVE", "BOOKED", "RETAIL_DONE"];
 
 function buildWhere(query: ReportQuery, branchFilter?: { branchId: string }): Prisma.EnquiryWhereInput {
   const where: Prisma.EnquiryWhereInput = {};
@@ -60,7 +49,7 @@ export async function getYearOverYear(query: ReportQuery, branchFilter?: { branc
     const [total, converted, lost] = await Promise.all([
       prisma.enquiry.count({ where }),
       prisma.enquiry.count({ where: { ...where, status: { in: CONVERTED_STATUSES } } }),
-      prisma.enquiry.count({ where: { ...where, status: "LOST" } }),
+      prisma.enquiry.count({ where: { ...where, status: "CLOSED" } }),
     ]);
     return {
       total,
@@ -99,9 +88,8 @@ export async function getFunnel(query: ReportQuery, branchFilter?: { branchId: s
   const where = buildWhere(query, branchFilter);
   const totalEnquiries = await prisma.enquiry.count({ where });
 
-  // Raw SQL because Prisma's groupBy counts rows, not distinct enquiries — an enquiry
-  // can re-enter a stage (e.g. NO_SHOW -> APPOINTMENT_SCHEDULED again) and must not
-  // be double-counted as having "reached" it twice.
+  // Raw SQL because Prisma's groupBy counts rows, not distinct enquiries — a stage could
+  // otherwise be double-counted if an enquiry's status history ever revisits it.
   const distinctReached = await prisma.$queryRaw<{ toStatus: EnquiryStatus; count: bigint }[]>(
     Prisma.sql`
       SELECT h."toStatus", COUNT(DISTINCT h."enquiryId")::bigint AS count
@@ -225,7 +213,7 @@ export async function getLostReasons(query: ReportQuery, branchFilter?: { branch
 
   const rows = await prisma.enquiry.groupBy({
     by: ["lossReason"],
-    where: { ...where, status: "LOST", lossReason: { not: null } },
+    where: { ...where, status: "CLOSED", lossReason: { not: null } },
     _count: true,
   });
 

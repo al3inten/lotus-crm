@@ -21,6 +21,8 @@ export interface CrPerformanceRow {
   branchId: string | null;
   assigned: number;
   converted: number;
+  followUpsPending: number;
+  followUpsOverdue: number;
   conversionRate: number;
 }
 

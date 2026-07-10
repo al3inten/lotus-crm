@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Search, Bell, HelpCircle, Menu, ChevronDown } from "lucide-react";
+import { LogOut, Search, Bell, HelpCircle, Menu, ChevronDown, AtSign, Check } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useNavItems } from "./navConfig";
+import { useReminders } from "../../hooks/useLeads";
+import { useNotifications, useMarkNotificationAsRead } from "../../hooks/useNotifications";
 import { Avatar } from "../common/Avatar";
 import { Button } from "../common/Button";
 import { Modal } from "../common/Modal";
@@ -15,8 +17,27 @@ export function Topbar({ onMenuToggle }: { onMenuToggle: () => void }) {
   const [query, setQuery] = useState("");
   const [showResults, setShowResults] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isMentionsOpen, setIsMentionsOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const { data: appNotifications } = useNotifications();
+  const { mutate: markRead } = useMarkNotificationAsRead();
+  const unreadNotifications = appNotifications?.filter(n => !n.isRead) ?? [];
+
+  const { data: reminders } = useReminders();
+  const overdueReminders = reminders?.filter(r => {
+    if (!r.followUpDueAt) return false;
+    const due = new Date(r.followUpDueAt);
+    const now = new Date();
+    return due < now && due.toDateString() !== now.toDateString();
+  }) ?? [];
+  const todayReminders = reminders?.filter(r => {
+    if (!r.followUpDueAt) return false;
+    return new Date(r.followUpDueAt).toDateString() === new Date().toDateString();
+  }) ?? [];
+  const reminderCount = overdueReminders.length + todayReminders.length;
 
   const results = query.trim()
     ? navItems.filter((item) => item.label.toLowerCase().includes(query.trim().toLowerCase()))
@@ -113,12 +134,143 @@ export function Topbar({ onMenuToggle }: { onMenuToggle: () => void }) {
 
         {/* Right: notifications, help, profile */}
         <div className="flex items-center gap-1.5 sm:gap-3">
-          <button
-            aria-label="Notifications"
-            className="flex h-10 w-10 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-300"
-          >
-            <Bell size={18} />
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => {
+                setIsMentionsOpen(v => !v);
+                setIsNotificationsOpen(false);
+              }}
+              aria-label="Mentions"
+              className="relative flex h-10 w-10 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-300"
+            >
+              <AtSign size={18} />
+              {unreadNotifications.length > 0 && (
+                <span className="absolute right-2 top-2 flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75"></span>
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-500"></span>
+                </span>
+              )}
+            </button>
+
+            {isMentionsOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setIsMentionsOpen(false)} />
+                <div className="absolute right-0 top-full z-50 mt-2 w-80 origin-top-right overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-xl ring-1 ring-black/5 dark:border-slate-800/70 dark:bg-slate-900 dark:ring-white/10">
+                  <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/50 px-4 py-3 dark:border-slate-800 dark:bg-slate-800/50">
+                    <h3 className="font-semibold text-slate-900 dark:text-white">Notifications</h3>
+                  </div>
+                  <div className="max-h-[300px] overflow-y-auto">
+                    {unreadNotifications.length === 0 ? (
+                      <p className="p-4 text-center text-sm text-slate-500 dark:text-slate-400">No new mentions.</p>
+                    ) : (
+                      <div className="flex flex-col">
+                        {unreadNotifications.map(n => (
+                          <div
+                            key={n.id}
+                            className="group flex flex-col gap-1 border-b border-slate-100 px-4 py-3 text-left hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50"
+                          >
+                            <div className="flex items-start justify-between">
+                              <button
+                                onClick={() => {
+                                  markRead(n.id);
+                                  setIsMentionsOpen(false);
+                                  if (n.linkUrl) navigate(n.linkUrl);
+                                }}
+                                className="flex-1 text-left"
+                              >
+                                <span className="font-medium text-slate-900 dark:text-slate-200">{n.title}</span>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{n.body}</p>
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  markRead(n.id);
+                                }}
+                                className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-blue-600 transition-opacity"
+                                title="Mark as read"
+                              >
+                                <Check size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="relative">
+            <button
+              onClick={() => {
+                setIsNotificationsOpen(v => !v);
+                setIsMentionsOpen(false);
+              }}
+              aria-label="Notifications"
+              className="relative flex h-10 w-10 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-300"
+            >
+              <Bell size={18} />
+              {reminderCount > 0 && (
+                <span className="absolute right-2 top-2 flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75"></span>
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-rose-500"></span>
+                </span>
+              )}
+            </button>
+
+            {isNotificationsOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setIsNotificationsOpen(false)} />
+                <div className="absolute right-0 top-full z-50 mt-2 w-80 origin-top-right overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-xl ring-1 ring-black/5 dark:border-slate-800/70 dark:bg-slate-900 dark:ring-white/10">
+                  <div className="border-b border-slate-100 bg-slate-50/50 px-4 py-3 dark:border-slate-800 dark:bg-slate-800/50">
+                    <h3 className="font-semibold text-slate-900 dark:text-white">Pending Follow-ups</h3>
+                  </div>
+                  <div className="max-h-[300px] overflow-y-auto">
+                    {reminderCount === 0 ? (
+                      <p className="p-4 text-center text-sm text-slate-500 dark:text-slate-400">All caught up! 🎉</p>
+                    ) : (
+                      <div className="flex flex-col">
+                        {overdueReminders.map(r => (
+                          <button
+                            key={r.id}
+                            onClick={() => {
+                              setIsNotificationsOpen(false);
+                              navigate(`/leads/${r.leadId}`);
+                            }}
+                            className="flex flex-col gap-1 border-b border-slate-100 px-4 py-3 text-left hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium text-slate-900 dark:text-slate-200">{r.lead.name}</span>
+                              <span className="rounded bg-rose-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-rose-700 dark:bg-rose-500/20 dark:text-rose-400">Overdue</span>
+                            </div>
+                            <span className="text-xs text-slate-500 dark:text-slate-400">{r.carModel} • {r.status}</span>
+                          </button>
+                        ))}
+                        {todayReminders.map(r => (
+                          <button
+                            key={r.id}
+                            onClick={() => {
+                              setIsNotificationsOpen(false);
+                              navigate(`/leads/${r.leadId}`);
+                            }}
+                            className="flex flex-col gap-1 border-b border-slate-100 px-4 py-3 text-left hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium text-slate-900 dark:text-slate-200">{r.lead.name}</span>
+                              <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-amber-700 dark:bg-amber-500/20 dark:text-amber-400">Due Today</span>
+                            </div>
+                            <span className="text-xs text-slate-500 dark:text-slate-400">{r.carModel} • {r.status}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
           <button
             aria-label="Help"
             className="hidden h-10 w-10 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-300 sm:flex"

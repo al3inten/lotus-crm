@@ -9,34 +9,24 @@ export const enquiryDetailsSchema = leadEnrichmentSchema;
 export const changeStatusSchema = z.object({
   toStatus: z.enum([
     "NEW",
-    "CONTACTED",
-    "FOLLOW_UP",
-    "APPOINTMENT_SCHEDULED",
-    "APPOINTMENT_NO_SHOW",
-    "TEST_DRIVE_DONE",
-    "FEEDBACK_COLLECTED",
-    "QUOTATION_SHARED",
-    "NEGOTIATION",
-    "BOOKING_CONFIRMED",
-    "FINANCE_IN_PROGRESS",
-    "EXCHANGE_IN_PROGRESS",
-    "SALE_CLOSED",
-    "DELIVERY_IN_PROGRESS",
-    "DELIVERED",
-    "LOST",
+    "UNDER_FOLLOW_UP",
+    "APPOINTMENT_FIXED",
+    "TEST_DRIVE",
+    "BOOKED",
+    "RETAIL_DONE",
+    "CLOSED",
   ]),
   note: z.string().optional(),
-  lossReason: z
-    .enum([
-      "PRICE_TOO_HIGH",
-      "BOUGHT_COMPETITOR",
-      "BOUGHT_ANOTHER_BRANCH",
-      "NOT_INTERESTED_ANYMORE",
-      "FINANCE_REJECTED",
-      "NO_RESPONSE",
-      "OTHER",
-    ])
-    .optional(),
+  lossReason: z.enum([
+    "LOST_TO_DEALER",
+    "BOOKING_CANCEL",
+    "RETAIL_CANCEL",
+    "OUT_OF_TERRITORY",
+    "NOT_CONTACTABLE",
+    "PRICE_ISSUE",
+    "PURCHASED_ANOTHER_BRAND",
+    "OTHER_REASON",
+  ]).optional(),
   followUpDueAt: z.string().datetime().optional(),
   consultantId: z.string().optional(),
 });
@@ -57,9 +47,9 @@ export const testDriveSchema = z.object({
 export const quotationSchema = z.object({
   quotedById: z.string().min(1),
   variant: z.string().optional(),
-  onRoadPrice: z.number().positive(),
-  discount: z.number().nonnegative().optional(),
-  finalPrice: z.number().positive(),
+  onRoadPrice: z.number().positive().max(999999999),
+  discount: z.number().nonnegative().max(999999999).optional(),
+  finalPrice: z.number().positive().max(999999999),
   validUntil: z.string().datetime().optional(),
   pdfUrl: z.string().url().optional(),
 });
@@ -91,6 +81,20 @@ export const deliveryDetailsSchema = z.object({
   notes: z.string().optional(),
 });
 
+export const createFollowUpSchema = z.object({
+  followUpDate: z.string().datetime(),
+  followUpTime: z.string().optional(),
+  type: z.enum(["CALL", "WHATSAPP", "VISIT", "EMAIL"]),
+  remark: z.string().min(1),
+  nextFollowUpDate: z.string().datetime().optional(),
+  nextFollowUpTime: z.string().optional(),
+});
+
+export const createCommentSchema = z.object({
+  body: z.string().min(1),
+  mentionedUserIds: z.array(z.string()).optional(),
+});
+
 export type EnquiryDetailsInput = z.infer<typeof enquiryDetailsSchema>;
 export type ChangeStatusInput = z.infer<typeof changeStatusSchema>;
 export type ReassignInput = z.infer<typeof reassignSchema>;
@@ -99,3 +103,5 @@ export type QuotationInput = z.infer<typeof quotationSchema>;
 export type ExchangeEvaluationInput = z.infer<typeof exchangeEvaluationSchema>;
 export type FinanceApplicationInput = z.infer<typeof financeApplicationSchema>;
 export type DeliveryDetailsInput = z.infer<typeof deliveryDetailsSchema>;
+export type CreateFollowUpInput = z.infer<typeof createFollowUpSchema>;
+export type CreateCommentInput = z.infer<typeof createCommentSchema>;

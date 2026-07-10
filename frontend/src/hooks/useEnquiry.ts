@@ -3,6 +3,7 @@ import * as enquiriesApi from "../api/enquiries.api";
 
 export const enquiryKeys = {
   detail: (enquiryId: string) => ["enquiries", enquiryId] as const,
+  comments: (enquiryId: string) => ["enquiries", enquiryId, "comments"] as const,
 };
 
 export function useEnquiry(enquiryId: string | undefined) {
@@ -84,5 +85,31 @@ export function useSaveDeliveryDetails(enquiryId: string) {
   return useMutation({
     mutationFn: (payload: enquiriesApi.DeliveryDetailsPayload) => enquiriesApi.saveDeliveryDetails(enquiryId, payload),
     onSuccess: invalidate,
+  });
+}
+
+export function useSaveFollowUp(enquiryId: string) {
+  const invalidate = useInvalidateEnquiry(enquiryId);
+  return useMutation({
+    mutationFn: (payload: enquiriesApi.FollowUpPayload) => enquiriesApi.saveFollowUp(enquiryId, payload),
+    onSuccess: invalidate,
+  });
+}
+
+export function useComments(enquiryId: string | undefined) {
+  return useQuery({
+    queryKey: enquiryKeys.comments(enquiryId ?? ""),
+    queryFn: () => enquiriesApi.getComments(enquiryId!),
+    enabled: !!enquiryId,
+  });
+}
+
+export function useAddComment(enquiryId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: enquiriesApi.CommentPayload) => enquiriesApi.addComment(enquiryId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: enquiryKeys.comments(enquiryId) });
+    },
   });
 }

@@ -10,15 +10,19 @@ import type { EnquiryStatus } from "../../types";
 import { useChangeStatus } from "../../hooks/useEnquiry";
 import { useBranchStaff } from "../../hooks/useUsers";
 
+import { useState, useEffect } from "react";
+
 interface StatusChangeModalProps {
   enquiryId: string;
   branchId: string;
   currentStatus: EnquiryStatus;
   isOpen: boolean;
   onClose: () => void;
+  initialTargetStatus?: EnquiryStatus;
 }
 
-export function StatusChangeModal({ enquiryId, branchId, currentStatus, isOpen, onClose }: StatusChangeModalProps) {
+export function StatusChangeModal({ enquiryId, branchId, currentStatus, isOpen, onClose, initialTargetStatus }: StatusChangeModalProps) {
+  const [outcome, setOutcome] = useState<"WON" | "LOST">("WON");
   const changeStatus = useChangeStatus(enquiryId);
   const { data: consultants } = useBranchStaff(branchId, "CONSULTANT");
   const allowedNext = ALLOWED_TRANSITIONS[currentStatus];
@@ -31,8 +35,15 @@ export function StatusChangeModal({ enquiryId, branchId, currentStatus, isOpen, 
     formState: { errors, isSubmitting },
   } = useForm<StatusChangeFormValues>({
     resolver: zodResolver(statusChangeFormSchema),
-    defaultValues: { toStatus: allowedNext[0] },
   });
+
+  useEffect(() => {
+    if (isOpen) {
+      reset({
+        toStatus: initialTargetStatus && allowedNext.includes(initialTargetStatus) ? initialTargetStatus : allowedNext[0],
+      });
+    }
+  }, [isOpen, initialTargetStatus, allowedNext, reset]);
 
   const toStatus = watch("toStatus");
 
@@ -40,11 +51,12 @@ export function StatusChangeModal({ enquiryId, branchId, currentStatus, isOpen, 
     await changeStatus.mutateAsync({
       toStatus: values.toStatus,
       note: values.note,
-      lossReason: values.lossReason,
+      lossReason: values.toStatus === "CLOSED" && outcome === "LOST" ? values.lossReason || undefined : undefined,
       followUpDueAt: values.followUpDueAt ? new Date(values.followUpDueAt).toISOString() : undefined,
       consultantId: values.consultantId,
     });
     reset();
+    setOutcome("WON");
     onClose();
   };
 
@@ -67,22 +79,37 @@ export function StatusChangeModal({ enquiryId, branchId, currentStatus, isOpen, 
           ))}
         </Select>
 
-        {toStatus === "LOST" && (
-          <Select label="Loss Reason" error={errors.lossReason?.message} {...register("lossReason")}>
-            <option value="">Select a reason</option>
-            {LOSS_REASONS.map((reason) => (
-              <option key={reason} value={reason}>
-                {reason.replaceAll("_", " ")}
-              </option>
-            ))}
-          </Select>
+        {toStatus === "CLOSED" && (
+          <div className="flex flex-col gap-3 p-3 bg-gray-50 rounded-md border border-gray-200">
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2">
+                <input type="radio" checked={outcome === "WON"} onChange={() => setOutcome("WON")} />
+                Won (Retail Done)
+              </label>
+              <label className="flex items-center gap-2">
+                <input type="radio" checked={outcome === "LOST"} onChange={() => setOutcome("LOST")} />
+                Lost
+              </label>
+            </div>
+            
+            {outcome === "LOST" && (
+              <Select label="Loss Reason" error={errors.lossReason?.message} {...register("lossReason")} required>
+                <option value="">Select a reason</option>
+                {LOSS_REASONS.map((reason) => (
+                  <option key={reason} value={reason}>
+                    {reason.replaceAll("_", " ")}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </div>
         )}
 
-        {toStatus === "FOLLOW_UP" && (
+        {toStatus === "UNDER_FOLLOW_UP" && (
           <Input label="Follow-up due" type="datetime-local" error={errors.followUpDueAt?.message} {...register("followUpDueAt")} />
         )}
 
-        {toStatus === "APPOINTMENT_SCHEDULED" && (
+        {toStatus === "APPOINTMENT_FIXED" && (
           <Select label="Assign Consultant" error={errors.consultantId?.message} {...register("consultantId")}>
             <option value="">Select consultant</option>
             {consultants?.map((c) => (

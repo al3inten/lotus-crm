@@ -1,18 +1,13 @@
 import { z } from "zod";
 import { ENQUIRY_STATUSES, LOSS_REASONS } from "../types";
 
-export const statusChangeFormSchema = z
-  .object({
-    toStatus: z.enum(ENQUIRY_STATUSES),
-    note: z.string().optional(),
-    lossReason: z.enum(LOSS_REASONS).optional(),
-    followUpDueAt: z.string().optional(),
-    consultantId: z.string().optional(),
-  })
-  .refine((val) => val.toStatus !== "LOST" || !!val.lossReason, {
-    message: "Loss reason is required when marking as Lost",
-    path: ["lossReason"],
-  });
+export const statusChangeFormSchema = z.object({
+  toStatus: z.enum(ENQUIRY_STATUSES),
+  note: z.string().optional(),
+  lossReason: z.enum(LOSS_REASONS).optional().or(z.literal("")),
+  followUpDueAt: z.string().optional(),
+  consultantId: z.string().optional(),
+});
 
 export type StatusChangeFormValues = z.infer<typeof statusChangeFormSchema>;
 
@@ -37,9 +32,9 @@ export interface TestDriveFormInput {
 export const quotationFormSchema = z.object({
   quotedById: z.string().min(1, "Select who quoted"),
   variant: z.string().optional(),
-  onRoadPrice: z.coerce.number().positive("Must be positive"),
-  discount: z.coerce.number().nonnegative().optional(),
-  finalPrice: z.coerce.number().positive("Must be positive"),
+  onRoadPrice: z.coerce.number().positive("Must be positive").max(999999999, "Price is too large"),
+  discount: z.coerce.number().nonnegative().max(999999999, "Discount is too large").optional(),
+  finalPrice: z.coerce.number().positive("Must be positive").max(999999999, "Price is too large"),
   validUntil: z.string().optional(),
   pdfUrl: z.string().url("Enter a valid URL").optional().or(z.literal("")),
 });
@@ -97,3 +92,13 @@ export const deliveryFormSchema = z.object({
   notes: z.string().optional(),
 });
 export type DeliveryFormValues = z.infer<typeof deliveryFormSchema>;
+
+export const followUpFormSchema = z.object({
+  followUpDate: z.string().min(1, "Date is required"),
+  followUpTime: z.string().optional(),
+  type: z.enum(["CALL", "WHATSAPP", "VISIT", "EMAIL"]),
+  remark: z.string().min(1, "Remark is required"),
+  nextFollowUpDate: z.string().min(1, "Next Follow-up Date is strictly required"),
+  nextFollowUpTime: z.string().optional(),
+});
+export type FollowUpFormValues = z.infer<typeof followUpFormSchema>;

@@ -6,6 +6,7 @@ import * as quotationService from "./quotation.service";
 import * as exchangeService from "./exchange.service";
 import * as financeService from "./finance.service";
 import * as deliveryService from "./delivery.service";
+import * as commentsService from "./comments.service";
 
 export async function getEnquiryHandler(req: Request, res: Response) {
   const enquiry = await enquiriesService.getEnquiry(req.params.enquiryId);
@@ -52,4 +53,21 @@ export async function financeHandler(req: Request, res: Response) {
 export async function deliveryHandler(req: Request, res: Response) {
   const result = await deliveryService.upsertDeliveryDetails(req.params.enquiryId, req.body);
   res.json(result);
+}
+
+export async function addFollowUpHandler(req: Request, res: Response) {
+  if (!req.user) throw new UnauthorizedError();
+  const result = await enquiriesService.addFollowUp(req.params.enquiryId, req.body, req.user.id);
+  res.status(201).json(result);
+}
+
+export async function getCommentsHandler(req: Request, res: Response) {
+  const comments = await commentsService.getComments(req.params.enquiryId);
+  res.json(comments);
+}
+
+export async function addCommentHandler(req: Request, res: Response) {
+  if (!req.user) throw new UnauthorizedError();
+  const comment = await commentsService.addComment(req.params.enquiryId, req.user.id, req.body);
+  res.status(201).json(comment);
 }

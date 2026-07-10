@@ -5,6 +5,7 @@ import type {
   EnquiryType,
   Department,
   LeadSubsource,
+  SourceCategory,
   EnquiryCategory,
   LeadDraft,
   LeadWithHistory,
@@ -23,6 +24,18 @@ export interface LeadFilters {
   pageSize?: number;
 }
 
+export interface LeadLookupResult {
+  name: string;
+  email?: string | null;
+  alternateMobile?: string | null;
+  dob?: string | null;
+  profession?: string | null;
+  pincode?: string | null;
+  address?: string | null;
+  hasActiveEnquiry: boolean;
+  activeEnquiryStatus?: string | null;
+}
+
 /** Offline-intake enrichment fields — all optional, shared by create and complete-details payloads. */
 export interface LeadEnrichmentPayload {
   alternateMobile?: string;
@@ -31,6 +44,7 @@ export interface LeadEnrichmentPayload {
   pincode?: string;
   address?: string;
   department?: Department;
+  sourceCategory?: SourceCategory;
   subsource?: LeadSubsource;
   variant?: string;
   enquiryCategory?: EnquiryCategory;
@@ -58,6 +72,7 @@ export interface CreateEnquiryPayload extends LeadEnrichmentPayload {
   location?: string;
   branchId: string;
   assignedCrId?: string;
+  forceNew?: boolean;
 }
 
 export type WalkInLeadPayload = Omit<CreateEnquiryPayload, "source">;
@@ -78,6 +93,11 @@ export async function fetchLeads(filters: LeadFilters): Promise<PaginatedEnquiri
 
 export async function fetchLeadHistory(leadId: string): Promise<LeadWithHistory> {
   const { data } = await axiosClient.get<LeadWithHistory>(`/leads/${leadId}`);
+  return data;
+}
+
+export async function lookupLeadByPhone(phone: string): Promise<LeadLookupResult | null> {
+  const { data } = await axiosClient.get<LeadLookupResult | null>("/leads/lookup", { params: { phone } });
   return data;
 }
 
@@ -138,4 +158,9 @@ export async function downloadLeadImportTemplate(): Promise<void> {
   link.click();
   link.remove();
   window.URL.revokeObjectURL(url);
+}
+
+export async function fetchReminders(): Promise<Enquiry[]> {
+  const { data } = await axiosClient.get<Enquiry[]>("/leads/reminders");
+  return data;
 }

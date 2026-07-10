@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ENQUIRY_TYPES, LEAD_SOURCES, DEPARTMENTS, LEAD_SUBSOURCES, ENQUIRY_CATEGORIES } from "../types";
+import { ENQUIRY_TYPES, LEAD_SOURCES, DEPARTMENTS, LEAD_SUBSOURCES, SOURCE_CATEGORIES, ENQUIRY_CATEGORIES } from "../types";
 
 // Offline-intake enrichment fields, shared by the Add Lead wizard (creation) and the
 // Complete Customer Details flow (patch on an existing enquiry) — every field here is
@@ -11,6 +11,7 @@ export const leadEnrichmentFormSchema = z.object({
   pincode: z.string().optional().or(z.literal("")),
   address: z.string().optional().or(z.literal("")),
   department: z.enum(DEPARTMENTS).optional().or(z.literal("")),
+  sourceCategory: z.enum(SOURCE_CATEGORIES).optional().or(z.literal("")),
   subsource: z.enum(LEAD_SUBSOURCES).optional().or(z.literal("")),
   variant: z.string().optional().or(z.literal("")),
   enquiryCategory: z.enum(ENQUIRY_CATEGORIES).optional().or(z.literal("")),
@@ -38,6 +39,7 @@ export const walkInLeadFormSchema = z
     location: z.string().optional(),
     branchId: z.string().min(1, "Branch is required"),
     assignedCrId: z.string().optional(),
+    forceNew: z.boolean().optional(),
   })
   .merge(leadEnrichmentFormSchema);
 
@@ -55,12 +57,14 @@ export interface WalkInLeadFormInput {
   location?: string;
   branchId: string;
   assignedCrId?: string;
+  forceNew?: boolean;
   alternateMobile?: string;
   dob?: string;
   profession?: string;
   pincode?: string;
   address?: string;
   department?: WalkInLeadFormValues["department"];
+  sourceCategory?: WalkInLeadFormValues["sourceCategory"];
   subsource?: WalkInLeadFormValues["subsource"];
   variant?: string;
   enquiryCategory?: WalkInLeadFormValues["enquiryCategory"];

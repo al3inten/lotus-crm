@@ -9,11 +9,11 @@ import { triggerAutoCallForEnquiry } from "../voice/voice.service";
 
 // A lead with an enquiry in any of these states is mid-journey; new contacts from any
 // source attach to that journey instead of opening a parallel one.
-const TERMINAL_STATUSES: EnquiryStatus[] = ["DELIVERED", "LOST"];
+const TERMINAL_STATUSES: EnquiryStatus[] = ["RETAIL_DONE", "CLOSED"];
 
 /**
  * Phone number is the identity key. Every inbound contact records a LeadTouch.
- * - No active enquiry (first contact, or all past journeys ended in DELIVERED/LOST):
+ * - No active enquiry (first contact, or all past journeys ended in a terminal status):
  *   a new Enquiry is created — a genuinely new buying journey.
  * - Active enquiry exists: NO new enquiry. The touch attaches to the active journey,
  *   so the same person walking in today and submitting a Meta form tomorrow stays ONE
@@ -52,7 +52,7 @@ export async function createOrAttachEnquiry(input: CreateEnquiryInput, createdBy
       orderBy: { createdAt: "desc" },
     });
 
-    if (activeEnquiry) {
+    if (activeEnquiry && !input.forceNew) {
       await tx.leadTouch.create({
         data: {
           leadId: lead.id,
@@ -101,6 +101,7 @@ export async function createOrAttachEnquiry(input: CreateEnquiryInput, createdBy
         assignedCrId,
         status: "NEW",
         department: input.department,
+        sourceCategory: input.sourceCategory,
         subsource: input.subsource,
         variant: input.variant,
         enquiryCategory: input.enquiryCategory,
@@ -273,4 +274,49 @@ export async function deleteDraft(id: string, createdById: string) {
   const draft = await prisma.leadDraft.findUnique({ where: { id } });
   if (!draft || draft.createdById !== createdById) throw new NotFoundError("Draft not found");
   await prisma.leadDraft.delete({ where: { id } });
+}
+
+export async function lookupLeadByPhone(phone: string) {
+  const phoneNormalized = normalizePhone(phone);
+  if (!phoneNormalized) return null;
+
+  const lead = await prisma.lead.findUnique({
+    where: { phoneNormalized },
+    include: {
+      enquiries: {
+        where: { status: { notIn: TERMINAL_STATUSES } },
+        select: { id: true, status: true },
+        take: 1,
+      },
+    },
+  });
+
+  if (!lead) return null;
+
+  return {
+    name: lead.name,
+    email: lead.email,
+    alternateMobile: lead.alternateMobile,
+    dob: lead.dob,
+    profession: lead.profession,
+    pincode: lead.pincode,
+    address: lead.address,
+    hasActiveEnquiry: lead.enquiries.length > 0,
+    activeEnquiryStatus: lead.enquiries[0]?.status,
+  };
+}
+
+export async function getReminders(userId: string) {
+  const endOfToday = new Date();
+  endOfToday.setHours(23, 59, 59, 999);
+
+  return prisma.enquiry.findMany({
+    where: {
+      assignedCrId: userId,
+      status: { notIn: TERMINAL_STATUSES },
+      followUpDueAt: { lte: endOfToday },
+    },
+    include: { lead: { select: { name: true, phoneRaw: true } } },
+    orderBy: { followUpDueAt: "asc" },
+  });
 }

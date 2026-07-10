@@ -12,6 +12,8 @@ import {
   financeApplicationSchema,
   deliveryDetailsSchema,
   enquiryDetailsSchema,
+  createFollowUpSchema,
+  createCommentSchema,
 } from "./enquiries.schema";
 import {
   getEnquiryHandler,
@@ -23,6 +25,9 @@ import {
   financeHandler,
   deliveryHandler,
   updateDetailsHandler,
+  addFollowUpHandler,
+  getCommentsHandler,
+  addCommentHandler,
 } from "./enquiries.controller";
 
 const router = Router();
@@ -46,5 +51,8 @@ router.post("/:enquiryId/quotation", validateBody(quotationSchema), asyncHandler
 router.post("/:enquiryId/exchange-evaluation", validateBody(exchangeEvaluationSchema), asyncHandler(exchangeHandler));
 router.post("/:enquiryId/finance", validateBody(financeApplicationSchema), asyncHandler(financeHandler));
 router.post("/:enquiryId/delivery", validateBody(deliveryDetailsSchema), asyncHandler(deliveryHandler));
+router.post("/:enquiryId/follow-ups", validateBody(createFollowUpSchema), asyncHandler(addFollowUpHandler));
+router.get("/:enquiryId/comments", asyncHandler(getCommentsHandler));
+router.post("/:enquiryId/comments", validateBody(createCommentSchema), asyncHandler(addCommentHandler));
 
 export default router;

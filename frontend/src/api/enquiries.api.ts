@@ -9,6 +9,7 @@ import type {
   FinanceApplication,
   FinanceStatus,
   DeliveryDetails,
+  Comment,
 } from "../types";
 import type { LeadEnrichmentPayload } from "./leads.api";
 
@@ -108,5 +109,34 @@ export interface DeliveryDetailsPayload {
 }
 export async function saveDeliveryDetails(enquiryId: string, payload: DeliveryDetailsPayload): Promise<DeliveryDetails> {
   const { data } = await axiosClient.post<DeliveryDetails>(`/enquiries/${enquiryId}/delivery`, payload);
+  return data;
+}
+
+export interface FollowUpPayload {
+  followUpDate: string;
+  followUpTime?: string;
+  type: "CALL" | "WHATSAPP" | "VISIT" | "EMAIL";
+  remark: string;
+  nextFollowUpDate?: string;
+  nextFollowUpTime?: string;
+}
+
+export async function saveFollowUp(enquiryId: string, payload: FollowUpPayload) {
+  const { data } = await axiosClient.post(`/enquiries/${enquiryId}/follow-ups`, payload);
+  return data;
+}
+
+export interface CommentPayload {
+  body: string;
+  mentionedUserIds?: string[];
+}
+
+export async function addComment(enquiryId: string, payload: CommentPayload): Promise<Comment> {
+  const { data } = await axiosClient.post<Comment>(`/enquiries/${enquiryId}/comments`, payload);
+  return data;
+}
+
+export async function getComments(enquiryId: string): Promise<Comment[]> {
+  const { data } = await axiosClient.get<Comment[]>(`/enquiries/${enquiryId}/comments`);
   return data;
 }

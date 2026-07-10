@@ -4,6 +4,8 @@ import * as leadsApi from "../api/leads.api";
 export const leadKeys = {
   list: (filters: leadsApi.LeadFilters) => ["leads", filters] as const,
   detail: (leadId: string) => ["leads", "detail", leadId] as const,
+  lookup: (phone: string) => ["leads", "lookup", phone] as const,
+  reminders: ["leads", "reminders"] as const,
 };
 
 export function useLeads(filters: leadsApi.LeadFilters) {
@@ -19,6 +21,19 @@ export function useLeadHistory(leadId: string | undefined) {
     queryKey: leadKeys.detail(leadId ?? ""),
     queryFn: () => leadsApi.fetchLeadHistory(leadId!),
     enabled: !!leadId,
+  });
+}
+
+export function useLeadLookup(phone: string) {
+  // Only search when the phone number is likely complete (at least 10 digits)
+  const isLikelyValid = phone.replace(/\D/g, "").length >= 10;
+  
+  return useQuery({
+    queryKey: leadKeys.lookup(phone),
+    queryFn: () => leadsApi.lookupLeadByPhone(phone),
+    enabled: isLikelyValid,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    retry: false,
   });
 }
 
@@ -64,5 +79,13 @@ export function useDeleteDraft() {
   return useMutation({
     mutationFn: (id: string) => leadsApi.deleteDraft(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["leads", "drafts"] }),
+  });
+}
+
+export function useReminders() {
+  return useQuery({
+    queryKey: leadKeys.reminders,
+    queryFn: leadsApi.fetchReminders,
+    refetchInterval: 60000,
   });
 }

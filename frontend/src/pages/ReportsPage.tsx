@@ -36,32 +36,19 @@ const DATE_PRESETS = [
 type PresetKey = (typeof DATE_PRESETS)[number]["key"];
 
 const LOSS_REASON_LABELS: Record<string, string> = {
-  PRICE_TOO_HIGH: "Price too high",
-  BOUGHT_COMPETITOR: "Bought competitor",
-  BOUGHT_ANOTHER_BRANCH: "Bought at another branch",
-  NOT_INTERESTED_ANYMORE: "Not interested anymore",
-  FINANCE_REJECTED: "Finance rejected",
-  NO_RESPONSE: "No response",
-  OTHER: "Other",
+  OTHER_REASON: "Other reason",
+  CO_DEALER: "Co dealer",
+  OUT_OF_TERRITORY: "Out of territory (not contactable)",
 };
 
 const STAGE_LABELS: Record<string, string> = {
   NEW: "New",
-  CONTACTED: "Contacted",
-  FOLLOW_UP: "Follow-up",
-  APPOINTMENT_SCHEDULED: "Appointment",
-  APPOINTMENT_NO_SHOW: "No-show",
-  TEST_DRIVE_DONE: "Test Drive",
-  FEEDBACK_COLLECTED: "Feedback",
-  QUOTATION_SHARED: "Quotation",
-  NEGOTIATION: "Negotiation",
-  BOOKING_CONFIRMED: "Booking",
-  FINANCE_IN_PROGRESS: "Finance",
-  EXCHANGE_IN_PROGRESS: "Exchange",
-  SALE_CLOSED: "Sale Closed",
-  DELIVERY_IN_PROGRESS: "Delivery",
-  DELIVERED: "Delivered",
-  LOST: "Lost",
+  UNDER_FOLLOW_UP: "Under Follow-up",
+  APPOINTMENT_FIXED: "Appointment Fixed",
+  TEST_DRIVE: "Test Drive",
+  BOOKED: "Booked",
+  RETAIL_DONE: "Retail Done",
+  CLOSED: "Closed",
 };
 
 function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
@@ -311,12 +298,8 @@ export function ReportsPage() {
                   <tr key={row.branchId}>
                     <td className="px-4 py-2 font-medium text-gray-900">{row.branchName}</td>
                     <td className="px-4 py-2 tabular-nums text-gray-700">{row.total}</td>
-                    <td className="px-4 py-2 tabular-nums text-gray-700">
-                      {(row.statusCounts["SALE_CLOSED"] ?? 0) +
-                        (row.statusCounts["DELIVERY_IN_PROGRESS"] ?? 0) +
-                        (row.statusCounts["DELIVERED"] ?? 0)}
-                    </td>
-                    <td className="px-4 py-2 tabular-nums text-gray-700">{row.statusCounts["LOST"] ?? 0}</td>
+                    <td className="px-4 py-2 tabular-nums text-gray-700">{row.statusCounts["RETAIL_DONE"] ?? 0}</td>
+                    <td className="px-4 py-2 tabular-nums text-gray-700">{row.statusCounts["CLOSED"] ?? 0}</td>
                   </tr>
                 ))}
               </tbody>

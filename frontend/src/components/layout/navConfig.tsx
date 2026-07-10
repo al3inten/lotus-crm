@@ -12,6 +12,7 @@ import {
   Megaphone,
   Plug,
   CarFront,
+  Settings,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import type { Role, ModuleKey } from "../../types";
@@ -55,6 +56,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   { to: "/bulk-messages", label: "Bulk Messages", short: "Messages", icon: Megaphone, module: "bulk-messages", roles: ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"] },
   { to: "/integrations", label: "Integrations", short: "Apps", icon: Plug, module: "integrations", roles: ["SUPER_ADMIN", "ADMIN"] },
+  { to: "/settings", label: "Settings", short: "Settings", icon: Settings, module: "settings", roles: ["SUPER_ADMIN", "ADMIN"] },
 ];
 
 /**

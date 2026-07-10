@@ -20,6 +20,9 @@ import campaignsRoutes from "./modules/campaigns/campaigns.routes";
 import voiceRoutes from "./modules/voice/voice.routes";
 import rolesRoutes from "./modules/roles/roles.routes";
 import vehiclesRoutes from "./modules/vehicles/vehicles.routes";
+import notificationsRoutes from "./modules/notifications/notifications.routes";
+import quotesRoutes from "./modules/quotes/quotes.routes";
+import settingsRoutes from "./modules/settings/settings.routes";
 
 export const app = express();
 
@@ -40,6 +43,7 @@ app.use(
 app.get("/health", (_req, res) => res.json({ status: "ok" }));
 
 app.use("/api/auth", authRoutes);
+app.use("/api/public/quotes", quotesRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/branches", branchesRoutes);
 app.use("/api/leads", leadsRoutes);
@@ -58,6 +62,8 @@ app.use("/api/campaigns", campaignsRoutes);
 app.use("/api/voice", voiceRoutes);
 app.use("/api/roles", rolesRoutes);
 app.use("/api/vehicle-models", vehiclesRoutes);
+app.use("/api/notifications", notificationsRoutes);
+app.use("/api/settings", settingsRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

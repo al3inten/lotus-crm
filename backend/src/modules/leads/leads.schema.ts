@@ -12,6 +12,7 @@ export const leadEnrichmentSchema = z.object({
   address: z.string().optional(),
   // Enquiry (vehicle/visit) fields
   department: z.enum(["SALES", "SERVICE", "USED_CAR", "ACCESSORIES", "HR", "OTHER_TERRITORY", "OTHERS"]).optional(),
+  sourceCategory: z.enum(["WALK_IN", "DIGITAL", "DIGITAL_WALK_IN", "REFERRAL", "FIELD_ACTIVITY", "TELE_IN"]).optional(),
   subsource: z
     .enum([
       "WALK_IN",
@@ -21,12 +22,14 @@ export const leadEnrichmentSchema = z.object({
       "SOCIAL_MEDIA",
       "HYPERLOCAL",
       "CARPORTAL",
+      "CTB",
       "CRM",
       "REFERRAL",
       "INCOMING_CALL",
       "DEALER_ACTIVITY",
       "SC_OWN_SOURCE",
       "HMIL_EVENT",
+      "EXCHANGE_CAMP",
     ])
     .optional(),
   variant: z.string().optional(),
@@ -57,6 +60,7 @@ export const createEnquirySchema = z
     branchId: z.string().min(1),
     // Only honored for manually-assigned sources (WALK_IN/MANUAL_OTHER/REFERRAL).
     assignedCrId: z.string().optional(),
+    forceNew: z.boolean().optional(),
   })
   .merge(leadEnrichmentSchema);
 

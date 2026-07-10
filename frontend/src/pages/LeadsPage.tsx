@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Car, ChevronLeft, ChevronRight, FileSpreadsheet, Users, MessageSquare, Building2 } from "lucide-react";
+import { Car, ChevronLeft, ChevronRight, FileSpreadsheet, Users, MessageSquare, Building2, LayoutGrid, List } from "lucide-react";
 import { motion } from "framer-motion";
 import { useLeads } from "../hooks/useLeads";
 import type { LeadFilters as LeadFiltersType } from "../api/leads.api";
 import { LeadFilters } from "../components/leads/LeadFilters";
 import { LeadTable } from "../components/leads/LeadTable";
+import { LeadKanbanBoard } from "../components/leads/LeadKanbanBoard";
 import { AddLeadWizard } from "../components/leads/AddLeadWizard";
 import { LeadDraftsButton } from "../components/leads/LeadDraftsButton";
 import { ImportLeadsModal } from "../components/leads/ImportLeadsModal";
@@ -33,6 +34,7 @@ export function LeadsPage() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [showSheetsSyncModal, setShowSheetsSyncModal] = useState(false);
   const [resumeDraft, setResumeDraft] = useState<LeadDraft | undefined>(undefined);
+  const [view, setView] = useState<"list" | "kanban">("list");
 
   const { data, isLoading } = useLeads(filters);
   const { data: integrations } = useIntegrations();
@@ -77,7 +79,29 @@ export function LeadsPage() {
               </div>
             </div>
           </div>
+          
           <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center rounded-lg bg-white/10 p-1 backdrop-blur-md ring-1 ring-white/20">
+              <button
+                onClick={() => setView("list")}
+                className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  view === "list" ? "bg-white text-blue-600 shadow-sm" : "text-slate-300 hover:text-white"
+                }`}
+              >
+                <List size={16} />
+                List
+              </button>
+              <button
+                onClick={() => setView("kanban")}
+                className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  view === "kanban" ? "bg-white text-blue-600 shadow-sm" : "text-slate-300 hover:text-white"
+                }`}
+              >
+                <LayoutGrid size={16} />
+                Kanban
+              </button>
+            </div>
+
             {googleSheetsConnected && (
               <Button variant="secondary" icon={<FileSpreadsheet size={14} />} onClick={() => setShowSheetsSyncModal(true)}>
                 Sync
@@ -112,6 +136,8 @@ export function LeadsPage() {
         <Card>
           <p className="py-8 text-center text-sm font-medium text-slate-500 dark:text-slate-400">Loading leads…</p>
         </Card>
+      ) : view === "kanban" ? (
+        <LeadKanbanBoard enquiries={data.items} />
       ) : (
         <Card padded={false} className="overflow-hidden">
           <LeadTable enquiries={data.items} />

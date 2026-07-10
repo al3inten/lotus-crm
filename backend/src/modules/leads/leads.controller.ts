@@ -71,3 +71,17 @@ export async function deleteDraftHandler(req: Request, res: Response) {
   await leadsService.deleteDraft(req.params.id, req.user.id);
   res.status(204).send();
 }
+
+export async function lookupLeadHandler(req: Request, res: Response) {
+  const phone = req.query.phone as string | undefined;
+  if (!phone) throw new ValidationError("Phone number is required");
+  
+  const lead = await leadsService.lookupLeadByPhone(phone);
+  res.json(lead);
+}
+
+export async function getRemindersHandler(req: Request, res: Response) {
+  if (!req.user) throw new UnauthorizedError();
+  const reminders = await leadsService.getReminders(req.user.id);
+  res.json(reminders);
+}

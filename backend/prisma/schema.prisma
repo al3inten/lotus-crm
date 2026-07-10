@@ -38,31 +38,30 @@ enum EnquiryType {
 
 enum EnquiryStatus {
   NEW
-  CONTACTED
-  FOLLOW_UP
-  APPOINTMENT_SCHEDULED
-  APPOINTMENT_NO_SHOW
-  TEST_DRIVE_DONE
-  FEEDBACK_COLLECTED
-  QUOTATION_SHARED
-  NEGOTIATION
-  BOOKING_CONFIRMED
-  FINANCE_IN_PROGRESS
-  EXCHANGE_IN_PROGRESS
-  SALE_CLOSED
-  DELIVERY_IN_PROGRESS
-  DELIVERED
-  LOST
+  UNDER_FOLLOW_UP
+  APPOINTMENT_FIXED
+  TEST_DRIVE
+  BOOKED
+  RETAIL_DONE
+  CLOSED
 }
 
 enum LossReason {
-  PRICE_TOO_HIGH
-  BOUGHT_COMPETITOR
-  BOUGHT_ANOTHER_BRANCH
-  NOT_INTERESTED_ANYMORE
-  FINANCE_REJECTED
-  NO_RESPONSE
-  OTHER
+  LOST_TO_DEALER
+  BOOKING_CANCEL
+  RETAIL_CANCEL
+  OUT_OF_TERRITORY
+  NOT_CONTACTABLE
+  PRICE_ISSUE
+  PURCHASED_ANOTHER_BRAND
+  OTHER_REASON
+}
+
+enum FollowUpType {
+  CALL
+  WHATSAPP
+  VISIT
+  EMAIL
 }
 
 enum FinanceStatus {
@@ -94,12 +93,23 @@ enum LeadSubsource {
   SOCIAL_MEDIA
   HYPERLOCAL
   CARPORTAL
+  CTB
   CRM
   REFERRAL
   INCOMING_CALL
   DEALER_ACTIVITY
   SC_OWN_SOURCE
   HMIL_EVENT
+  EXCHANGE_CAMP
+}
+
+enum SourceCategory {
+  WALK_IN
+  DIGITAL
+  DIGITAL_WALK_IN
+  REFERRAL
+  FIELD_ACTIVITY
+  TELE_IN
 }
 
 enum EnquiryCategory {
@@ -300,6 +310,7 @@ model User {
   assignedEnquiries       Enquiry[]              @relation("AssignedCr")
   consultantEnquiries     Enquiry[]              @relation("AssignedConsultant")
   statusChanges           EnquiryStatusHistory[] @relation("ChangedBy")
+  followUps               FollowUp[]
   reassignmentsFrom       ReassignmentLog[]      @relation("ReassignFrom")
   reassignmentsTo         ReassignmentLog[]      @relation("ReassignTo")
   reassignmentsBy         ReassignmentLog[]      @relation("ReassignBy")
@@ -314,6 +325,8 @@ model User {
   createdCallCampaigns    OutboundCallCampaign[] @relation("CallCampaignCreatedBy")
   createdMessageCampaigns MessageCampaign[]      @relation("MessageCampaignCreatedBy")
   leadDrafts              LeadDraft[]
+  comments                Comment[]
+  notifications           Notification[]
 
   @@index([branchId, role])
   @@map("users")
@@ -379,6 +392,7 @@ model Enquiry {
   // EnquiryType note on the Department enum above.
   department           Department?
   subsource            LeadSubsource?
+  sourceCategory       SourceCategory?
   variant              String?
   enquiryCategory      EnquiryCategory?
   financeRequired      Boolean?
@@ -419,6 +433,8 @@ model Enquiry {
   updatedAt DateTime @updatedAt
 
   statusHistory      EnquiryStatusHistory[]
+  comments           Comment[]
+  followUps          FollowUp[]
   reassignmentLogs   ReassignmentLog[]
   testDriveFeedbacks TestDriveFeedback[]
   quotation          Quotation?
@@ -446,6 +462,24 @@ model EnquiryStatusHistory {
 
   @@index([enquiryId, createdAt])
   @@map("enquiry_status_history")
+}
+
+model FollowUp {
+  id               String       @id @default(cuid())
+  enquiryId        String
+  enquiry          Enquiry      @relation(fields: [enquiryId], references: [id])
+  followUpDate     DateTime     @db.Date
+  followUpTime     String?
+  type             FollowUpType
+  remark           String       @db.Text
+  nextFollowUpDate DateTime?    @db.Date
+  nextFollowUpTime String?
+  createdById      String
+  createdBy        User         @relation(fields: [createdById], references: [id])
+  createdAt        DateTime     @default(now())
+
+  @@index([enquiryId, followUpDate])
+  @@map("follow_ups")
 }
 
 model ReassignmentLog {
@@ -783,4 +817,41 @@ model MessageCampaign {
   createdAt      DateTime        @default(now())
 
   @@map("message_campaigns")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  enquiryId String
+  enquiry   Enquiry  @relation(fields: [enquiryId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([enquiryId])
+  @@index([userId])
+  @@map("comments")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  body      String
+  linkUrl   String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+model SystemSettings {
+  id               String   @id @default("singleton")
+  quotationEnabled Boolean  @default(true)
+  updatedAt        DateTime @updatedAt
+
+  @@map("system_settings")
 }

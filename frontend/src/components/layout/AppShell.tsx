@@ -3,6 +3,7 @@ import { Outlet } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { BottomNav } from "./BottomNav";
+import { ReminderModal } from "./ReminderModal";
 
 export function AppShell() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -18,6 +19,7 @@ export function AppShell() {
         </main>
       </div>
       <BottomNav onMore={() => setIsMobileMenuOpen(true)} />
+      <ReminderModal />
     </div>
   );
 }

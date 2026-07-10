@@ -34,14 +34,33 @@ export const LEAD_SUBSOURCES = [
   "SOCIAL_MEDIA",
   "HYPERLOCAL",
   "CARPORTAL",
+  "CTB",
   "CRM",
   "REFERRAL",
   "INCOMING_CALL",
   "DEALER_ACTIVITY",
   "SC_OWN_SOURCE",
   "HMIL_EVENT",
+  "EXCHANGE_CAMP",
 ] as const;
 export type LeadSubsource = (typeof LEAD_SUBSOURCES)[number];
+
+// The client-facing "Source" picklist (Excel taxonomy) — distinct from LeadSource, which
+// drives webhook/automation logic (auto-assign, auto-dial). This is a manual classification
+// field only, used to filter the Subsource picklist below.
+export const SOURCE_CATEGORIES = ["WALK_IN", "DIGITAL", "DIGITAL_WALK_IN", "REFERRAL", "FIELD_ACTIVITY", "TELE_IN"] as const;
+export type SourceCategory = (typeof SOURCE_CATEGORIES)[number];
+
+// Maps each Source Category to its allowed Subsource options, per the client's color-coded
+// Excel picklist spec.
+export const SOURCE_CATEGORY_SUBSOURCES: Record<SourceCategory, LeadSubsource[]> = {
+  WALK_IN: ["WALK_IN"],
+  DIGITAL: ["HMIL_WEBSITE", "HMIL_SOCIAL_MEDIA", "HMIL_CHATBOT", "SOCIAL_MEDIA", "HYPERLOCAL", "CARPORTAL", "CTB", "CRM"],
+  DIGITAL_WALK_IN: ["HMIL_WEBSITE", "HMIL_SOCIAL_MEDIA", "HMIL_CHATBOT", "SOCIAL_MEDIA", "HYPERLOCAL", "CARPORTAL", "CTB", "CRM"],
+  REFERRAL: ["REFERRAL"],
+  FIELD_ACTIVITY: ["DEALER_ACTIVITY", "SC_OWN_SOURCE", "HMIL_EVENT", "EXCHANGE_CAMP"],
+  TELE_IN: ["INCOMING_CALL"],
+};
 
 export const ENQUIRY_CATEGORIES = ["HOT", "WARM", "COLD"] as const;
 export type EnquiryCategory = (typeof ENQUIRY_CATEGORIES)[number];
@@ -70,32 +89,24 @@ export interface VehicleModel {
 
 export const ENQUIRY_STATUSES = [
   "NEW",
-  "CONTACTED",
-  "FOLLOW_UP",
-  "APPOINTMENT_SCHEDULED",
-  "APPOINTMENT_NO_SHOW",
-  "TEST_DRIVE_DONE",
-  "FEEDBACK_COLLECTED",
-  "QUOTATION_SHARED",
-  "NEGOTIATION",
-  "BOOKING_CONFIRMED",
-  "FINANCE_IN_PROGRESS",
-  "EXCHANGE_IN_PROGRESS",
-  "SALE_CLOSED",
-  "DELIVERY_IN_PROGRESS",
-  "DELIVERED",
-  "LOST",
+  "UNDER_FOLLOW_UP",
+  "APPOINTMENT_FIXED",
+  "TEST_DRIVE",
+  "BOOKED",
+  "RETAIL_DONE",
+  "CLOSED",
 ] as const;
 export type EnquiryStatus = (typeof ENQUIRY_STATUSES)[number];
 
 export const LOSS_REASONS = [
-  "PRICE_TOO_HIGH",
-  "BOUGHT_COMPETITOR",
-  "BOUGHT_ANOTHER_BRANCH",
-  "NOT_INTERESTED_ANYMORE",
-  "FINANCE_REJECTED",
-  "NO_RESPONSE",
-  "OTHER",
+  "LOST_TO_DEALER",
+  "BOOKING_CANCEL",
+  "RETAIL_CANCEL",
+  "OUT_OF_TERRITORY",
+  "NOT_CONTACTABLE",
+  "PRICE_ISSUE",
+  "PURCHASED_ANOTHER_BRAND",
+  "OTHER_REASON",
 ] as const;
 export type LossReason = (typeof LOSS_REASONS)[number];
 
@@ -105,22 +116,13 @@ export type FinanceStatus = (typeof FINANCE_STATUSES)[number];
 // Mirrors backend ALLOWED_TRANSITIONS in backend/src/config/constants.ts —
 // client-side only for UX (disabling invalid options); server re-validates.
 export const ALLOWED_TRANSITIONS: Record<EnquiryStatus, EnquiryStatus[]> = {
-  NEW: ["CONTACTED", "FOLLOW_UP", "LOST"],
-  CONTACTED: ["APPOINTMENT_SCHEDULED", "FOLLOW_UP", "LOST"],
-  FOLLOW_UP: ["CONTACTED", "APPOINTMENT_SCHEDULED", "LOST"],
-  APPOINTMENT_SCHEDULED: ["TEST_DRIVE_DONE", "APPOINTMENT_NO_SHOW", "LOST"],
-  APPOINTMENT_NO_SHOW: ["APPOINTMENT_SCHEDULED", "FOLLOW_UP", "LOST"],
-  TEST_DRIVE_DONE: ["FEEDBACK_COLLECTED", "APPOINTMENT_SCHEDULED", "FOLLOW_UP", "LOST"],
-  FEEDBACK_COLLECTED: ["QUOTATION_SHARED", "APPOINTMENT_SCHEDULED", "FOLLOW_UP", "LOST"],
-  QUOTATION_SHARED: ["NEGOTIATION", "APPOINTMENT_SCHEDULED", "FOLLOW_UP", "LOST"],
-  NEGOTIATION: ["BOOKING_CONFIRMED", "APPOINTMENT_SCHEDULED", "FOLLOW_UP", "LOST"],
-  BOOKING_CONFIRMED: ["FINANCE_IN_PROGRESS", "EXCHANGE_IN_PROGRESS", "SALE_CLOSED", "LOST"],
-  FINANCE_IN_PROGRESS: ["EXCHANGE_IN_PROGRESS", "SALE_CLOSED", "LOST"],
-  EXCHANGE_IN_PROGRESS: ["FINANCE_IN_PROGRESS", "SALE_CLOSED", "LOST"],
-  SALE_CLOSED: ["DELIVERY_IN_PROGRESS"],
-  DELIVERY_IN_PROGRESS: ["DELIVERED"],
-  DELIVERED: [],
-  LOST: [],
+  NEW: ["UNDER_FOLLOW_UP", "TEST_DRIVE", "BOOKED", "CLOSED"],
+  UNDER_FOLLOW_UP: ["APPOINTMENT_FIXED", "TEST_DRIVE", "BOOKED", "CLOSED"],
+  APPOINTMENT_FIXED: ["TEST_DRIVE", "CLOSED"],
+  TEST_DRIVE: ["BOOKED", "UNDER_FOLLOW_UP", "CLOSED"],
+  BOOKED: ["RETAIL_DONE", "CLOSED"],
+  RETAIL_DONE: ["CLOSED"],
+  CLOSED: [],
 };
 
 // Sidebar/dashboard modules a custom role can toggle. Mirrors backend MODULE_KEYS.
@@ -137,6 +139,7 @@ export const MODULES = [
   { key: "bulk-messages", label: "Bulk Messages" },
   { key: "integrations", label: "Integrations" },
   { key: "vehicles", label: "Vehicles" },
+  { key: "settings", label: "Settings" },
 ] as const;
 export type ModuleKey = (typeof MODULES)[number]["key"];
 
@@ -233,6 +236,7 @@ export interface Enquiry {
   lossReason?: LossReason | null;
   lossNote?: string | null;
   department?: Department | null;
+  sourceCategory?: SourceCategory | null;
   subsource?: LeadSubsource | null;
   variant?: string | null;
   enquiryCategory?: EnquiryCategory | null;
@@ -260,6 +264,44 @@ export interface Enquiry {
   exchangeEvaluation?: ExchangeEvaluation | null;
   financeApplication?: FinanceApplication | null;
   deliveryDetails?: DeliveryDetails | null;
+  followUps?: FollowUp[];
+}
+
+export const FOLLOW_UP_TYPES = ["CALL", "WHATSAPP", "VISIT", "EMAIL"] as const;
+export type FollowUpType = (typeof FOLLOW_UP_TYPES)[number];
+
+export interface FollowUp {
+  id: string;
+  enquiryId: string;
+  followUpDate: string;
+  followUpTime?: string | null;
+  type: FollowUpType;
+  remark: string;
+  nextFollowUpDate?: string | null;
+  nextFollowUpTime?: string | null;
+  createdById: string;
+  createdBy?: { id: string; name: string };
+  createdAt: string;
+}
+
+export interface Comment {
+  id: string;
+  enquiryId: string;
+  userId: string;
+  user: Pick<User, "id" | "name" | "role">;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AppNotification {
+  id: string;
+  userId: string;
+  title: string;
+  body: string;
+  linkUrl: string | null;
+  isRead: boolean;
+  createdAt: string;
 }
 
 export interface TestDriveFeedback {
@@ -282,6 +324,7 @@ export interface Quotation {
   finalPrice: string;
   validUntil?: string | null;
   pdfUrl?: string | null;
+  createdAt: string;
 }
 
 export interface ExchangeEvaluation {
