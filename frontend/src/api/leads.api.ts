@@ -16,6 +16,7 @@ export interface LeadFilters {
   search?: string;
   status?: string;
   source?: string;
+  enquiryCategory?: string;
   branchId?: string;
   assignedCrId?: string;
   dateFrom?: string;

@@ -75,6 +75,7 @@ export const leadListQuerySchema = z.object({
   search: z.string().optional(),
   status: z.string().optional(),
   source: z.string().optional(),
+  enquiryCategory: z.enum(["HOT", "WARM", "COLD"]).optional(),
   branchId: z.string().optional(),
   assignedCrId: z.string().optional(),
   dateFrom: z.string().optional(),
