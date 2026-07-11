@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { motion, useInView, useReducedMotion } from "framer-motion";
+import { motion, AnimatePresence, useInView, useReducedMotion } from "framer-motion";
+import clsx from "clsx";
 import {
   LogIn,
   Car,
@@ -13,6 +14,8 @@ import {
   Radio,
   ArrowRight,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Sparkles,
   Megaphone,
   Camera,
@@ -134,6 +137,49 @@ const FEATURES = [
   },
 ];
 
+/* Rotating hero content — same video backdrop, different headline per slide. */
+const HERO_SLIDES = [
+  {
+    badge: "Hyundai Dealership Suite",
+    heading: (
+      <>
+        Every lead. Every call.
+        <br />
+        <span className="bg-gradient-to-r from-blue-400 via-sky-300 to-indigo-400 bg-clip-text text-transparent">
+          One drive to close.
+        </span>
+      </>
+    ),
+    sub: "The end-to-end sales CRM for your showrooms — capturing every enquiry, routing it instantly, and driving it from first hello to key handover.",
+  },
+  {
+    badge: "AI Voice & Chat Agent",
+    heading: (
+      <>
+        AI that follows up,
+        <br />
+        <span className="bg-gradient-to-r from-cyan-300 via-blue-300 to-indigo-400 bg-clip-text text-transparent">
+          so you never have to.
+        </span>
+      </>
+    ),
+    sub: "Automated voice and WhatsApp follow-ups keep every lead warm — booking test drives and logging every touch, around the clock.",
+  },
+  {
+    badge: "Full Sales Pipeline",
+    heading: (
+      <>
+        From first enquiry
+        <br />
+        <span className="bg-gradient-to-r from-indigo-300 via-blue-300 to-sky-300 bg-clip-text text-transparent">
+          to key handover.
+        </span>
+      </>
+    ),
+    sub: "Quotation, exchange, finance, test drive and delivery — track the entire showroom journey in one connected pipeline.",
+  },
+];
+
 const STEPS = [
   { icon: <MousePointerClick size={18} />, title: "Capture", desc: "Lead lands from any channel" },
   { icon: <Split size={18} />, title: "Auto-assign", desc: "Round-robin to the right CR" },
@@ -146,6 +192,12 @@ const STEPS = [
 export function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
   const { theme, toggle } = useTheme();
+  const reduceMotion = useReducedMotion();
+
+  // Hero content slider — auto-advances, pauses on hover, and always resets its
+  // timer on a manual nav so a click doesn't get immediately overridden.
+  const [activeSlide, setActiveSlide] = useState(0);
+  const [slidesPaused, setSlidesPaused] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -157,6 +209,15 @@ export function LandingPage() {
       document.documentElement.style.scrollBehavior = "";
     };
   }, []);
+
+  useEffect(() => {
+    if (reduceMotion || slidesPaused) return;
+    const t = setInterval(() => setActiveSlide((i) => (i + 1) % HERO_SLIDES.length), 6000);
+    return () => clearInterval(t);
+  }, [reduceMotion, slidesPaused, activeSlide]);
+
+  const prevSlide = () => setActiveSlide((i) => (i - 1 + HERO_SLIDES.length) % HERO_SLIDES.length);
+  const nextSlide = () => setActiveSlide((i) => (i + 1) % HERO_SLIDES.length);
 
   return (
     <div className="min-h-screen w-full overflow-x-hidden bg-white text-slate-900 antialiased dark:bg-slate-950 dark:text-white">
@@ -228,54 +289,75 @@ export function LandingPage() {
           />
           {/* Keep the video clearly visible: only a light top scrim for nav
               legibility and a fade to the page background at the very bottom.
-              Text stays readable via drop-shadows rather than a heavy overlay. */}
+              Text legibility comes from the blurred glow behind the slide content. */}
           <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black/40 to-transparent" />
           <div className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-b from-transparent to-white dark:to-slate-950" />
         </div>
 
-        <div className="relative z-10 mx-auto max-w-4xl px-6 pt-24 text-center">
+        {/* Prev / next slide controls */}
+        <button
+          type="button"
+          onClick={prevSlide}
+          aria-label="Previous slide"
+          className="absolute left-3 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white backdrop-blur-md transition-colors hover:bg-white/15 sm:flex md:left-6"
+        >
+          <ChevronLeft size={20} />
+        </button>
+        <button
+          type="button"
+          onClick={nextSlide}
+          aria-label="Next slide"
+          className="absolute right-3 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white backdrop-blur-md transition-colors hover:bg-white/15 sm:flex md:right-6"
+        >
+          <ChevronRight size={20} />
+        </button>
+
+        <div
+          role="region"
+          aria-roledescription="carousel"
+          aria-label="Hero highlights"
+          onMouseEnter={() => setSlidesPaused(true)}
+          onMouseLeave={() => setSlidesPaused(false)}
+          className="relative z-10 mx-auto max-w-4xl px-6 pt-24 text-center"
+        >
+          {/* Soft glow behind the text for legibility over bright video — a blurred
+              tint, not a drop-shadow/box-shadow, so the "flat, no-shadow" look holds. */}
+          <div className="pointer-events-none absolute inset-0 -z-10 flex items-center justify-center">
+            <div className="h-[26rem] w-[36rem] max-w-[92vw] rounded-full bg-black/25 blur-[110px]" />
+          </div>
+
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeSlide}
+              initial={reduceMotion ? undefined : { opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduceMotion ? undefined : { opacity: 0, y: -18 }}
+              transition={{ duration: 0.5, ease: EASE }}
+            >
+              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-xs font-medium tracking-wide text-blue-200 backdrop-blur-md">
+                <Sparkles size={14} className="text-blue-300" />
+                {HERO_SLIDES[activeSlide].badge}
+              </div>
+
+              <h1 className="text-balance text-5xl font-bold leading-[1.05] tracking-tight text-white sm:text-7xl">
+                {HERO_SLIDES[activeSlide].heading}
+              </h1>
+
+              <p className="mx-auto mt-6 max-w-xl text-pretty text-base text-slate-100 sm:text-lg">
+                {HERO_SLIDES[activeSlide].sub}
+              </p>
+            </motion.div>
+          </AnimatePresence>
+
           <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: EASE }}
-            className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-xs font-medium tracking-wide text-blue-200 backdrop-blur-md"
-          >
-            <Sparkles size={14} className="text-blue-300" />
-            Hyundai Dealership Suite
-          </motion.div>
-
-          <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: EASE, delay: 0.08 }}
-            className="text-balance text-5xl font-bold leading-[1.05] tracking-tight text-white drop-shadow-[0_2px_16px_rgba(0,0,0,0.55)] sm:text-7xl"
-          >
-            Every lead. Every call.
-            <br />
-            <span className="bg-gradient-to-r from-blue-400 via-sky-300 to-indigo-400 bg-clip-text text-transparent">
-              One drive to close.
-            </span>
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: EASE, delay: 0.16 }}
-            className="mx-auto mt-6 max-w-xl text-pretty text-base text-slate-100 drop-shadow-[0_1px_10px_rgba(0,0,0,0.6)] sm:text-lg"
-          >
-            The end-to-end sales CRM for your showrooms — capturing every enquiry, routing it
-            instantly, and driving it from first hello to key handover.
-          </motion.p>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: EASE, delay: 0.24 }}
+            transition={{ duration: 0.7, ease: EASE, delay: 0.2 }}
             className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row"
           >
             <Link
               to="/login"
-              className="group inline-flex items-center gap-2 rounded-xl bg-blue-600 px-7 py-3.5 text-base font-semibold text-white shadow-xl shadow-blue-600/30 transition-all hover:-translate-y-0.5 hover:bg-blue-500 hover:shadow-blue-500/40"
+              className="group inline-flex items-center gap-2 rounded-xl bg-blue-600 px-7 py-3.5 text-base font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-blue-500"
             >
               <LogIn size={18} />
               Sign In to Dashboard
@@ -288,6 +370,23 @@ export function LandingPage() {
               Explore features
             </a>
           </motion.div>
+
+          {/* Slide indicators */}
+          <div className="mt-8 flex items-center justify-center gap-2">
+            {HERO_SLIDES.map((slide, i) => (
+              <button
+                key={slide.badge}
+                type="button"
+                onClick={() => setActiveSlide(i)}
+                aria-label={`Go to slide ${i + 1}: ${slide.badge}`}
+                aria-current={i === activeSlide}
+                className={clsx(
+                  "h-1.5 rounded-full transition-all duration-300",
+                  i === activeSlide ? "w-7 bg-white" : "w-1.5 bg-white/35 hover:bg-white/60"
+                )}
+              />
+            ))}
+          </div>
         </div>
 
         <a

@@ -84,6 +84,15 @@ export const leadListQuerySchema = z.object({
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
 });
 
+export const customerListQuerySchema = z.object({
+  search: z.string().optional(),
+  branchId: z.string().optional(),
+  tier: z.enum(["DIAMOND", "GOLD", "PROSPECT"]).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+});
+export type CustomerListQuery = z.infer<typeof customerListQuerySchema>;
+
 export type CreateEnquiryInput = z.infer<typeof createEnquirySchema>;
 export type WalkInLeadInput = z.infer<typeof walkInLeadSchema>;
 export type LeadDraftInput = z.infer<typeof leadDraftSchema>;

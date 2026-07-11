@@ -61,6 +61,8 @@ export interface LeadEnrichmentPayload {
   exchangeCarOwners?: number;
   calledDate?: string;
   remarks?: string;
+  /** Reassign the showroom consultant (used by the detail page's consultant picker). */
+  consultantId?: string;
 }
 
 export interface CreateEnquiryPayload extends LeadEnrichmentPayload {

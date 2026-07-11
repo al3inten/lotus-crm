@@ -370,3 +370,41 @@ export interface PaginatedEnquiries {
   page: number;
   pageSize: number;
 }
+
+export const CUSTOMER_TIERS = ["DIAMOND", "GOLD", "PROSPECT"] as const;
+export type CustomerTier = (typeof CUSTOMER_TIERS)[number];
+
+export interface CustomerStats {
+  total: number;
+  diamond: number;
+  gold: number;
+  prospect: number;
+}
+
+/** A person (Lead, unique by phone) with an auto-computed loyalty tier. */
+export interface Customer {
+  id: string;
+  name: string;
+  phoneRaw: string;
+  email?: string | null;
+  profession?: string | null;
+  createdAt: string;
+  tier: CustomerTier;
+  enquiryCount: number;
+  touchCount: number;
+  purchaseCount: number;
+  ownedVehicles: string[];
+  latestEnquiryId?: string | null;
+  latestStatus?: EnquiryStatus | null;
+  latestCarModel?: string | null;
+  lastActivityAt: string;
+  branches: string[];
+}
+
+export interface PaginatedCustomers {
+  items: Customer[];
+  total: number;
+  page: number;
+  pageSize: number;
+  stats: CustomerStats;
+}

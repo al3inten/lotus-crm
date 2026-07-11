@@ -2,7 +2,7 @@ import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import clsx from "clsx";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useNavItems } from "./navConfig";
+import { useNavGroups } from "./navConfig";
 
 interface SidebarProps {
   isMobileMenuOpen: boolean;
@@ -11,7 +11,7 @@ interface SidebarProps {
 
 export function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const items = useNavItems();
+  const groups = useNavGroups();
 
   return (
     <>
@@ -66,37 +66,52 @@ export function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }: SidebarProps)
           </div>
         </div>
 
-        <nav className="flex flex-1 flex-col gap-1.5 overflow-x-hidden overflow-y-auto px-3 py-3 md:py-4">
-          {items.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              title={isCollapsed ? item.label : undefined}
-              onClick={() => setIsMobileMenuOpen(false)}
-              className={({ isActive }) =>
-                clsx(
-                  "group relative flex items-center rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-300 overflow-hidden",
-                  isCollapsed ? "justify-center" : "gap-3",
-                  isActive
-                    ? "bg-blue-50 text-blue-700 shadow-sm ring-1 ring-inset ring-blue-600/10 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/20"
-                    : "text-slate-500 hover:bg-slate-100/80 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-slate-200 hover:shadow-sm"
-                )
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  {/* Active indicator dot/bar */}
-                  {isActive && !isCollapsed && (
-                    <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-blue-600 dark:bg-blue-500" />
-                  )}
-                  
-                  <span className={clsx("shrink-0 transition-all duration-300 group-hover:scale-110", isCollapsed ? "scale-110" : "")}>
-                    <item.icon size={18} className={clsx(isActive ? "text-blue-600 dark:text-blue-400" : "text-slate-400 group-hover:text-slate-600 dark:text-slate-500 dark:group-hover:text-slate-300")} />
-                  </span>
-                  {!isCollapsed && <span className="whitespace-nowrap font-medium">{item.label}</span>}
-                </>
-              )}
-            </NavLink>
+        <nav className="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto px-2.5 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {groups.map((section, gi) => (
+            <div key={section.group} className={clsx(gi > 0 && "mt-1.5")}>
+              {/* Section header — a compact label when expanded, a thin divider when collapsed */}
+              {isCollapsed
+                ? gi > 0 && <div className="mx-auto my-1.5 h-px w-7 rounded-full bg-slate-200 dark:bg-slate-800" />
+                : (
+                  <p className="px-3 pb-0.5 pt-1 text-[10px] font-bold uppercase leading-none tracking-[0.11em] text-slate-400/90 dark:text-slate-500">
+                    {section.label}
+                  </p>
+                )}
+
+              <div className="flex flex-col gap-0.5">
+                {section.items.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    title={isCollapsed ? item.label : undefined}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={({ isActive }) =>
+                      clsx(
+                        "group relative flex items-center overflow-hidden rounded-lg px-3 py-1.5 text-[13px] font-medium transition-all duration-200",
+                        isCollapsed ? "justify-center" : "gap-2.5",
+                        isActive
+                          ? "bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/10 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/20"
+                          : "text-slate-500 hover:bg-slate-100/80 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-slate-200"
+                      )
+                    }
+                  >
+                    {({ isActive }) => (
+                      <>
+                        {/* Active indicator bar */}
+                        {isActive && !isCollapsed && (
+                          <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-blue-600 dark:bg-blue-500" />
+                        )}
+
+                        <span className={clsx("shrink-0 transition-transform duration-200 group-hover:scale-110", isCollapsed && "scale-110")}>
+                          <item.icon size={17} className={clsx(isActive ? "text-blue-600 dark:text-blue-400" : "text-slate-400 group-hover:text-slate-600 dark:text-slate-500 dark:group-hover:text-slate-300")} />
+                        </span>
+                        {!isCollapsed && <span className="whitespace-nowrap">{item.label}</span>}
+                      </>
+                    )}
+                  </NavLink>
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
       </aside>

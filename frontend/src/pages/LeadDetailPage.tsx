@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import clsx from "clsx";
 import {
@@ -31,9 +31,16 @@ import {
   UserPlus,
   Zap,
   Pencil,
+  Layers,
+  XCircle,
+  AlertCircle,
+  Plus,
+  Check,
+  X,
+  ArrowRightLeft,
 } from "lucide-react";
 import { useLeadHistory } from "../hooks/useLeads";
-import { useEnquiry, useReassign } from "../hooks/useEnquiry";
+import { useEnquiry, useReassign, useUpdateEnquiryDetails } from "../hooks/useEnquiry";
 import { useBranchStaff } from "../hooks/useUsers";
 import { useCallLogsForLead } from "../hooks/useVoice";
 import { useAuth } from "../context/AuthContext";
@@ -58,6 +65,7 @@ import { UnifiedTimeline } from "../components/enquiry/UnifiedTimeline";
 import { FollowUpTable } from "../components/enquiry/FollowUpTable";
 import { QuickActions } from "../components/enquiry/QuickActions";
 import { ConfettiBurst } from "../components/common/ConfettiBurst";
+import { CopyButton } from "../components/common/CopyButton";
 import { fadeUp, staggerContainer } from "../lib/motion";
 import type { EnquiryStatus, Enquiry, LeadWithHistory } from "../types";
 
@@ -280,6 +288,7 @@ function ActionButton({
 export function LeadDetailPage() {
   const { leadId, enquiryId: enquiryIdParam } = useParams<{ leadId: string; enquiryId?: string }>();
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [statusModalTarget, setStatusModalTarget] = useState<EnquiryStatus | undefined>();
@@ -289,15 +298,21 @@ export function LeadDetailPage() {
   const [reassignTo, setReassignTo] = useState("");
   const [assignOpen, setAssignOpen] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
+  const [showNewEnquiry, setShowNewEnquiry] = useState(false);
+  const [consultantEdit, setConsultantEdit] = useState(false);
+  const [consultantValue, setConsultantValue] = useState("");
 
   const followUpRef = useRef<HTMLDivElement>(null);
   const prevStatusRef = useRef<EnquiryStatus | null>(null);
+  const assignRef = useRef<HTMLDivElement>(null);
 
-  const { data: lead, isLoading: leadLoading } = useLeadHistory(leadId);
+  const { data: lead, isLoading: leadLoading, isError: leadError, refetch: refetchLead } = useLeadHistory(leadId);
   const activeEnquiryId = enquiryIdParam ?? lead?.enquiries[0]?.id;
-  const { data: enquiry, isLoading: enquiryLoading } = useEnquiry(activeEnquiryId);
+  const { data: enquiry, isLoading: enquiryLoading, isError: enquiryError, refetch: refetchEnquiry } = useEnquiry(activeEnquiryId);
   const reassign = useReassign(activeEnquiryId ?? "");
+  const updateDetails = useUpdateEnquiryDetails(activeEnquiryId ?? "");
   const { data: crTeam } = useBranchStaff(enquiry?.branchId, "CR_TEAM");
+  const { data: consultants } = useBranchStaff(enquiry?.branchId, "CONSULTANT");
   const { data: callLogs } = useCallLogsForLead(leadId);
   const { data: settings } = useSettings();
 
@@ -313,7 +328,24 @@ export function LeadDetailPage() {
     prevStatusRef.current = status;
   }, [enquiry?.status]);
 
-  if (leadLoading || !lead) {
+  // Dismiss the Assign popover on outside-click or Escape.
+  useEffect(() => {
+    if (!assignOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (assignRef.current && !assignRef.current.contains(e.target as Node)) setAssignOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setAssignOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [assignOpen]);
+
+  if (leadLoading) {
     return (
       <div className="mx-auto flex max-w-7xl flex-col gap-6">
         <div className="h-12 animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-800" />
@@ -321,6 +353,30 @@ export function LeadDetailPage() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="h-56 animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-800" />
           <div className="h-56 animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-800" />
+        </div>
+      </div>
+    );
+  }
+
+  if (leadError || !lead) {
+    return (
+      <div className="mx-auto flex max-w-2xl flex-col items-center gap-5 py-20 text-center">
+        <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-300">
+          <AlertCircle size={30} />
+        </span>
+        <div>
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white">Couldn't load this lead</h1>
+          <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">
+            It may have been removed, or you don't have access to it. Try again, or head back to your leads.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <Button variant="secondary" onClick={() => refetchLead()}>
+            Retry
+          </Button>
+          <Button icon={<ArrowLeft size={14} />} onClick={() => navigate("/leads")}>
+            Back to Leads
+          </Button>
         </div>
       </div>
     );
@@ -417,7 +473,7 @@ export function LeadDetailPage() {
             <ActionButton icon={<Zap size={16} />} label="Follow-up" onClick={openFollowUp} tone="primary" disabled={!enquiry || enquiry.status === "CLOSED"} />
             <ActionButton icon={<Pencil size={16} />} label="Edit" onClick={() => setShowDetailsWizard(true)} disabled={!enquiry} />
             {canReassign && (
-              <div className="relative">
+              <div className="relative" ref={assignRef}>
                 <ActionButton icon={<UserPlus size={16} />} label="Assign" onClick={() => setAssignOpen((o) => !o)} disabled={!enquiry} />
                 {assignOpen && enquiry && (
                   <div className="absolute right-0 top-full z-40 mt-2 w-64 rounded-xl border border-slate-200 bg-white p-3 shadow-xl dark:border-slate-700 dark:bg-slate-900">
@@ -502,10 +558,104 @@ export function LeadDetailPage() {
         </div>
       </motion.div>
 
-      {enquiryLoading || !enquiry ? (
+      {/* ---------- ENQUIRY SWITCHER (repeat leads) ---------- */}
+      {lead.enquiries.length > 1 && (
+        <motion.div variants={fadeUp}>
+          <Card padded={false} className="overflow-hidden">
+            <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+              <Layers size={16} className="text-blue-500 dark:text-blue-400" />
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">Enquiries</h2>
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-600 dark:bg-slate-700/60 dark:text-slate-300">
+                {lead.enquiries.length}
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowNewEnquiry(true)}
+                className="ml-auto inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 transition-colors hover:border-blue-300 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:border-slate-700 dark:text-slate-300 dark:hover:border-blue-500/40 dark:hover:text-blue-400"
+              >
+                <Plus size={13} /> New enquiry
+              </button>
+            </div>
+            <div className="flex gap-2 overflow-x-auto p-3 [scrollbar-width:thin]">
+              {lead.enquiries.map((enq) => {
+                const active = enq.id === activeEnquiryId;
+                return (
+                  <button
+                    key={enq.id}
+                    type="button"
+                    onClick={() => navigate(`/leads/${leadId}/enquiries/${enq.id}`)}
+                    aria-current={active}
+                    className={clsx(
+                      "flex min-w-[190px] flex-col gap-1.5 rounded-xl border p-3 text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+                      active
+                        ? "border-blue-300 bg-blue-50 dark:border-blue-500/40 dark:bg-blue-500/10"
+                        : "border-slate-200 bg-white hover:-translate-y-0.5 hover:border-blue-200 dark:border-slate-700 dark:bg-slate-900/40 dark:hover:border-blue-500/30"
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="truncate text-sm font-semibold text-slate-900 dark:text-white">{enq.carModel}</span>
+                      {active && <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-blue-600 dark:text-blue-400">Viewing</span>}
+                    </div>
+                    <StatusBadge status={enq.status} />
+                    <span className="text-xs text-slate-400 dark:text-slate-500">
+                      {new Date(enq.createdAt).toLocaleDateString()} · {enq.source.replaceAll("_", " ")}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </Card>
+        </motion.div>
+      )}
+
+      {lead.enquiries.length === 0 ? (
+        <Card className="flex flex-col items-center gap-3 py-14 text-center">
+          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300">
+            <ClipboardEdit size={26} />
+          </span>
+          <div>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">No enquiries yet</h2>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              This customer doesn't have any enquiries. Create one to start the pipeline.
+            </p>
+          </div>
+          <Button icon={<Plus size={14} />} onClick={() => setShowNewEnquiry(true)}>
+            New enquiry
+          </Button>
+        </Card>
+      ) : enquiryLoading ? (
         <div className="h-64 animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-800" />
+      ) : enquiryError || !enquiry ? (
+        <Card className="flex flex-col items-center gap-3 py-14 text-center">
+          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-300">
+            <AlertCircle size={26} />
+          </span>
+          <div>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">Couldn't load this enquiry</h2>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Something went wrong fetching the enquiry details.</p>
+          </div>
+          <Button variant="secondary" onClick={() => refetchEnquiry()}>
+            Retry
+          </Button>
+        </Card>
       ) : (
         <>
+          {/* ---------- LOSS BANNER (closed-lost) ---------- */}
+          {enquiry.status === "CLOSED" && enquiry.lossReason && (
+            <motion.div
+              variants={fadeUp}
+              className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-500/25 dark:bg-red-500/10"
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-300">
+                <XCircle size={18} />
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-red-800 dark:text-red-300">Enquiry lost — {enquiry.lossReason.replaceAll("_", " ")}</p>
+                {enquiry.lossNote && <p className="mt-0.5 text-sm text-red-700/80 dark:text-red-300/70">{enquiry.lossNote}</p>}
+              </div>
+            </motion.div>
+          )}
+
           {/* ---------- INFORMATION CARDS ---------- */}
           <motion.div variants={fadeUp} className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <Card className="flex h-full flex-col">
@@ -516,8 +666,26 @@ export function LeadDetailPage() {
                 subtitle="Who you're speaking with"
               />
               <div className="grid grid-cols-1 gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
-                <InfoField icon={<Phone size={13} />} label="Mobile Number" value={lead.phoneRaw} />
-                <InfoField icon={<Mail size={13} />} label="Email" value={lead.email || "—"} />
+                <InfoField
+                  icon={<Phone size={13} />}
+                  label="Mobile Number"
+                  value={
+                    <span className="inline-flex items-center gap-1.5">
+                      {lead.phoneRaw}
+                      <CopyButton value={lead.phoneRaw} label="Copy phone number" />
+                    </span>
+                  }
+                />
+                <InfoField
+                  icon={<Mail size={13} />}
+                  label="Email"
+                  value={
+                    <span className="inline-flex items-center gap-1.5">
+                      {lead.email || "—"}
+                      {lead.email && <CopyButton value={lead.email} label="Copy email" />}
+                    </span>
+                  }
+                />
                 <InfoField
                   icon={<MapPin size={13} />}
                   label="Address"
@@ -537,9 +705,18 @@ export function LeadDetailPage() {
                 title="Enquiry Summary"
                 subtitle="Deal snapshot"
                 actions={
-                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 dark:bg-slate-700/60 dark:text-slate-300">
-                    #{enquiry.id.slice(-6).toUpperCase()}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowNewEnquiry(true)}
+                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 transition-colors hover:border-blue-300 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:border-slate-700 dark:text-slate-300 dark:hover:border-blue-500/40 dark:hover:text-blue-400"
+                    >
+                      <Plus size={13} /> New enquiry
+                    </button>
+                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 dark:bg-slate-700/60 dark:text-slate-300">
+                      #{enquiry.id.slice(-6).toUpperCase()}
+                    </span>
+                  </div>
                 }
               />
               <div className="grid grid-cols-1 gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
@@ -549,7 +726,59 @@ export function LeadDetailPage() {
                 <InfoField icon={<Tag size={13} />} label="Current Stage" value={enquiry.status.replaceAll("_", " ")} />
                 <div className="mt-1 grid grid-cols-1 gap-x-6 gap-y-4 border-t border-slate-100 pt-4 sm:col-span-2 sm:grid-cols-2 dark:border-slate-700/60">
                   <InfoField icon={<UserCircle2 size={13} />} label="Sales Consultant (CR)" value={enquiry.assignedCr?.name ?? "Unassigned"} />
-                  <InfoField icon={<UserCircle2 size={13} />} label="Showroom Consultant" value={enquiry.consultant?.name ?? "—"} />
+                  <div>
+                    <p className="mb-1 flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
+                      <UserCircle2 size={13} /> Showroom Consultant
+                    </p>
+                    {consultantEdit ? (
+                      <div className="flex items-center gap-1.5">
+                        <Select value={consultantValue} onChange={(e) => setConsultantValue(e.target.value)} className="w-full text-sm">
+                          <option value="">Select consultant…</option>
+                          {consultants?.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.name}
+                            </option>
+                          ))}
+                        </Select>
+                        <button
+                          type="button"
+                          aria-label="Save consultant"
+                          disabled={!consultantValue || updateDetails.isPending}
+                          onClick={() => {
+                            updateDetails.mutate({ consultantId: consultantValue });
+                            setConsultantEdit(false);
+                          }}
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white transition-colors hover:bg-blue-500 disabled:opacity-40"
+                        >
+                          <Check size={15} />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label="Cancel"
+                          onClick={() => setConsultantEdit(false)}
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                        >
+                          <X size={15} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-slate-900 dark:text-white">{enquiry.consultant?.name ?? "—"}</p>
+                        {canReassign && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setConsultantValue(enquiry.consultantId ?? "");
+                              setConsultantEdit(true);
+                            }}
+                            className="text-xs font-semibold text-blue-600 transition-colors hover:underline dark:text-blue-400"
+                          >
+                            Change
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </Card>
@@ -620,6 +849,14 @@ export function LeadDetailPage() {
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <QuickActions status={enquiry.status} onAddFollowUp={openFollowUp} onChangeStatus={handleQuickActionStatus} />
+                <button
+                  type="button"
+                  onClick={() => handleQuickActionStatus(undefined)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white/70 px-3 py-1.5 text-sm font-semibold text-blue-700 transition-colors hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300 dark:hover:bg-blue-500/20"
+                >
+                  <ArrowRightLeft size={14} />
+                  Change status
+                </button>
               </div>
             </motion.div>
           )}
@@ -839,6 +1076,24 @@ export function LeadDetailPage() {
           />
         </>
       )}
+
+      {/* New enquiry for this (returning) customer — prefilled with their contact details. */}
+      <AddLeadWizard
+        isOpen={showNewEnquiry}
+        onClose={() => setShowNewEnquiry(false)}
+        initialValues={
+          {
+            name: lead.name,
+            phone: lead.phoneRaw,
+            email: lead.email ?? undefined,
+            alternateMobile: lead.alternateMobile ?? undefined,
+            dob: toDateInput(lead.dob),
+            profession: lead.profession ?? undefined,
+            pincode: lead.pincode ?? undefined,
+            address: lead.address ?? undefined,
+          } as Partial<AddLeadFormValues>
+        }
+      />
     </motion.div>
   );
 }

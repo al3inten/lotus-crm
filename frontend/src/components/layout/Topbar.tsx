@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Search, Bell, HelpCircle, Menu, ChevronDown, AtSign, Check } from "lucide-react";
+import { LogOut, Search, Bell, HelpCircle, Menu, ChevronDown, AtSign, Check, Sun, Moon } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { useTheme } from "../../hooks/useTheme";
 import { useNavItems } from "./navConfig";
 import { useReminders } from "../../hooks/useLeads";
 import { useNotifications, useMarkNotificationAsRead } from "../../hooks/useNotifications";
@@ -13,6 +14,7 @@ export function Topbar({ onMenuToggle }: { onMenuToggle: () => void }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const navItems = useNavItems();
+  const { theme, toggle: toggleTheme } = useTheme();
 
   const [query, setQuery] = useState("");
   const [showResults, setShowResults] = useState(false);
@@ -271,6 +273,16 @@ export function Topbar({ onMenuToggle }: { onMenuToggle: () => void }) {
               </>
             )}
           </div>
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+            title={theme === "dark" ? "Light mode" : "Dark mode"}
+            className="flex h-10 w-10 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-300"
+          >
+            {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
+
           <button
             aria-label="Help"
             className="hidden h-10 w-10 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-300 sm:flex"

@@ -5,11 +5,12 @@ import { verifyJwt } from "../../middleware/auth";
 import { applyBranchScope } from "../../middleware/branchScope";
 import { requireRole } from "../../middleware/rbac";
 import { validateBody, validateQuery } from "../../middleware/validate";
-import { createEnquirySchema, walkInLeadSchema, leadDraftSchema, leadListQuerySchema } from "./leads.schema";
+import { createEnquirySchema, walkInLeadSchema, leadDraftSchema, leadListQuerySchema, customerListQuerySchema } from "./leads.schema";
 import {
   createEnquiryHandler,
   createWalkInHandler,
   listEnquiriesHandler,
+  listCustomersHandler,
   getLeadHandler,
   importLeadsHandler,
   downloadLeadImportTemplateHandler,
@@ -52,6 +53,9 @@ router.get("/drafts", asyncHandler(listDraftsHandler));
 router.post("/drafts", validateBody(leadDraftSchema), asyncHandler(saveDraftHandler));
 router.patch("/drafts/:id", validateBody(leadDraftSchema.pick({ data: true })), asyncHandler(updateDraftHandler));
 router.delete("/drafts/:id", asyncHandler(deleteDraftHandler));
+
+// Registered before "/:leadId" so "customers" isn't swallowed as a leadId param.
+router.get("/customers", validateQuery(customerListQuerySchema), asyncHandler(listCustomersHandler));
 
 router.get("/", validateQuery(leadListQuerySchema), asyncHandler(listEnquiriesHandler));
 router.get("/:leadId", asyncHandler(getLeadHandler));

@@ -3,8 +3,11 @@ import { leadEnrichmentSchema } from "../leads/leads.schema";
 
 // Same enrichment fields as the Add Lead wizard (leads.schema.ts), reused here for the
 // "Complete Customer Details" flow on an existing enquiry — a partial PATCH, so every
-// field stays optional (already the case on leadEnrichmentSchema).
-export const enquiryDetailsSchema = leadEnrichmentSchema;
+// field stays optional (already the case on leadEnrichmentSchema). `consultantId` is
+// additionally accepted so the showroom consultant can be reassigned from the detail page.
+export const enquiryDetailsSchema = leadEnrichmentSchema.extend({
+  consultantId: z.string().optional(),
+});
 
 export const changeStatusSchema = z.object({
   toStatus: z.enum([
@@ -28,6 +31,7 @@ export const changeStatusSchema = z.object({
     "OTHER_REASON",
   ]).optional(),
   followUpDueAt: z.string().datetime().optional(),
+  appointmentAt: z.string().datetime().optional(),
   consultantId: z.string().optional(),
 });
 

@@ -6,6 +6,7 @@ export const statusChangeFormSchema = z.object({
   note: z.string().optional(),
   lossReason: z.enum(LOSS_REASONS).optional().or(z.literal("")),
   followUpDueAt: z.string().optional(),
+  appointmentAt: z.string().optional(),
   consultantId: z.string().optional(),
 });
 

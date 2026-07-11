@@ -51,6 +51,10 @@ export async function changeStatus(enquiryId: string, input: ChangeStatusInput, 
         lossReason: input.toStatus === "CLOSED" ? input.lossReason : enquiry.lossReason,
         lossNote: input.toStatus === "CLOSED" ? input.note : enquiry.lossNote,
         followUpDueAt: input.toStatus === "UNDER_FOLLOW_UP" ? (input.followUpDueAt ? new Date(input.followUpDueAt) : null) : enquiry.followUpDueAt,
+        // Capture WHEN the appointment is when fixing it, and flag it as scheduled.
+        appointmentAt:
+          input.toStatus === "APPOINTMENT_FIXED" && input.appointmentAt ? new Date(input.appointmentAt) : enquiry.appointmentAt,
+        appointmentScheduled: input.toStatus === "APPOINTMENT_FIXED" ? true : enquiry.appointmentScheduled,
         // "" means the Assign Consultant dropdown was left on its placeholder — not a real
         // value, so it must not overwrite an already-assigned consultant (|| falls back on
         // "" too, unlike ??, which would otherwise null out the FK and violate the constraint).
@@ -113,6 +117,8 @@ export async function updateEnquiryDetails(enquiryId: string, input: EnquiryDeta
         exchangeCarOwners: input.exchangeCarOwners,
         calledDate: input.calledDate ? new Date(input.calledDate) : undefined,
         remarks: input.remarks,
+        // Only reassign the consultant when a non-empty id is provided; undefined leaves it unchanged.
+        consultantId: input.consultantId || undefined,
       },
       include: { lead: true },
     });
@@ -171,6 +177,21 @@ export async function addFollowUp(enquiryId: string, input: CreateFollowUpInput,
       await tx.enquiry.update({
         where: { id: enquiryId },
         data: { followUpDueAt: new Date(input.nextFollowUpDate) },
+      });
+    }
+
+    // Logging the first follow-up on a brand-new lead moves it into the follow-up
+    // stage automatically — the act of following up *is* the transition.
+    if (enquiry.status === "NEW") {
+      await tx.enquiry.update({ where: { id: enquiryId }, data: { status: "UNDER_FOLLOW_UP" } });
+      await tx.enquiryStatusHistory.create({
+        data: {
+          enquiryId,
+          fromStatus: "NEW",
+          toStatus: "UNDER_FOLLOW_UP",
+          changedById: createdById,
+          note: "Auto-advanced to Under Follow-up on first follow-up",
+        },
       });
     }
 
