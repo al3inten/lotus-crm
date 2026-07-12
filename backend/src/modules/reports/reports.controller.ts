@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import * as reportsService from "./reports.service";
 import * as analyticsService from "./analytics.service";
-import { ReportQuery, TrendQuery } from "./reports.schema";
+import { ReportQuery, TrendQuery, BreakdownQuery } from "./reports.schema";
 
 export async function summaryHandler(req: Request, res: Response) {
   const result = await reportsService.getSummary(req.query as unknown as ReportQuery, req.branchFilter);
@@ -50,6 +50,11 @@ export async function sourcePerformanceHandler(req: Request, res: Response) {
 
 export async function lostReasonsHandler(req: Request, res: Response) {
   const result = await analyticsService.getLostReasons(req.query as unknown as ReportQuery, req.branchFilter);
+  res.json(result);
+}
+
+export async function breakdownHandler(req: Request, res: Response) {
+  const result = await analyticsService.getBreakdown(req.query as unknown as BreakdownQuery, req.branchFilter);
   res.json(result);
 }
 

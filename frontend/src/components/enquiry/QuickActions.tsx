@@ -1,23 +1,18 @@
-import { Calendar, CheckCircle, ArrowRightCircle, Phone, XOctagon } from "lucide-react";
+import { Calendar, CheckCircle, ArrowRightCircle, XOctagon } from "lucide-react";
 import { Button } from "../common/Button";
 import type { EnquiryStatus } from "../../types";
 
 export function QuickActions({
   status,
-  onAddFollowUp,
   onChangeStatus,
 }: {
   status: EnquiryStatus;
-  onAddFollowUp: () => void;
   onChangeStatus: (targetStatus?: EnquiryStatus) => void;
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
       {status === "UNDER_FOLLOW_UP" && (
         <>
-          <Button size="sm" icon={<Phone size={14} />} onClick={onAddFollowUp}>
-            Add Follow-up
-          </Button>
           <Button size="sm" variant="secondary" icon={<Calendar size={14} />} onClick={() => onChangeStatus("APPOINTMENT_FIXED")}>
             Appointment Fixed
           </Button>
@@ -29,9 +24,6 @@ export function QuickActions({
 
       {status === "APPOINTMENT_FIXED" && (
         <>
-          <Button size="sm" icon={<Phone size={14} />} onClick={onAddFollowUp}>
-            Add Follow-up
-          </Button>
           <Button size="sm" variant="secondary" icon={<ArrowRightCircle size={14} />} onClick={() => onChangeStatus("TEST_DRIVE")}>
             Test Drive
           </Button>

@@ -8,6 +8,7 @@ import { DashboardPage } from "../pages/DashboardPage";
 import { LeadsPage } from "../pages/LeadsPage";
 import { LeadDetailPage } from "../pages/LeadDetailPage";
 import { CustomersPage } from "../pages/CustomersPage";
+import { FollowUpsPage } from "../pages/FollowUpsPage";
 import { DepartmentsPage } from "../pages/DepartmentsPage";
 import { ReportsPage } from "../pages/ReportsPage";
 import { IntegrationsPage } from "../pages/IntegrationsPage";
@@ -33,6 +34,7 @@ export const router = createBrowserRouter([
           { path: "/dashboard", element: <DashboardPage /> },
           { path: "/leads", element: <LeadsPage /> },
           { path: "/customers", element: <CustomersPage /> },
+          { path: "/follow-ups", element: <FollowUpsPage /> },
           { path: "/leads/:leadId", element: <LeadDetailPage /> },
           { path: "/leads/:leadId/enquiries/:enquiryId", element: <LeadDetailPage /> },
           { path: "/vehicles", element: <VehiclesPage /> },

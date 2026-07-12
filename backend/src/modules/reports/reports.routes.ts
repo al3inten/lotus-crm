@@ -4,7 +4,7 @@ import { verifyJwt } from "../../middleware/auth";
 import { requireRole } from "../../middleware/rbac";
 import { applyBranchScope } from "../../middleware/branchScope";
 import { validateQuery } from "../../middleware/validate";
-import { reportQuerySchema, trendQuerySchema } from "./reports.schema";
+import { reportQuerySchema, trendQuerySchema, breakdownQuerySchema } from "./reports.schema";
 import {
   summaryHandler,
   crPerformanceHandler,
@@ -16,6 +16,7 @@ import {
   callAnalysisHandler,
   sourcePerformanceHandler,
   lostReasonsHandler,
+  breakdownHandler,
   exportCsvHandler,
 } from "./reports.controller";
 
@@ -33,6 +34,7 @@ router.get("/time-in-stage", validateQuery(reportQuerySchema), asyncHandler(time
 router.get("/call-analysis", validateQuery(reportQuerySchema), asyncHandler(callAnalysisHandler));
 router.get("/source-performance", validateQuery(reportQuerySchema), asyncHandler(sourcePerformanceHandler));
 router.get("/lost-reasons", validateQuery(reportQuerySchema), asyncHandler(lostReasonsHandler));
+router.get("/breakdown", validateQuery(breakdownQuerySchema), asyncHandler(breakdownHandler));
 router.get("/export", validateQuery(reportQuerySchema), asyncHandler(exportCsvHandler));
 
 export default router;

@@ -1,4 +1,4 @@
-import { Calendar, Plus } from "lucide-react";
+import { Calendar, Eye, Plus } from "lucide-react";
 import { Button } from "../common/Button";
 import type { FollowUp } from "../../types";
 
@@ -6,11 +6,19 @@ export function FollowUpTable({
   followUps,
   onAddClick,
   canAdd,
+  limit,
+  onViewAll,
 }: {
   followUps: FollowUp[];
   onAddClick: () => void;
   canAdd: boolean;
+  /** Cap the visible rows — pairs with onViewAll to open the full list elsewhere. */
+  limit?: number;
+  onViewAll?: () => void;
 }) {
+  const visible = limit ? followUps.slice(0, limit) : followUps;
+  const hasMore = limit != null && followUps.length > limit;
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
@@ -18,11 +26,18 @@ export function FollowUpTable({
           <Calendar size={18} className="text-indigo-600" />
           Follow-up History
         </h2>
-        {canAdd && (
-          <Button size="sm" icon={<Plus size={14} />} onClick={onAddClick}>
-            Add Follow-up
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {hasMore && onViewAll && (
+            <Button size="sm" variant="secondary" icon={<Eye size={14} />} onClick={onViewAll}>
+              View all ({followUps.length})
+            </Button>
+          )}
+          {canAdd && (
+            <Button size="sm" icon={<Plus size={14} />} onClick={onAddClick}>
+              Add Follow-up
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
@@ -46,7 +61,7 @@ export function FollowUpTable({
                 </td>
               </tr>
             ) : (
-              followUps.map((fu, idx) => (
+              visible.map((fu, idx) => (
                 <tr key={fu.id} className="hover:bg-gray-50/50 transition-colors">
                   <td className="px-4 py-3 text-gray-500 font-medium">#{followUps.length - idx}</td>
                   <td className="px-4 py-3 text-gray-900 whitespace-nowrap">{new Date(fu.followUpDate).toLocaleDateString()}</td>
