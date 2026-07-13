@@ -11,10 +11,28 @@ const STATUS_STYLES: Record<EnquiryStatus, string> = {
   CLOSED: "bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300",
 };
 
-export function StatusBadge({ status }: { status: EnquiryStatus }) {
+const WON_STYLE = "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300";
+
+interface StatusBadgeProps {
+  status: EnquiryStatus;
+  /**
+   * Pass the enquiry's lossReason wherever it's known so a CLOSED enquiry reads as
+   * "WON" (green) instead of a generic red "CLOSED" that looks identical to a loss.
+   * Omit this prop entirely (leave it undefined) if the caller genuinely doesn't have
+   * it — that falls back to the plain CLOSED label rather than guessing WON.
+   */
+  lossReason?: string | null;
+}
+
+export function StatusBadge({ status, lossReason }: StatusBadgeProps) {
+  const isWon = status === "CLOSED" && lossReason === null;
+  const isLost = status === "CLOSED" && !!lossReason;
+  const label = isWon ? "WON" : isLost ? "LOST" : status.replaceAll("_", " ");
+  const style = isWon ? WON_STYLE : STATUS_STYLES[status];
+
   return (
-    <span className={clsx("inline-block rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap", STATUS_STYLES[status])}>
-      {status.replaceAll("_", " ")}
+    <span className={clsx("inline-block rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap", style)}>
+      {label}
     </span>
   );
 }

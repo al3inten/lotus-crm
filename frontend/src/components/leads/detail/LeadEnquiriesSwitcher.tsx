@@ -56,7 +56,7 @@ export function LeadEnquiriesSwitcher({ lead, activeEnquiryId, setShowNewEnquiry
                   <span className="truncate text-sm font-semibold text-slate-900 dark:text-white">{enq.carModel}</span>
                   {active && <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-blue-600 dark:text-blue-400">Viewing</span>}
                 </div>
-                <StatusBadge status={enq.status} />
+                <StatusBadge status={enq.status} lossReason={enq.lossReason} />
                 <span className="text-xs text-slate-400 dark:text-slate-500">
                   {new Date(enq.createdAt).toLocaleDateString()} · {enq.source.replaceAll("_", " ")}
                 </span>

@@ -81,7 +81,11 @@ export function StatusChangeModal({ enquiryId, branchId, currentStatus, isOpen, 
         <div className="flex items-center justify-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800/50">
           <StatusBadge status={currentStatus} />
           <ArrowRight size={16} className="text-slate-400" />
-          {toStatus ? <StatusBadge status={toStatus} /> : <span className="text-sm text-slate-400">—</span>}
+          {toStatus ? (
+            <StatusBadge status={toStatus} lossReason={toStatus === "CLOSED" ? (outcome === "LOST" ? "pending" : null) : undefined} />
+          ) : (
+            <span className="text-sm text-slate-400">—</span>
+          )}
         </div>
 
         <Select label="Move to" error={errors.toStatus?.message} {...register("toStatus")}>

@@ -65,7 +65,7 @@ export function LeadStickyBar({
             <p className="truncate text-sm font-bold leading-tight text-slate-900 dark:text-white">{lead.name}</p>
             <div className="mt-0.5 flex items-center gap-1.5">
               {enquiry ? (
-                <StatusBadge status={enquiry.status} />
+                <StatusBadge status={enquiry.status} lossReason={enquiry.lossReason} />
               ) : (
                 <span className="text-xs text-slate-400 dark:text-slate-500">Loading…</span>
               )}

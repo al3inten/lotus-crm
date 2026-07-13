@@ -250,7 +250,7 @@ function RecentLeadsCard({ data }: { data: ReturnType<typeof useLeads>["data"] }
                 <p className="truncate text-sm font-medium text-slate-900 dark:text-slate-200">{enquiry.lead.name}</p>
                 <p className="truncate text-xs text-slate-500 dark:text-slate-400">{enquiry.carModel} · {enquiry.branch.name}</p>
               </div>
-              <StatusBadge status={enquiry.status} />
+              <StatusBadge status={enquiry.status} lossReason={enquiry.lossReason} />
               <span className="hidden w-20 shrink-0 text-right text-xs text-slate-400 dark:text-slate-500 sm:block">{timeAgo(enquiry.createdAt)}</span>
             </Link>
           ))

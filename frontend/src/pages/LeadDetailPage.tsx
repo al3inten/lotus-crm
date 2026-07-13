@@ -91,6 +91,13 @@ const toDatetimeLocalInput = (iso?: string | null) => (iso ? iso.slice(0, 16) : 
 
 const daysBetween = (a: Date, b: Date) => Math.floor((a.getTime() - b.getTime()) / 86_400_000);
 
+type DetailTab = "forms" | "activity" | "details";
+const DETAIL_TAB_LABELS: Record<DetailTab, string> = {
+  forms: "Pipeline & Forms",
+  activity: "Activity",
+  details: "Details & Contact",
+};
+
 type InsightTone = "urgent" | "warn" | "positive" | "info";
 interface Insight {
   tone: InsightTone;
@@ -104,6 +111,32 @@ const INSIGHT_TONE: Record<InsightTone, string> = {
   positive: "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300",
   info: "bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300",
 };
+
+/** The deal's current "mood" — active/won/lost — used to tint the hero accent bar, the
+ * pipeline card's edge, and the avatar ring so the whole page reads the outcome at a glance. */
+type Mood = "blue" | "emerald" | "red";
+const MOOD_STYLES: Record<Mood, { bar: string; ring: string; border: string }> = {
+  blue: {
+    bar: "from-blue-500 via-indigo-400 to-blue-500",
+    ring: "ring-blue-200 dark:ring-blue-500/30",
+    border: "border-l-blue-500",
+  },
+  emerald: {
+    bar: "from-emerald-500 via-teal-400 to-emerald-500",
+    ring: "ring-emerald-200 dark:ring-emerald-500/30",
+    border: "border-l-emerald-500",
+  },
+  red: {
+    bar: "from-red-500 via-rose-400 to-red-500",
+    ring: "ring-red-200 dark:ring-red-500/30",
+    border: "border-l-red-500",
+  },
+};
+
+function moodOf(enquiry?: Enquiry): Mood {
+  if (!enquiry || enquiry.status !== "CLOSED") return "blue";
+  return enquiry.lossReason ? "red" : "emerald";
+}
 
 /** Client-side heuristic "AI" analysis — surfaces the next best actions from the lead's own signals. */
 function buildInsights(lead: LeadWithHistory, enquiry: Enquiry): Insight[] {
@@ -237,6 +270,16 @@ function InfoField({ icon, label, value, className }: { icon: ReactNode; label: 
   );
 }
 
+/** Compact chip for optional context (category/profession/location) — only ever rendered when there's a real value, so unknowns don't leave dashes cluttering the hero. */
+function MetaPill({ icon, children }: { icon: ReactNode; children: ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 dark:bg-slate-700/60 dark:text-slate-300">
+      {icon}
+      {children}
+    </span>
+  );
+}
+
 const ACTION_TONES = {
   default: "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white",
   call: "text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-500/10",
@@ -308,6 +351,7 @@ export function LeadDetailPage() {
   const [showNewEnquiry, setShowNewEnquiry] = useState(false);
   const [consultantEdit, setConsultantEdit] = useState(false);
   const [consultantValue, setConsultantValue] = useState("");
+  const [activeTab, setActiveTab] = useState<DetailTab>("activity");
 
   const prevStatusRef = useRef<EnquiryStatus | null>(null);
   const assignRef = useRef<HTMLDivElement>(null);
@@ -333,6 +377,12 @@ export function LeadDetailPage() {
     }
     prevStatusRef.current = status;
   }, [enquiry?.status]);
+
+  // Switching to a different enquiry (repeat-lead switcher) should land back on
+  // the default tab rather than keep whatever tab the previous enquiry had open.
+  useEffect(() => {
+    setActiveTab("activity");
+  }, [activeEnquiryId]);
 
   // Dismiss the Assign popover on outside-click or Escape.
   useEffect(() => {
@@ -426,6 +476,8 @@ export function LeadDetailPage() {
 
   const insights = enquiry ? buildInsights(lead, enquiry) : [];
   const leadScore = enquiry ? computeLeadScore(lead, enquiry) : 0;
+  const mood = moodOf(enquiry);
+  const moodStyle = MOOD_STYLES[mood];
 
   return (
     <motion.div variants={staggerContainer} initial="hidden" animate="show" className="mx-auto flex min-w-0 max-w-7xl flex-col gap-6 pb-12">
@@ -454,7 +506,7 @@ export function LeadDetailPage() {
               <p className="truncate text-sm font-bold leading-tight text-slate-900 dark:text-white">{lead.name}</p>
               <div className="mt-0.5 flex items-center gap-1.5">
                 {enquiry ? (
-                  <StatusBadge status={enquiry.status} />
+                  <StatusBadge status={enquiry.status} lossReason={enquiry.lossReason} />
                 ) : (
                   <span className="text-xs text-slate-400 dark:text-slate-500">Loading…</span>
                 )}
@@ -524,7 +576,7 @@ export function LeadDetailPage() {
               <div className="min-w-0">
                 <h1 className="truncate text-xl font-bold text-slate-900 dark:text-white">{lead.name}</h1>
                 <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                  {enquiry && <StatusBadge status={enquiry.status} />}
+                  {enquiry && <StatusBadge status={enquiry.status} lossReason={enquiry.lossReason} />}
                   {enquiry && (
                     <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-700/60 dark:text-slate-300">
                       <Hash size={11} />
@@ -581,97 +633,101 @@ export function LeadDetailPage() {
           )}
 
           {enquiry && (
-            <div className="grid grid-cols-2 gap-x-6 gap-y-2.5 border-t border-slate-100 pt-3 text-sm sm:grid-cols-3 lg:grid-cols-4 dark:border-slate-700/60">
-              <InfoField
-                icon={<Phone size={13} />}
-                label="Mobile Number"
-                value={
-                  <span className="inline-flex items-center gap-1.5">
-                    {lead.phoneRaw}
-                    <CopyButton value={lead.phoneRaw} label="Copy phone number" />
-                  </span>
-                }
-              />
-              <InfoField
-                icon={<Mail size={13} />}
-                label="Email"
-                value={
-                  <span className="inline-flex items-center gap-1.5">
-                    {lead.email || "—"}
-                    {lead.email && <CopyButton value={lead.email} label="Copy email" />}
-                  </span>
-                }
-              />
-              <InfoField icon={<Car size={13} />} label="Interested Vehicle" value={enquiry.carModel} />
-              <InfoField icon={<Tag size={13} />} label="Customer Category" value={enquiry.enquiryCategory || "—"} />
-              <InfoField icon={<Briefcase size={13} />} label="Profession" value={lead.profession || "—"} />
-              <InfoField icon={<Building2 size={13} />} label="Branch" value={enquiry.branch.name} />
-              <InfoField icon={<Radio size={13} />} label="Source" value={enquiry.source.replaceAll("_", " ")} />
-              <InfoField icon={<UserCircle2 size={13} />} label="Sales CR" value={enquiry.assignedCr?.name ?? "Unassigned"} />
-              <div>
-                <p className="mb-1 flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
-                  <UserCircle2 size={13} /> Consultant
-                </p>
-                {consultantEdit ? (
-                  <div className="flex items-center gap-1.5">
-                    <Select value={consultantValue} onChange={(e) => setConsultantValue(e.target.value)} className="w-full text-sm">
-                      <option value="">Select…</option>
-                      {consultants?.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </Select>
-                    <button
-                      type="button"
-                      aria-label="Save consultant"
-                      disabled={!consultantValue || updateDetails.isPending}
-                      onClick={() => {
-                        updateDetails.mutate({ consultantId: consultantValue });
-                        setConsultantEdit(false);
-                      }}
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white transition-colors hover:bg-blue-500 disabled:opacity-40"
-                    >
-                      <Check size={15} />
-                    </button>
-                    <button
-                      type="button"
-                      aria-label="Cancel"
-                      onClick={() => setConsultantEdit(false)}
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
-                    >
-                      <X size={15} />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-slate-900 dark:text-white">{enquiry.consultant?.name ?? "—"}</p>
-                    {canReassign && (
+            <div className="flex flex-col gap-3 border-t border-slate-100 pt-3 dark:border-slate-700/60">
+              {/* ---- Essentials: always known, always shown ---- */}
+              <div className="grid grid-cols-2 gap-x-6 gap-y-2.5 text-sm sm:grid-cols-5">
+                <InfoField
+                  icon={<Phone size={13} />}
+                  label="Mobile Number"
+                  value={
+                    <span className="inline-flex items-center gap-1.5">
+                      {lead.phoneRaw}
+                      <CopyButton value={lead.phoneRaw} label="Copy phone number" />
+                    </span>
+                  }
+                />
+                <InfoField
+                  icon={<Mail size={13} />}
+                  label="Email"
+                  value={
+                    <span className="inline-flex items-center gap-1.5">
+                      {lead.email || "—"}
+                      {lead.email && <CopyButton value={lead.email} label="Copy email" />}
+                    </span>
+                  }
+                />
+                <InfoField icon={<Car size={13} />} label="Interested Vehicle" value={enquiry.carModel} />
+                <InfoField icon={<UserCircle2 size={13} />} label="Sales CR" value={enquiry.assignedCr?.name ?? "Unassigned"} />
+                <div>
+                  <p className="mb-1 flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
+                    <UserCircle2 size={13} /> Consultant
+                  </p>
+                  {consultantEdit ? (
+                    <div className="flex items-center gap-1.5">
+                      <Select value={consultantValue} onChange={(e) => setConsultantValue(e.target.value)} className="w-full text-sm">
+                        <option value="">Select…</option>
+                        {consultants?.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </Select>
                       <button
                         type="button"
+                        aria-label="Save consultant"
+                        disabled={!consultantValue || updateDetails.isPending}
                         onClick={() => {
-                          setConsultantValue(enquiry.consultantId ?? "");
-                          setConsultantEdit(true);
+                          updateDetails.mutate({ consultantId: consultantValue });
+                          setConsultantEdit(false);
                         }}
-                        className="text-xs font-semibold text-blue-600 transition-colors hover:underline dark:text-blue-400"
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white transition-colors hover:bg-blue-500 disabled:opacity-40"
                       >
-                        Change
+                        <Check size={15} />
                       </button>
-                    )}
-                  </div>
-                )}
+                      <button
+                        type="button"
+                        aria-label="Cancel"
+                        onClick={() => setConsultantEdit(false)}
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                      >
+                        <X size={15} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold text-slate-900 dark:text-white">{enquiry.consultant?.name ?? "—"}</p>
+                      {canReassign && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setConsultantValue(enquiry.consultantId ?? "");
+                            setConsultantEdit(true);
+                          }}
+                          className="text-xs font-semibold text-blue-600 transition-colors hover:underline dark:text-blue-400"
+                        >
+                          Change
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
-              <InfoField
-                icon={<MapPin size={13} />}
-                label="Address"
-                className="col-span-2 sm:col-span-3 lg:col-span-4"
-                value={lead.address ? `${lead.address}${lead.pincode ? `, ${lead.pincode}` : ""}` : "—"}
-              />
+
+              {/* ---- Optional context: only rendered when there's something real to say ---- */}
+              {(enquiry.enquiryCategory || lead.profession || enquiry.location) && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {enquiry.enquiryCategory && (
+                    <MetaPill icon={<Tag size={11} />}>{enquiry.enquiryCategory}</MetaPill>
+                  )}
+                  {lead.profession && <MetaPill icon={<Briefcase size={11} />}>{lead.profession}</MetaPill>}
+                  {enquiry.location && <MetaPill icon={<MapPin size={11} />}>{enquiry.location}</MetaPill>}
+                </div>
+              )}
             </div>
           )}
 
           {/* ---- AI Insights, merged into the hero ---- */}
-          {enquiry && (
+          {enquiry && enquiry.status !== "CLOSED" && (
             <div className="flex flex-col gap-3 border-t border-slate-100 pt-3 sm:flex-row sm:items-center sm:gap-5 dark:border-slate-700/60">
               <div className="flex items-center gap-2.5 shrink-0">
                 <ScoreRing score={leadScore} />
@@ -733,7 +789,7 @@ export function LeadDetailPage() {
                       <span className="truncate text-sm font-semibold text-slate-900 dark:text-white">{enq.carModel}</span>
                       {active && <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-blue-600 dark:text-blue-400">Viewing</span>}
                     </div>
-                    <StatusBadge status={enq.status} />
+                    <StatusBadge status={enq.status} lossReason={enq.lossReason} />
                     <span className="text-xs text-slate-400 dark:text-slate-500">
                       {new Date(enq.createdAt).toLocaleDateString()} · {enq.source.replaceAll("_", " ")}
                     </span>
@@ -796,7 +852,7 @@ export function LeadDetailPage() {
           {/* ---------- STAGE PROGRESS + SMART NEXT STEP ---------- */}
           <motion.div variants={fadeUp}>
             <Card className="flex flex-col gap-5">
-              <PipelineStepper status={enquiry.status} lossReason={enquiry.lossReason} />
+              <PipelineStepper status={enquiry.status} lossReason={enquiry.lossReason} statusHistory={enquiry.statusHistory} />
               {enquiry.status !== "CLOSED" && (
                 <div className="flex flex-col gap-4 rounded-2xl border border-blue-100 bg-blue-50/60 p-5 dark:border-blue-500/20 dark:bg-blue-500/10">
                   <div className="flex items-start gap-3">
@@ -835,215 +891,242 @@ export function LeadDetailPage() {
             </Card>
           </motion.div>
 
-          {/* ---------- FORMS SECTION (CONDITIONAL) ---------- */}
-          <div className="flex flex-col gap-4">
-            {(() => {
-              const showTestDrive =
-                enquiry.status === "APPOINTMENT_FIXED" ||
-                enquiry.status === "TEST_DRIVE" ||
-                (enquiry.testDriveFeedbacks?.length ?? 0) > 0;
-              const showQuotation =
-                settings?.quotationEnabled !== false &&
-                (["TEST_DRIVE", "BOOKED", "RETAIL_DONE"].includes(enquiry.status) || !!enquiry.quotation);
-              if (!showTestDrive && !showQuotation) return null;
-              return (
-                <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
-                  {showTestDrive && <TestDriveForm enquiryId={enquiry.id} branchId={enquiry.branchId} existing={enquiry.testDriveFeedbacks} />}
-                  {showQuotation && <QuotationForm enquiryId={enquiry.id} branchId={enquiry.branchId} existing={enquiry.quotation} />}
-                </div>
-              );
-            })()}
+          {/* ---------- TAB BAR ---------- */}
+          {(() => {
+            const showTestDrive =
+              enquiry.status === "APPOINTMENT_FIXED" ||
+              enquiry.status === "TEST_DRIVE" ||
+              (enquiry.testDriveFeedbacks?.length ?? 0) > 0;
+            const showQuotation =
+              settings?.quotationEnabled !== false &&
+              (["TEST_DRIVE", "BOOKED", "RETAIL_DONE"].includes(enquiry.status) || !!enquiry.quotation);
+            const showExchange = enquiry.status === "BOOKED" || !!enquiry.exchangeEvaluation;
+            const showFinance = enquiry.status === "BOOKED" || !!enquiry.financeApplication;
+            const showDelivery = enquiry.status === "RETAIL_DONE" || !!enquiry.deliveryDetails;
+            const hasForms = showTestDrive || showQuotation || showExchange || showFinance || showDelivery;
+            const tabs: DetailTab[] = [...(hasForms ? (["forms"] as const) : []), "activity", "details"];
 
-            {enquiry.status === "BOOKED" || enquiry.exchangeEvaluation ? (
-              <ExchangeForm enquiryId={enquiry.id} branchId={enquiry.branchId} existing={enquiry.exchangeEvaluation} />
-            ) : null}
-
-            {enquiry.status === "BOOKED" || enquiry.financeApplication ? (
-              <FinanceForm enquiryId={enquiry.id} existing={enquiry.financeApplication} />
-            ) : null}
-
-            {enquiry.status === "RETAIL_DONE" || enquiry.deliveryDetails ? (
-              <DeliveryForm enquiryId={enquiry.id} existing={enquiry.deliveryDetails} />
-            ) : null}
-          </div>
-
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <div className="flex flex-col gap-6 lg:col-span-2">
-              {/* ---------- FOLLOW-UP HISTORY ---------- */}
-              <motion.div variants={fadeUp}>
-                <FollowUpTable
-                  followUps={enquiry.followUps || []}
-                  onAddClick={openFollowUp}
-                  canAdd={false}
-                  limit={4}
-                  onViewAll={() => setShowFollowUpsModal(true)}
-                />
-              </motion.div>
-
-              {/* ---------- ACTIVITY TIMELINE ---------- */}
-              <motion.div variants={fadeUp}>
-                <Card>
-                  <CardHeader
-                    icon={<MessagesSquare size={18} />}
-                    iconClassName="bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400"
-                    title="Activity Timeline"
-                    subtitle="Complete audit history of stage changes and follow-ups"
-                    actions={
-                      <button
-                        type="button"
-                        onClick={() => setShowTimelineModal(true)}
-                        aria-label="View full timeline"
-                        className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-blue-400"
-                      >
-                        <Eye size={16} />
-                      </button>
-                    }
-                  />
-                  <div className="max-h-[360px] overflow-y-auto pr-1 [scrollbar-width:thin]">
-                    <UnifiedTimeline enquiryId={enquiry.id} statusHistory={enquiry.statusHistory || []} followUps={enquiry.followUps || []} />
-                  </div>
-                </Card>
-              </motion.div>
-            </div>
-
-            <div className="flex flex-col gap-6">
-              {/* ---------- KEY DATES ---------- */}
-              <motion.div variants={fadeUp}>
-                <Card>
-                  <CardHeader
-                    icon={<CalendarDays size={18} />}
-                    iconClassName="bg-amber-50 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400"
-                    title="Key Dates"
-                  />
-                  <div className="flex flex-col text-sm">
-                    {keyDates.map((d) => (
-                      <div key={d.label} className="flex items-center justify-between border-b border-slate-100 py-2.5 last:border-0 dark:border-slate-700/50">
-                        <span className="text-slate-500 dark:text-slate-400">{d.label}</span>
-                        <span className="font-semibold tabular-nums text-slate-900 dark:text-white">{d.value ? d.value.toLocaleDateString() : "—"}</span>
-                      </div>
-                    ))}
-                    <div
+            return (
+              <>
+                <div role="tablist" className="flex w-fit items-center gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-800/60">
+                  {tabs.map((tab) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      role="tab"
+                      aria-selected={activeTab === tab}
+                      onClick={() => setActiveTab(tab)}
                       className={clsx(
-                        "-mx-6 mt-2 flex items-center justify-between px-6 py-3",
-                        followUpUrgency === "overdue"
-                          ? "bg-red-50/70 dark:bg-red-500/10"
-                          : followUpUrgency === "today"
-                            ? "bg-amber-50/70 dark:bg-amber-500/10"
-                            : "bg-blue-50/70 dark:bg-blue-500/10"
+                        "rounded-lg px-3.5 py-1.5 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50",
+                        activeTab === tab
+                          ? "bg-white text-blue-700 shadow-sm dark:bg-slate-700 dark:text-blue-300"
+                          : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
                       )}
                     >
-                      <span
-                        className={clsx(
-                          "font-medium",
-                          followUpUrgency === "overdue"
-                            ? "text-red-900 dark:text-red-200"
-                            : followUpUrgency === "today"
-                              ? "text-amber-900 dark:text-amber-200"
-                              : "text-blue-900 dark:text-blue-200"
-                        )}
-                      >
-                        Next Follow-up
-                      </span>
-                      <span
-                        className={clsx(
-                          "font-bold tabular-nums",
-                          followUpUrgency === "overdue"
-                            ? "text-red-700 dark:text-red-300"
-                            : followUpUrgency === "today"
-                              ? "text-amber-700 dark:text-amber-300"
-                              : "text-blue-700 dark:text-blue-300"
-                        )}
-                      >
-                        {enquiry.followUpDueAt ? new Date(enquiry.followUpDueAt).toLocaleDateString() : "—"}
-                      </span>
-                    </div>
-                  </div>
-                </Card>
-              </motion.div>
+                      {DETAIL_TAB_LABELS[tab]}
+                    </button>
+                  ))}
+                </div>
 
-              {/* ---------- CONTACT HISTORY ---------- */}
-              <motion.div variants={fadeUp}>
-                <Card>
-                  <CardHeader
-                    icon={<MessagesSquare size={16} />}
-                    iconClassName="bg-fuchsia-50 text-fuchsia-600 dark:bg-fuchsia-500/20 dark:text-fuchsia-400"
-                    title="Contact History"
-                    subtitle="Every way they've reached us"
-                    actions={
-                      lead.touches.length > 4 && (
-                        <button
-                          type="button"
-                          onClick={() => setShowContactHistoryModal(true)}
-                          aria-label="View all contact history"
-                          className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-blue-400"
-                        >
-                          <Eye size={16} />
-                        </button>
-                      )
-                    }
-                  />
-                  <div className="mb-3 flex flex-wrap gap-1.5">
-                    {Object.entries(lead.touchesBySource).map(([source, count]) => (
-                      <span key={source} className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 dark:bg-blue-500/15 dark:text-blue-300">
-                        {source.replaceAll("_", " ")} ×{count}
-                      </span>
-                    ))}
-                    {Object.entries(lead.messagesByChannel).map(([channel, count]) => (
-                      <span key={channel} className="rounded-full bg-fuchsia-50 px-2.5 py-1 text-xs font-medium text-fuchsia-700 dark:bg-fuchsia-500/15 dark:text-fuchsia-300">
-                        {channel} msgs: {count}
-                      </span>
-                    ))}
+                {/* ---------- PIPELINE & FORMS TAB (CONDITIONAL) ---------- */}
+                {activeTab === "forms" && hasForms && (
+                  <div className="flex flex-col gap-4">
+                    {(showTestDrive || showQuotation) && (
+                      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
+                        {showTestDrive && <TestDriveForm enquiryId={enquiry.id} branchId={enquiry.branchId} existing={enquiry.testDriveFeedbacks} />}
+                        {showQuotation && <QuotationForm enquiryId={enquiry.id} branchId={enquiry.branchId} existing={enquiry.quotation} />}
+                      </div>
+                    )}
+                    {showExchange && <ExchangeForm enquiryId={enquiry.id} branchId={enquiry.branchId} existing={enquiry.exchangeEvaluation} />}
+                    {showFinance && <FinanceForm enquiryId={enquiry.id} existing={enquiry.financeApplication} />}
+                    {showDelivery && <DeliveryForm enquiryId={enquiry.id} existing={enquiry.deliveryDetails} />}
                   </div>
-                  <ul className="flex flex-col gap-1.5">
-                    {lead.touches.slice(0, 4).map((touch) => (
-                      <li key={touch.id} className="rounded-lg bg-slate-50 px-3 py-2 text-xs dark:bg-slate-800/60">
-                        <div className="flex items-center justify-between">
-                          <span className="font-semibold text-slate-800 dark:text-slate-200">{touch.source.replaceAll("_", " ")}</span>
-                          <span className="text-slate-400 dark:text-slate-500">{new Date(touch.createdAt).toLocaleDateString()}</span>
+                )}
+
+                {/* ---------- ACTIVITY TAB ---------- */}
+                {activeTab === "activity" && (
+                  <div className="flex flex-col gap-6">
+                    {/* ---------- FOLLOW-UP HISTORY ---------- */}
+                    <motion.div variants={fadeUp}>
+                      <FollowUpTable
+                        followUps={enquiry.followUps || []}
+                        onAddClick={openFollowUp}
+                        canAdd={false}
+                        limit={4}
+                        onViewAll={() => setShowFollowUpsModal(true)}
+                      />
+                    </motion.div>
+
+                    {/* ---------- ACTIVITY TIMELINE ---------- */}
+                    <motion.div variants={fadeUp}>
+                      <Card>
+                        <CardHeader
+                          icon={<MessagesSquare size={18} />}
+                          iconClassName="bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400"
+                          title="Activity Timeline"
+                          subtitle="Complete audit history of stage changes and follow-ups"
+                          actions={
+                            <button
+                              type="button"
+                              onClick={() => setShowTimelineModal(true)}
+                              aria-label="View full timeline"
+                              className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-blue-400"
+                            >
+                              <Eye size={16} />
+                            </button>
+                          }
+                        />
+                        <div className="max-h-[360px] overflow-y-auto pr-1 [scrollbar-width:thin]">
+                          <UnifiedTimeline enquiryId={enquiry.id} statusHistory={enquiry.statusHistory || []} followUps={enquiry.followUps || []} />
                         </div>
-                        {touch.note && <p className="mt-0.5 text-slate-500 dark:text-slate-400">{touch.note}</p>}
-                      </li>
-                    ))}
-                  </ul>
-                </Card>
-              </motion.div>
+                      </Card>
+                    </motion.div>
+                  </div>
+                )}
 
-              {callLogs && callLogs.length > 0 && (
-                <motion.div variants={fadeUp}>
-                  <Card>
-                    <CardHeader
-                      icon={<PhoneCall size={16} />}
-                      iconClassName="bg-emerald-50 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
-                      title="AI Call History"
-                      actions={
-                        callLogs.length > 3 && (
-                          <button
-                            type="button"
-                            onClick={() => setShowCallHistoryModal(true)}
-                            aria-label="View all call history"
-                            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-blue-400"
+                {/* ---------- DETAILS & CONTACT TAB ---------- */}
+                {activeTab === "details" && (
+                  <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                    {/* ---------- KEY DATES ---------- */}
+                    <motion.div variants={fadeUp}>
+                      <Card>
+                        <CardHeader
+                          icon={<CalendarDays size={18} />}
+                          iconClassName="bg-amber-50 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400"
+                          title="Key Dates"
+                        />
+                        <div className="flex flex-col text-sm">
+                          {keyDates.map((d) => (
+                            <div key={d.label} className="flex items-center justify-between border-b border-slate-100 py-2.5 last:border-0 dark:border-slate-700/50">
+                              <span className="text-slate-500 dark:text-slate-400">{d.label}</span>
+                              <span className="font-semibold tabular-nums text-slate-900 dark:text-white">{d.value ? d.value.toLocaleDateString() : "—"}</span>
+                            </div>
+                          ))}
+                          <div
+                            className={clsx(
+                              "-mx-6 mt-2 flex items-center justify-between px-6 py-3",
+                              followUpUrgency === "overdue"
+                                ? "bg-red-50/70 dark:bg-red-500/10"
+                                : followUpUrgency === "today"
+                                  ? "bg-amber-50/70 dark:bg-amber-500/10"
+                                  : "bg-blue-50/70 dark:bg-blue-500/10"
+                            )}
                           >
-                            <Eye size={16} />
-                          </button>
-                        )
-                      }
-                    />
-                    <ul className="flex flex-col gap-2">
-                      {callLogs.slice(0, 3).map((call) => (
-                        <li key={call.id} className="rounded-lg bg-slate-50 p-2.5 text-sm dark:bg-slate-800/60">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="font-medium text-slate-800 dark:text-slate-200">{call.status.replaceAll("_", " ")}</span>
-                            <span className="text-slate-400 dark:text-slate-500">{new Date(call.createdAt).toLocaleString()}</span>
+                            <span
+                              className={clsx(
+                                "font-medium",
+                                followUpUrgency === "overdue"
+                                  ? "text-red-900 dark:text-red-200"
+                                  : followUpUrgency === "today"
+                                    ? "text-amber-900 dark:text-amber-200"
+                                    : "text-blue-900 dark:text-blue-200"
+                              )}
+                            >
+                              Next Follow-up
+                            </span>
+                            <span
+                              className={clsx(
+                                "font-bold tabular-nums",
+                                followUpUrgency === "overdue"
+                                  ? "text-red-700 dark:text-red-300"
+                                  : followUpUrgency === "today"
+                                    ? "text-amber-700 dark:text-amber-300"
+                                    : "text-blue-700 dark:text-blue-300"
+                              )}
+                            >
+                              {enquiry.followUpDueAt ? new Date(enquiry.followUpDueAt).toLocaleDateString() : "—"}
+                            </span>
                           </div>
-                          {call.recordingUrl && <audio controls src={call.recordingUrl} className="mt-1.5 h-8 w-full" />}
-                        </li>
-                      ))}
-                    </ul>
-                  </Card>
-                </motion.div>
-              )}
-            </div>
-          </div>
+                        </div>
+                      </Card>
+                    </motion.div>
+
+                    {/* ---------- CONTACT HISTORY ---------- */}
+                    <motion.div variants={fadeUp}>
+                      <Card>
+                        <CardHeader
+                          icon={<MessagesSquare size={16} />}
+                          iconClassName="bg-fuchsia-50 text-fuchsia-600 dark:bg-fuchsia-500/20 dark:text-fuchsia-400"
+                          title="Contact History"
+                          subtitle="Every way they've reached us"
+                          actions={
+                            lead.touches.length > 4 && (
+                              <button
+                                type="button"
+                                onClick={() => setShowContactHistoryModal(true)}
+                                aria-label="View all contact history"
+                                className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-blue-400"
+                              >
+                                <Eye size={16} />
+                              </button>
+                            )
+                          }
+                        />
+                        <div className="mb-3 flex flex-wrap gap-1.5">
+                          {Object.entries(lead.touchesBySource).map(([source, count]) => (
+                            <span key={source} className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 dark:bg-blue-500/15 dark:text-blue-300">
+                              {source.replaceAll("_", " ")} ×{count}
+                            </span>
+                          ))}
+                          {Object.entries(lead.messagesByChannel).map(([channel, count]) => (
+                            <span key={channel} className="rounded-full bg-fuchsia-50 px-2.5 py-1 text-xs font-medium text-fuchsia-700 dark:bg-fuchsia-500/15 dark:text-fuchsia-300">
+                              {channel} msgs: {count}
+                            </span>
+                          ))}
+                        </div>
+                        <ul className="flex flex-col gap-1.5">
+                          {lead.touches.slice(0, 4).map((touch) => (
+                            <li key={touch.id} className="rounded-lg bg-slate-50 px-3 py-2 text-xs dark:bg-slate-800/60">
+                              <div className="flex items-center justify-between">
+                                <span className="font-semibold text-slate-800 dark:text-slate-200">{touch.source.replaceAll("_", " ")}</span>
+                                <span className="text-slate-400 dark:text-slate-500">{new Date(touch.createdAt).toLocaleDateString()}</span>
+                              </div>
+                              {touch.note && <p className="mt-0.5 text-slate-500 dark:text-slate-400">{touch.note}</p>}
+                            </li>
+                          ))}
+                        </ul>
+                      </Card>
+                    </motion.div>
+
+                    {callLogs && callLogs.length > 0 && (
+                      <motion.div variants={fadeUp}>
+                        <Card>
+                          <CardHeader
+                            icon={<PhoneCall size={16} />}
+                            iconClassName="bg-emerald-50 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
+                            title="AI Call History"
+                            actions={
+                              callLogs.length > 3 && (
+                                <button
+                                  type="button"
+                                  onClick={() => setShowCallHistoryModal(true)}
+                                  aria-label="View all call history"
+                                  className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-blue-400"
+                                >
+                                  <Eye size={16} />
+                                </button>
+                              )
+                            }
+                          />
+                          <ul className="flex flex-col gap-2">
+                            {callLogs.slice(0, 3).map((call) => (
+                              <li key={call.id} className="rounded-lg bg-slate-50 p-2.5 text-sm dark:bg-slate-800/60">
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="font-medium text-slate-800 dark:text-slate-200">{call.status.replaceAll("_", " ")}</span>
+                                  <span className="text-slate-400 dark:text-slate-500">{new Date(call.createdAt).toLocaleString()}</span>
+                                </div>
+                                {call.recordingUrl && <audio controls src={call.recordingUrl} className="mt-1.5 h-8 w-full" />}
+                              </li>
+                            ))}
+                          </ul>
+                        </Card>
+                      </motion.div>
+                    )}
+                  </div>
+                )}
+              </>
+            );
+          })()}
 
           <StatusChangeModal
             enquiryId={enquiry.id}
@@ -1091,12 +1174,22 @@ export function LeadDetailPage() {
               <InfoField icon={<Car size={13} />} label="Variant" value={enquiry.variant || "—"} />
               <InfoField icon={<Tag size={13} />} label="Customer Category" value={enquiry.enquiryCategory || "—"} />
               <InfoField icon={<Tag size={13} />} label="Enquiry Type" value={enquiry.enquiryType.replaceAll("_", " ")} />
+              <InfoField icon={<MapPin size={13} />} label="Location" value={enquiry.location || "—"} />
               <div className="col-span-full mt-1 grid grid-cols-1 gap-x-6 gap-y-4 border-t border-slate-100 pt-4 sm:grid-cols-2 dark:border-slate-700/60">
                 <InfoField icon={<Building2 size={13} />} label="Branch" value={enquiry.branch.name} />
                 <InfoField icon={<Radio size={13} />} label="Source" value={enquiry.source.replaceAll("_", " ")} />
                 <InfoField icon={<UserCircle2 size={13} />} label="Sales Consultant (CR)" value={enquiry.assignedCr?.name ?? "Unassigned"} />
                 <InfoField icon={<UserCircle2 size={13} />} label="Showroom Consultant" value={enquiry.consultant?.name ?? "—"} />
               </div>
+              {enquiry.remarks && (
+                <div className="col-span-full border-t border-slate-100 pt-4 dark:border-slate-700/60">
+                  <InfoField
+                    icon={<ClipboardEdit size={13} />}
+                    label="Remarks"
+                    value={<span className="font-normal whitespace-pre-wrap">{enquiry.remarks}</span>}
+                  />
+                </div>
+              )}
             </div>
           </Modal>
 

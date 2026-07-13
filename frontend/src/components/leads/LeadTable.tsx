@@ -103,7 +103,7 @@ export function LeadTable({ enquiries }: { enquiries: Enquiry[] }) {
                 </td>
                 <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">{enquiry.location ?? "—"}</td>
                 <td className="px-4 py-2.5">
-                  <StatusBadge status={enquiry.status} />
+                  <StatusBadge status={enquiry.status} lossReason={enquiry.lossReason} />
                 </td>
                 <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">{enquiry.assignedCr?.name ?? "Unassigned"}</td>
                 <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">{enquiry.branch.name}</td>
@@ -139,7 +139,7 @@ export function LeadTable({ enquiries }: { enquiries: Enquiry[] }) {
                   </div>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-1.5">
-                  <StatusBadge status={enquiry.status} />
+                  <StatusBadge status={enquiry.status} lossReason={enquiry.lossReason} />
                   <CategoryPill category={enquiry.enquiryCategory} />
                 </div>
               </div>

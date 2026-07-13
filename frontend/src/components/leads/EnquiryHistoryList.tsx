@@ -15,7 +15,7 @@ export function EnquiryHistoryList({ enquiries, activeEnquiryId }: { enquiries: 
           >
             <div className="flex items-center justify-between">
               <span className="font-medium text-gray-900">{enquiry.carModel}</span>
-              <StatusBadge status={enquiry.status} />
+              <StatusBadge status={enquiry.status} lossReason={enquiry.lossReason} />
             </div>
             <p className="mt-1 text-xs text-gray-500">
               {enquiry.branch.name} · {enquiry.source.replaceAll("_", " ")} · {new Date(enquiry.createdAt).toLocaleDateString()}

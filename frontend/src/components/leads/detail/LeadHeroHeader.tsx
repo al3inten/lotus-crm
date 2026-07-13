@@ -28,7 +28,7 @@ export function LeadHeroHeader({ lead, enquiry, completeDetailsNeeded, setShowDe
           <p className="text-[10px] font-bold uppercase tracking-wider text-blue-600/80 dark:text-blue-400/80">Lead Details</p>
           <h1 className="truncate text-xl font-bold text-slate-900 dark:text-white">{lead.name}</h1>
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-            {enquiry && <StatusBadge status={enquiry.status} />}
+            {enquiry && <StatusBadge status={enquiry.status} lossReason={enquiry.lossReason} />}
             {enquiry && (
               <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-slate-700/60 dark:text-slate-300">
                 <Hash size={10} />
