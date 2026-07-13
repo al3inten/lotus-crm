@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Check, ChevronLeft, ChevronRight, Save } from "lucide-react";
@@ -34,7 +34,7 @@ const STEP_TITLES = [
 ];
 
 const STEP_FIELDS: (keyof AddLeadFormInput)[][] = [
-  ["assignedCrId", "branchId", "department", "sourceCategory", "subsource"],
+  ["branchId", "assignedCrId", "department", "sourceCategory", "subsource"],
   ["name", "phone", "alternateMobile", "email", "dob", "profession", "pincode", "location", "address"],
   ["carModel", "variant", "enquiryType", "enquiryCategory", "financeRequired", "financeRemarks"],
   ["appointmentScheduled", "appointmentAt", "testDriveInterested", "testDriveCount"],
@@ -80,6 +80,9 @@ export function AddLeadWizard({
   const [showConfirmClose, setShowConfirmClose] = useState(false);
   const [draftId, setDraftId] = useState<string | undefined>(initialDraftId);
   const [autofilledPhone, setAutofilledPhone] = useState<string | null>(null);
+  const autoCloseTimer = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => () => clearTimeout(autoCloseTimer.current), []);
 
   const {
     register,
@@ -138,6 +141,7 @@ export function AddLeadWizard({
 
   useEffect(() => {
     if (isOpen) {
+      clearTimeout(autoCloseTimer.current);
       setStep(1);
       setResultMessage(null);
       setDraftMessage(null);
@@ -212,6 +216,7 @@ export function AddLeadWizard({
     setDraftId(undefined);
     setStep(1);
     reset({ branchId: values.branchId, assignedCrId: values.assignedCrId });
+    autoCloseTimer.current = setTimeout(onClose, 1500);
   };
 
   const onSaveDraft = async () => {
@@ -310,19 +315,19 @@ export function AddLeadWizard({
                 </p>
               ) : (
                 <>
-                  <Select label="CR (handled by)" error={fieldError("assignedCrId")} {...register("assignedCrId")}>
-                    <option value="">Select CR</option>
-                    {crStaff?.map((cr) => (
-                      <option key={cr.id} value={cr.id}>
-                        {cr.name}
-                      </option>
-                    ))}
-                  </Select>
                   <Select label="Dealer / Branch" error={fieldError("branchId")} {...register("branchId")}>
                     <option value="">Select branch</option>
                     {branches?.map((b) => (
                       <option key={b.id} value={b.id}>
                         {b.code} - {b.name}
+                      </option>
+                    ))}
+                  </Select>
+                  <Select label="CR (handled by)" error={fieldError("assignedCrId")} {...register("assignedCrId")}>
+                    <option value="">Select CR</option>
+                    {crStaff?.map((cr) => (
+                      <option key={cr.id} value={cr.id}>
+                        {cr.name}
                       </option>
                     ))}
                   </Select>
@@ -518,28 +523,26 @@ export function AddLeadWizard({
                 Cancel
               </Button>
               {step < totalSteps && (
-                <Button type="button" onClick={goNext}>
+                <Button type="button" variant={step > 2 ? "secondary" : "primary"} onClick={goNext}>
                   Next
                   <ChevronRight size={15} />
                 </Button>
               )}
-              {step === totalSteps && (
-                <>
-                  {!isComplete && (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      icon={<Save size={15} />}
-                      isLoading={saveDraft.isPending || updateDraft.isPending}
-                      onClick={onSaveDraft}
-                    >
-                      Save as Draft
-                    </Button>
-                  )}
-                  <Button type="submit" isLoading={isSubmitting}>
-                    {isComplete ? "Save Details" : "Save Enquiry"}
-                  </Button>
-                </>
+              {!isComplete && step > 2 && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  icon={<Save size={15} />}
+                  isLoading={saveDraft.isPending || updateDraft.isPending}
+                  onClick={onSaveDraft}
+                >
+                  Save as Draft
+                </Button>
+              )}
+              {step > 2 && (
+                <Button type="submit" isLoading={isSubmitting}>
+                  {isComplete ? "Save Details" : "Save Enquiry"}
+                </Button>
               )}
             </div>
           </div>

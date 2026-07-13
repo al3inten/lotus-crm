@@ -11,7 +11,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
-    "seed": "tsx prisma/seed.ts"
+    "seed": "tsx prisma/seed.ts",
+    "seed:followups": "tsx prisma/seed-followups.ts"
   },
   "dependencies": {
     "@google/genai": "^2.10.0",
@@ -24,7 +25,7 @@
     "cors": "^2.8.5",
     "csv-parse": "^7.0.0",
     "dotenv": "^16.4.7",
-    "exceljs": "^4.4.0",
+    "exceljs": "^3.4.0",
     "express": "^4.21.2",
     "googleapis": "^173.0.0",
     "jsonwebtoken": "^9.0.2",

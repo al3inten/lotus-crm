@@ -2,6 +2,7 @@ import type { ComponentType } from "react";
 import {
   Gauge,
   Car,
+  CalendarClock,
   Contact,
   Inbox,
   Building2,
@@ -48,6 +49,7 @@ export const NAV_ITEMS: NavItem[] = [
   { to: "/dashboard", label: "Dashboard", short: "Home", icon: Gauge, module: "dashboard", group: "WORKSPACE" },
 
   { to: "/leads", label: "Leads", icon: Car, module: "leads", group: "SALES" },
+  { to: "/follow-ups", label: "Follow-ups", short: "Follows", icon: CalendarClock, module: "follow-ups", group: "SALES" },
   { to: "/customers", label: "Customers", short: "People", icon: Contact, module: "leads", group: "SALES" },
   { to: "/vehicles", label: "Vehicles", icon: CarFront, module: "vehicles", group: "SALES" },
 

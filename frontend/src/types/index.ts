@@ -129,6 +129,7 @@ export const ALLOWED_TRANSITIONS: Record<EnquiryStatus, EnquiryStatus[]> = {
 export const MODULES = [
   { key: "dashboard", label: "Dashboard" },
   { key: "leads", label: "Leads" },
+  { key: "follow-ups", label: "Follow-ups" },
   { key: "social-inbox", label: "Social Inbox" },
   { key: "departments", label: "Departments" },
   { key: "reports", label: "Reports" },

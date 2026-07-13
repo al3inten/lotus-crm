@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import clsx from "clsx";
 import {
   ArrowLeft,
+  Eye,
   Phone,
   Mail,
   UserCircle2,
@@ -53,6 +54,7 @@ import { QuotationForm } from "../components/enquiry/QuotationForm";
 import { ExchangeForm } from "../components/enquiry/ExchangeForm";
 import { FinanceForm } from "../components/enquiry/FinanceForm";
 import { DeliveryForm } from "../components/enquiry/DeliveryForm";
+import { Modal } from "../components/common/Modal";
 import { StatusBadge } from "../components/common/StatusBadge";
 import { Avatar } from "../components/common/Avatar";
 import { Button } from "../components/common/Button";
@@ -198,8 +200,8 @@ function ScoreRing({ score }: { score: number }) {
   const circumference = 2 * Math.PI * r;
   const offset = circumference * (1 - score / 100);
   return (
-    <div className="relative h-24 w-24 shrink-0">
-      <svg viewBox="0 0 80 80" className="h-24 w-24 -rotate-90" aria-hidden>
+    <div className="relative h-16 w-16 shrink-0">
+      <svg viewBox="0 0 80 80" className="h-16 w-16 -rotate-90" aria-hidden>
         <circle cx="40" cy="40" r={r} fill="none" strokeWidth="7" className="stroke-slate-200 dark:stroke-slate-700" />
         <circle
           cx="40"
@@ -215,8 +217,8 @@ function ScoreRing({ score }: { score: number }) {
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-2xl font-bold tabular-nums text-slate-900 dark:text-white">{score}</span>
-        <span className="text-[10px] font-medium uppercase tracking-wide text-slate-400">score</span>
+        <span className="text-lg font-bold tabular-nums text-slate-900 dark:text-white">{score}</span>
+        <span className="text-[9px] font-medium uppercase tracking-wide text-slate-400">score</span>
       </div>
     </div>
   );
@@ -294,6 +296,11 @@ export function LeadDetailPage() {
   const [statusModalTarget, setStatusModalTarget] = useState<EnquiryStatus | undefined>();
 
   const [showDetailsWizard, setShowDetailsWizard] = useState(false);
+  const [showCustomerView, setShowCustomerView] = useState(false);
+  const [showFollowUpsModal, setShowFollowUpsModal] = useState(false);
+  const [showTimelineModal, setShowTimelineModal] = useState(false);
+  const [showContactHistoryModal, setShowContactHistoryModal] = useState(false);
+  const [showCallHistoryModal, setShowCallHistoryModal] = useState(false);
   const [showFollowUpForm, setShowFollowUpForm] = useState(false);
   const [reassignTo, setReassignTo] = useState("");
   const [assignOpen, setAssignOpen] = useState(false);
@@ -302,7 +309,6 @@ export function LeadDetailPage() {
   const [consultantEdit, setConsultantEdit] = useState(false);
   const [consultantValue, setConsultantValue] = useState("");
 
-  const followUpRef = useRef<HTMLDivElement>(null);
   const prevStatusRef = useRef<EnquiryStatus | null>(null);
   const assignRef = useRef<HTMLDivElement>(null);
 
@@ -387,10 +393,7 @@ export function LeadDetailPage() {
     setShowStatusModal(true);
   };
 
-  const openFollowUp = () => {
-    setShowFollowUpForm(true);
-    setTimeout(() => followUpRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 60);
-  };
+  const openFollowUp = () => setShowFollowUpForm(true);
 
   // Safe extractors for the Key Dates section.
   const bookingDate = enquiry?.statusHistory?.find((h) => h.toStatus === "BOOKED")?.createdAt;
@@ -509,39 +512,60 @@ export function LeadDetailPage() {
       {/* ---------- HERO HEADER ---------- */}
       <motion.div
         variants={fadeUp}
-        className="glass-panel relative overflow-hidden rounded-3xl p-6 sm:p-7 dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)]"
+        className="glass-panel relative overflow-hidden rounded-2xl p-4 sm:p-5 dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)]"
       >
         <div className="pointer-events-none absolute -right-16 -top-24 h-56 w-56 rounded-full bg-blue-500/10 blur-[70px] dark:bg-blue-500/20" />
         <div className="pointer-events-none absolute -bottom-24 -left-16 h-48 w-48 rounded-full bg-indigo-500/5 blur-[70px] dark:bg-indigo-500/10" />
 
-        <div className="relative z-10 flex flex-col gap-5">
-          <div className="flex min-w-0 items-center gap-4">
-            <Avatar name={lead.name} size="lg" />
-            <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-wide text-blue-600/80 dark:text-blue-400/80">Lead Details</p>
-              <h1 className="truncate text-2xl font-bold text-slate-900 dark:text-white">{lead.name}</h1>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                {enquiry && <StatusBadge status={enquiry.status} />}
-                {enquiry && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-700/60 dark:text-slate-300">
-                    <Hash size={11} />
-                    {enquiry.id.slice(-6).toUpperCase()}
-                  </span>
-                )}
-                {enquiry && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-700/60 dark:text-slate-300">
-                    <Radio size={11} />
-                    {enquiry.source.replaceAll("_", " ")}
-                  </span>
-                )}
-                {enquiry && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-700/60 dark:text-slate-300">
-                    <Building2 size={11} />
-                    {enquiry.branch.name}
-                  </span>
-                )}
+        <div className="relative z-10 flex flex-col gap-3">
+          <div className="flex min-w-0 items-start justify-between gap-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <Avatar name={lead.name} size="md" />
+              <div className="min-w-0">
+                <h1 className="truncate text-xl font-bold text-slate-900 dark:text-white">{lead.name}</h1>
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  {enquiry && <StatusBadge status={enquiry.status} />}
+                  {enquiry && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-700/60 dark:text-slate-300">
+                      <Hash size={11} />
+                      {enquiry.id.slice(-6).toUpperCase()}
+                    </span>
+                  )}
+                  {enquiry && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-700/60 dark:text-slate-300">
+                      <Radio size={11} />
+                      {enquiry.source.replaceAll("_", " ")}
+                    </span>
+                  )}
+                  {enquiry && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-700/60 dark:text-slate-300">
+                      <Building2 size={11} />
+                      {enquiry.branch.name}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
+            {enquiry && (
+              <div className="flex shrink-0 items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setShowCustomerView(true)}
+                  aria-label="View full customer details"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-blue-400"
+                >
+                  <Eye size={17} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowDetailsWizard(true)}
+                  aria-label="Edit customer details"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-blue-400"
+                >
+                  <Pencil size={16} />
+                </button>
+              </div>
+            )}
           </div>
 
           {completeDetailsNeeded && (
@@ -553,6 +577,119 @@ export function LeadDetailPage() {
               <Button size="sm" icon={<ClipboardEdit size={14} />} onClick={() => setShowDetailsWizard(true)}>
                 Complete Details
               </Button>
+            </div>
+          )}
+
+          {enquiry && (
+            <div className="grid grid-cols-2 gap-x-6 gap-y-2.5 border-t border-slate-100 pt-3 text-sm sm:grid-cols-3 lg:grid-cols-4 dark:border-slate-700/60">
+              <InfoField
+                icon={<Phone size={13} />}
+                label="Mobile Number"
+                value={
+                  <span className="inline-flex items-center gap-1.5">
+                    {lead.phoneRaw}
+                    <CopyButton value={lead.phoneRaw} label="Copy phone number" />
+                  </span>
+                }
+              />
+              <InfoField
+                icon={<Mail size={13} />}
+                label="Email"
+                value={
+                  <span className="inline-flex items-center gap-1.5">
+                    {lead.email || "—"}
+                    {lead.email && <CopyButton value={lead.email} label="Copy email" />}
+                  </span>
+                }
+              />
+              <InfoField icon={<Car size={13} />} label="Interested Vehicle" value={enquiry.carModel} />
+              <InfoField icon={<Tag size={13} />} label="Customer Category" value={enquiry.enquiryCategory || "—"} />
+              <InfoField icon={<Briefcase size={13} />} label="Profession" value={lead.profession || "—"} />
+              <InfoField icon={<Building2 size={13} />} label="Branch" value={enquiry.branch.name} />
+              <InfoField icon={<Radio size={13} />} label="Source" value={enquiry.source.replaceAll("_", " ")} />
+              <InfoField icon={<UserCircle2 size={13} />} label="Sales CR" value={enquiry.assignedCr?.name ?? "Unassigned"} />
+              <div>
+                <p className="mb-1 flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
+                  <UserCircle2 size={13} /> Consultant
+                </p>
+                {consultantEdit ? (
+                  <div className="flex items-center gap-1.5">
+                    <Select value={consultantValue} onChange={(e) => setConsultantValue(e.target.value)} className="w-full text-sm">
+                      <option value="">Select…</option>
+                      {consultants?.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </Select>
+                    <button
+                      type="button"
+                      aria-label="Save consultant"
+                      disabled={!consultantValue || updateDetails.isPending}
+                      onClick={() => {
+                        updateDetails.mutate({ consultantId: consultantValue });
+                        setConsultantEdit(false);
+                      }}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white transition-colors hover:bg-blue-500 disabled:opacity-40"
+                    >
+                      <Check size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Cancel"
+                      onClick={() => setConsultantEdit(false)}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                    >
+                      <X size={15} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">{enquiry.consultant?.name ?? "—"}</p>
+                    {canReassign && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setConsultantValue(enquiry.consultantId ?? "");
+                          setConsultantEdit(true);
+                        }}
+                        className="text-xs font-semibold text-blue-600 transition-colors hover:underline dark:text-blue-400"
+                      >
+                        Change
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+              <InfoField
+                icon={<MapPin size={13} />}
+                label="Address"
+                className="col-span-2 sm:col-span-3 lg:col-span-4"
+                value={lead.address ? `${lead.address}${lead.pincode ? `, ${lead.pincode}` : ""}` : "—"}
+              />
+            </div>
+          )}
+
+          {/* ---- AI Insights, merged into the hero ---- */}
+          {enquiry && (
+            <div className="flex flex-col gap-3 border-t border-slate-100 pt-3 sm:flex-row sm:items-center sm:gap-5 dark:border-slate-700/60">
+              <div className="flex items-center gap-2.5 shrink-0">
+                <ScoreRing score={leadScore} />
+                <h2 className="flex items-center gap-1.5 text-sm font-semibold text-slate-900 dark:text-white">
+                  <Sparkles size={14} className="text-blue-500 dark:text-blue-400" />
+                  AI Insights
+                </h2>
+              </div>
+              <ul className="grid flex-1 grid-cols-1 gap-2 sm:grid-cols-2">
+                {insights.slice(0, 4).map((ins, i) => (
+                  <li key={i} className="flex items-start gap-2 text-xs">
+                    <span className={clsx("mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-lg", INSIGHT_TONE[ins.tone])}>
+                      {ins.icon}
+                    </span>
+                    <span className="text-slate-700 dark:text-slate-300">{ins.text}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </div>
@@ -656,229 +793,66 @@ export function LeadDetailPage() {
             </motion.div>
           )}
 
-          {/* ---------- INFORMATION CARDS ---------- */}
-          <motion.div variants={fadeUp} className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <Card className="flex h-full flex-col">
-              <CardHeader
-                icon={<UserCircle2 size={18} />}
-                iconClassName="bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400"
-                title="Customer Information"
-                subtitle="Who you're speaking with"
-              />
-              <div className="grid grid-cols-1 gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
-                <InfoField
-                  icon={<Phone size={13} />}
-                  label="Mobile Number"
-                  value={
-                    <span className="inline-flex items-center gap-1.5">
-                      {lead.phoneRaw}
-                      <CopyButton value={lead.phoneRaw} label="Copy phone number" />
+          {/* ---------- STAGE PROGRESS + SMART NEXT STEP ---------- */}
+          <motion.div variants={fadeUp}>
+            <Card className="flex flex-col gap-5">
+              <PipelineStepper status={enquiry.status} lossReason={enquiry.lossReason} />
+              {enquiry.status !== "CLOSED" && (
+                <div className="flex flex-col gap-4 rounded-2xl border border-blue-100 bg-blue-50/60 p-5 dark:border-blue-500/20 dark:bg-blue-500/10">
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-300">
+                      <Zap size={18} />
                     </span>
-                  }
-                />
-                <InfoField
-                  icon={<Mail size={13} />}
-                  label="Email"
-                  value={
-                    <span className="inline-flex items-center gap-1.5">
-                      {lead.email || "—"}
-                      {lead.email && <CopyButton value={lead.email} label="Copy email" />}
-                    </span>
-                  }
-                />
-                <InfoField
-                  icon={<MapPin size={13} />}
-                  label="Address"
-                  className="sm:col-span-2"
-                  value={lead.address ? `${lead.address}${lead.pincode ? `, ${lead.pincode}` : ""}` : "—"}
-                />
-                <InfoField icon={<Car size={13} />} label="Interested Vehicle" value={enquiry.carModel} />
-                <InfoField icon={<Tag size={13} />} label="Customer Category" value={enquiry.enquiryCategory || "—"} />
-                <InfoField icon={<Briefcase size={13} />} label="Profession" value={lead.profession || "—"} />
-              </div>
-            </Card>
-
-            <Card className="flex h-full flex-col">
-              <CardHeader
-                icon={<ClipboardEdit size={18} />}
-                iconClassName="bg-violet-50 text-violet-600 dark:bg-violet-500/20 dark:text-violet-400"
-                title="Enquiry Summary"
-                subtitle="Deal snapshot"
-                actions={
-                  <div className="flex items-center gap-2">
+                    <div>
+                      <h3 className="text-sm font-bold text-blue-900 dark:text-blue-200">Smart next step</h3>
+                      <p className="mt-0.5 text-xs text-blue-700/80 dark:text-blue-300/70">
+                        {followUpUrgency === "overdue"
+                          ? "Follow-up is overdue — reconnect with this lead now."
+                          : followUpUrgency === "today"
+                            ? "A follow-up is due today. Keep the conversation moving."
+                            : enquiry.followUpDueAt
+                              ? `Next follow-up on ${new Date(enquiry.followUpDueAt).toLocaleDateString()}.`
+                              : "No follow-up scheduled yet — add one to keep momentum."}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button size="sm" icon={<Zap size={14} />} onClick={openFollowUp}>
+                      Add Follow-up
+                    </Button>
+                    <QuickActions status={enquiry.status} onChangeStatus={handleQuickActionStatus} />
                     <button
                       type="button"
-                      onClick={() => setShowNewEnquiry(true)}
-                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 transition-colors hover:border-blue-300 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:border-slate-700 dark:text-slate-300 dark:hover:border-blue-500/40 dark:hover:text-blue-400"
+                      onClick={() => handleQuickActionStatus(undefined)}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white/70 px-3 py-1.5 text-sm font-semibold text-blue-700 transition-colors hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300 dark:hover:bg-blue-500/20"
                     >
-                      <Plus size={13} /> New enquiry
+                      <ArrowRightLeft size={14} />
+                      Change status
                     </button>
-                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 dark:bg-slate-700/60 dark:text-slate-300">
-                      #{enquiry.id.slice(-6).toUpperCase()}
-                    </span>
-                  </div>
-                }
-              />
-              <div className="grid grid-cols-1 gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
-                <InfoField icon={<Building2 size={13} />} label="Branch" value={enquiry.branch.name} />
-                <InfoField icon={<Radio size={13} />} label="Source" value={enquiry.source.replaceAll("_", " ")} />
-                <InfoField icon={<CalendarDays size={13} />} label="Enquiry Date" value={new Date(enquiry.createdAt).toLocaleDateString()} />
-                <InfoField icon={<Tag size={13} />} label="Current Stage" value={enquiry.status.replaceAll("_", " ")} />
-                <div className="mt-1 grid grid-cols-1 gap-x-6 gap-y-4 border-t border-slate-100 pt-4 sm:col-span-2 sm:grid-cols-2 dark:border-slate-700/60">
-                  <InfoField icon={<UserCircle2 size={13} />} label="Sales Consultant (CR)" value={enquiry.assignedCr?.name ?? "Unassigned"} />
-                  <div>
-                    <p className="mb-1 flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
-                      <UserCircle2 size={13} /> Showroom Consultant
-                    </p>
-                    {consultantEdit ? (
-                      <div className="flex items-center gap-1.5">
-                        <Select value={consultantValue} onChange={(e) => setConsultantValue(e.target.value)} className="w-full text-sm">
-                          <option value="">Select consultant…</option>
-                          {consultants?.map((c) => (
-                            <option key={c.id} value={c.id}>
-                              {c.name}
-                            </option>
-                          ))}
-                        </Select>
-                        <button
-                          type="button"
-                          aria-label="Save consultant"
-                          disabled={!consultantValue || updateDetails.isPending}
-                          onClick={() => {
-                            updateDetails.mutate({ consultantId: consultantValue });
-                            setConsultantEdit(false);
-                          }}
-                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white transition-colors hover:bg-blue-500 disabled:opacity-40"
-                        >
-                          <Check size={15} />
-                        </button>
-                        <button
-                          type="button"
-                          aria-label="Cancel"
-                          onClick={() => setConsultantEdit(false)}
-                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
-                        >
-                          <X size={15} />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-slate-900 dark:text-white">{enquiry.consultant?.name ?? "—"}</p>
-                        {canReassign && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setConsultantValue(enquiry.consultantId ?? "");
-                              setConsultantEdit(true);
-                            }}
-                            className="text-xs font-semibold text-blue-600 transition-colors hover:underline dark:text-blue-400"
-                          >
-                            Change
-                          </button>
-                        )}
-                      </div>
-                    )}
                   </div>
                 </div>
-              </div>
+              )}
             </Card>
           </motion.div>
-
-          {/* ---------- AI INSIGHTS ---------- */}
-          <motion.div variants={fadeUp}>
-            <Card className="relative overflow-hidden">
-              <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-gradient-to-br from-blue-500/15 to-indigo-500/10 blur-2xl" />
-              <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center">
-                <div className="flex items-center gap-4">
-                  <ScoreRing score={leadScore} />
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <Sparkles size={16} className="text-blue-500 dark:text-blue-400" />
-                      <h2 className="text-base font-bold text-slate-900 dark:text-white">AI Insights</h2>
-                    </div>
-                    <p className="mt-1 max-w-[16rem] text-xs text-slate-500 dark:text-slate-400">
-                      On-the-fly analysis of this lead's signals and the next best actions.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex-1 sm:border-l sm:border-slate-100 sm:pl-6 dark:sm:border-slate-700/60">
-                  <ul className="flex flex-col gap-2.5">
-                    {insights.map((ins, i) => (
-                      <li key={i} className="flex items-start gap-2.5 text-sm">
-                        <span className={clsx("mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg", INSIGHT_TONE[ins.tone])}>
-                          {ins.icon}
-                        </span>
-                        <span className="text-slate-700 dark:text-slate-300">{ins.text}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-
-          {/* ---------- STAGE PROGRESS ---------- */}
-          <motion.div variants={fadeUp}>
-            <Card>
-              <PipelineStepper status={enquiry.status} lossReason={enquiry.lossReason} />
-            </Card>
-          </motion.div>
-
-          {/* ---------- SMART FOLLOW-UP / SUGGESTED ACTIONS ---------- */}
-          {enquiry.status !== "CLOSED" && (
-            <motion.div
-              variants={fadeUp}
-              className="flex flex-col gap-4 rounded-2xl border border-blue-100 bg-blue-50/60 p-5 lg:flex-row lg:items-center lg:justify-between dark:border-blue-500/20 dark:bg-blue-500/10"
-            >
-              <div className="flex items-start gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-300">
-                  <Zap size={18} />
-                </span>
-                <div>
-                  <h3 className="text-sm font-bold text-blue-900 dark:text-blue-200">Smart next step</h3>
-                  <p className="mt-0.5 text-xs text-blue-700/80 dark:text-blue-300/70">
-                    {followUpUrgency === "overdue"
-                      ? "Follow-up is overdue — reconnect with this lead now."
-                      : followUpUrgency === "today"
-                        ? "A follow-up is due today. Keep the conversation moving."
-                        : enquiry.followUpDueAt
-                          ? `Next follow-up on ${new Date(enquiry.followUpDueAt).toLocaleDateString()}.`
-                          : "No follow-up scheduled yet — add one to keep momentum."}
-                  </p>
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <QuickActions status={enquiry.status} onAddFollowUp={openFollowUp} onChangeStatus={handleQuickActionStatus} />
-                <button
-                  type="button"
-                  onClick={() => handleQuickActionStatus(undefined)}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white/70 px-3 py-1.5 text-sm font-semibold text-blue-700 transition-colors hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300 dark:hover:bg-blue-500/20"
-                >
-                  <ArrowRightLeft size={14} />
-                  Change status
-                </button>
-              </div>
-            </motion.div>
-          )}
 
           {/* ---------- FORMS SECTION (CONDITIONAL) ---------- */}
           <div className="flex flex-col gap-4">
-            {showFollowUpForm && (
-              <div ref={followUpRef}>
-                <FollowUpForm enquiryId={enquiry.id} onSuccess={() => setShowFollowUpForm(false)} onCancel={() => setShowFollowUpForm(false)} />
-              </div>
-            )}
-
-            {enquiry.status === "APPOINTMENT_FIXED" ||
-            enquiry.status === "TEST_DRIVE" ||
-            (enquiry.testDriveFeedbacks?.length ?? 0) > 0 ? (
-              <TestDriveForm enquiryId={enquiry.id} branchId={enquiry.branchId} existing={enquiry.testDriveFeedbacks} />
-            ) : null}
-
-            {settings?.quotationEnabled !== false &&
-            (["TEST_DRIVE", "BOOKED", "RETAIL_DONE"].includes(enquiry.status) || enquiry.quotation) ? (
-              <QuotationForm enquiryId={enquiry.id} branchId={enquiry.branchId} existing={enquiry.quotation} />
-            ) : null}
+            {(() => {
+              const showTestDrive =
+                enquiry.status === "APPOINTMENT_FIXED" ||
+                enquiry.status === "TEST_DRIVE" ||
+                (enquiry.testDriveFeedbacks?.length ?? 0) > 0;
+              const showQuotation =
+                settings?.quotationEnabled !== false &&
+                (["TEST_DRIVE", "BOOKED", "RETAIL_DONE"].includes(enquiry.status) || !!enquiry.quotation);
+              if (!showTestDrive && !showQuotation) return null;
+              return (
+                <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
+                  {showTestDrive && <TestDriveForm enquiryId={enquiry.id} branchId={enquiry.branchId} existing={enquiry.testDriveFeedbacks} />}
+                  {showQuotation && <QuotationForm enquiryId={enquiry.id} branchId={enquiry.branchId} existing={enquiry.quotation} />}
+                </div>
+              );
+            })()}
 
             {enquiry.status === "BOOKED" || enquiry.exchangeEvaluation ? (
               <ExchangeForm enquiryId={enquiry.id} branchId={enquiry.branchId} existing={enquiry.exchangeEvaluation} />
@@ -897,7 +871,13 @@ export function LeadDetailPage() {
             <div className="flex flex-col gap-6 lg:col-span-2">
               {/* ---------- FOLLOW-UP HISTORY ---------- */}
               <motion.div variants={fadeUp}>
-                <FollowUpTable followUps={enquiry.followUps || []} onAddClick={openFollowUp} canAdd={enquiry.status !== "CLOSED"} />
+                <FollowUpTable
+                  followUps={enquiry.followUps || []}
+                  onAddClick={openFollowUp}
+                  canAdd={false}
+                  limit={4}
+                  onViewAll={() => setShowFollowUpsModal(true)}
+                />
               </motion.div>
 
               {/* ---------- ACTIVITY TIMELINE ---------- */}
@@ -908,8 +888,20 @@ export function LeadDetailPage() {
                     iconClassName="bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400"
                     title="Activity Timeline"
                     subtitle="Complete audit history of stage changes and follow-ups"
+                    actions={
+                      <button
+                        type="button"
+                        onClick={() => setShowTimelineModal(true)}
+                        aria-label="View full timeline"
+                        className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-blue-400"
+                      >
+                        <Eye size={16} />
+                      </button>
+                    }
                   />
-                  <UnifiedTimeline enquiryId={enquiry.id} statusHistory={enquiry.statusHistory || []} followUps={enquiry.followUps || []} />
+                  <div className="max-h-[360px] overflow-y-auto pr-1 [scrollbar-width:thin]">
+                    <UnifiedTimeline enquiryId={enquiry.id} statusHistory={enquiry.statusHistory || []} followUps={enquiry.followUps || []} />
+                  </div>
                 </Card>
               </motion.div>
             </div>
@@ -977,6 +969,18 @@ export function LeadDetailPage() {
                     iconClassName="bg-fuchsia-50 text-fuchsia-600 dark:bg-fuchsia-500/20 dark:text-fuchsia-400"
                     title="Contact History"
                     subtitle="Every way they've reached us"
+                    actions={
+                      lead.touches.length > 4 && (
+                        <button
+                          type="button"
+                          onClick={() => setShowContactHistoryModal(true)}
+                          aria-label="View all contact history"
+                          className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-blue-400"
+                        >
+                          <Eye size={16} />
+                        </button>
+                      )
+                    }
                   />
                   <div className="mb-3 flex flex-wrap gap-1.5">
                     {Object.entries(lead.touchesBySource).map(([source, count]) => (
@@ -1007,9 +1011,25 @@ export function LeadDetailPage() {
               {callLogs && callLogs.length > 0 && (
                 <motion.div variants={fadeUp}>
                   <Card>
-                    <CardHeader icon={<PhoneCall size={16} />} iconClassName="bg-emerald-50 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400" title="AI Call History" />
+                    <CardHeader
+                      icon={<PhoneCall size={16} />}
+                      iconClassName="bg-emerald-50 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
+                      title="AI Call History"
+                      actions={
+                        callLogs.length > 3 && (
+                          <button
+                            type="button"
+                            onClick={() => setShowCallHistoryModal(true)}
+                            aria-label="View all call history"
+                            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-blue-400"
+                          >
+                            <Eye size={16} />
+                          </button>
+                        )
+                      }
+                    />
                     <ul className="flex flex-col gap-2">
-                      {callLogs.map((call) => (
+                      {callLogs.slice(0, 3).map((call) => (
                         <li key={call.id} className="rounded-lg bg-slate-50 p-2.5 text-sm dark:bg-slate-800/60">
                           <div className="flex items-center justify-between text-xs">
                             <span className="font-medium text-slate-800 dark:text-slate-200">{call.status.replaceAll("_", " ")}</span>
@@ -1033,6 +1053,92 @@ export function LeadDetailPage() {
             onClose={() => setShowStatusModal(false)}
             initialTargetStatus={statusModalTarget}
           />
+
+          <Modal
+            isOpen={showCustomerView}
+            onClose={() => setShowCustomerView(false)}
+            title="Customer Details"
+            maxWidth="max-w-xl"
+          >
+            <div className="grid grid-cols-1 gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
+              <InfoField icon={<UserCircle2 size={13} />} label="Name" value={lead.name} />
+              <InfoField
+                icon={<Phone size={13} />}
+                label="Mobile Number"
+                value={
+                  <span className="inline-flex items-center gap-1.5">
+                    {lead.phoneRaw}
+                    <CopyButton value={lead.phoneRaw} label="Copy phone number" />
+                  </span>
+                }
+              />
+              <InfoField icon={<Phone size={13} />} label="Alternate Mobile" value={lead.alternateMobile || "—"} />
+              <InfoField
+                icon={<Mail size={13} />}
+                label="Email"
+                value={
+                  <span className="inline-flex items-center gap-1.5">
+                    {lead.email || "—"}
+                    {lead.email && <CopyButton value={lead.email} label="Copy email" />}
+                  </span>
+                }
+              />
+              <InfoField icon={<CalendarDays size={13} />} label="Date of Birth" value={lead.dob ? new Date(lead.dob).toLocaleDateString() : "—"} />
+              <InfoField icon={<Briefcase size={13} />} label="Profession" value={lead.profession || "—"} />
+              <InfoField icon={<MapPin size={13} />} label="Pincode" value={lead.pincode || "—"} />
+              <InfoField icon={<MapPin size={13} />} label="Address" className="sm:col-span-2" value={lead.address || "—"} />
+              <InfoField icon={<Car size={13} />} label="Interested Vehicle" value={enquiry.carModel} />
+              <InfoField icon={<Car size={13} />} label="Variant" value={enquiry.variant || "—"} />
+              <InfoField icon={<Tag size={13} />} label="Customer Category" value={enquiry.enquiryCategory || "—"} />
+              <InfoField icon={<Tag size={13} />} label="Enquiry Type" value={enquiry.enquiryType.replaceAll("_", " ")} />
+              <div className="col-span-full mt-1 grid grid-cols-1 gap-x-6 gap-y-4 border-t border-slate-100 pt-4 sm:grid-cols-2 dark:border-slate-700/60">
+                <InfoField icon={<Building2 size={13} />} label="Branch" value={enquiry.branch.name} />
+                <InfoField icon={<Radio size={13} />} label="Source" value={enquiry.source.replaceAll("_", " ")} />
+                <InfoField icon={<UserCircle2 size={13} />} label="Sales Consultant (CR)" value={enquiry.assignedCr?.name ?? "Unassigned"} />
+                <InfoField icon={<UserCircle2 size={13} />} label="Showroom Consultant" value={enquiry.consultant?.name ?? "—"} />
+              </div>
+            </div>
+          </Modal>
+
+          <Modal isOpen={showFollowUpForm} onClose={() => setShowFollowUpForm(false)} title="Add Follow-up" maxWidth="max-w-2xl">
+            <FollowUpForm enquiryId={enquiry.id} onSuccess={() => setShowFollowUpForm(false)} onCancel={() => setShowFollowUpForm(false)} />
+          </Modal>
+
+          <Modal isOpen={showFollowUpsModal} onClose={() => setShowFollowUpsModal(false)} title="Follow-up History" maxWidth="max-w-4xl">
+            <FollowUpTable followUps={enquiry.followUps || []} onAddClick={openFollowUp} canAdd={false} />
+          </Modal>
+
+          <Modal isOpen={showTimelineModal} onClose={() => setShowTimelineModal(false)} title="Activity Timeline" maxWidth="max-w-2xl">
+            <UnifiedTimeline enquiryId={enquiry.id} statusHistory={enquiry.statusHistory || []} followUps={enquiry.followUps || []} />
+          </Modal>
+
+          <Modal isOpen={showContactHistoryModal} onClose={() => setShowContactHistoryModal(false)} title="Contact History" maxWidth="max-w-lg">
+            <ul className="flex flex-col gap-1.5">
+              {lead.touches.map((touch) => (
+                <li key={touch.id} className="rounded-lg bg-slate-50 px-3 py-2 text-xs dark:bg-slate-800/60">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">{touch.source.replaceAll("_", " ")}</span>
+                    <span className="text-slate-400 dark:text-slate-500">{new Date(touch.createdAt).toLocaleDateString()}</span>
+                  </div>
+                  {touch.note && <p className="mt-0.5 text-slate-500 dark:text-slate-400">{touch.note}</p>}
+                </li>
+              ))}
+            </ul>
+          </Modal>
+
+          <Modal isOpen={showCallHistoryModal} onClose={() => setShowCallHistoryModal(false)} title="AI Call History" maxWidth="max-w-lg">
+            <ul className="flex flex-col gap-2">
+              {callLogs?.map((call) => (
+                <li key={call.id} className="rounded-lg bg-slate-50 p-2.5 text-sm dark:bg-slate-800/60">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-medium text-slate-800 dark:text-slate-200">{call.status.replaceAll("_", " ")}</span>
+                    <span className="text-slate-400 dark:text-slate-500">{new Date(call.createdAt).toLocaleString()}</span>
+                  </div>
+                  {call.recordingUrl && <audio controls src={call.recordingUrl} className="mt-1.5 h-8 w-full" />}
+                </li>
+              ))}
+            </ul>
+          </Modal>
 
           <AddLeadWizard
             isOpen={showDetailsWizard}

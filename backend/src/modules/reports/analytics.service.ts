@@ -1,6 +1,6 @@
 import { Prisma, EnquiryStatus } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
-import { ReportQuery } from "./reports.schema";
+import { ReportQuery, BreakdownQuery, BreakdownDimension } from "./reports.schema";
 
 const CONVERTED_STATUSES: EnquiryStatus[] = ["RETAIL_DONE"];
 
@@ -226,6 +226,99 @@ export async function getLostReasons(query: ReportQuery, branchFilter?: { branch
       percent: total > 0 ? Number(((row._count / total) * 100).toFixed(1)) : 0,
     }))
     .sort((a, b) => b.count - a.count);
+}
+
+// Maps each allow-listed Chart Builder dimension to the real Enquiry scalar column it
+// groups on. Two dimensions resolve to a foreign key (assignedCr → assignedCrId,
+// branch → branchId) whose ids we swap for display names after grouping.
+const DIMENSION_FIELD: Record<BreakdownDimension, keyof Prisma.EnquiryGroupByOutputType> = {
+  source: "source",
+  enquiryType: "enquiryType",
+  status: "status",
+  department: "department",
+  subsource: "subsource",
+  sourceCategory: "sourceCategory",
+  enquiryCategory: "enquiryCategory",
+  lossReason: "lossReason",
+  carModel: "carModel",
+  variant: "variant",
+  financeRequired: "financeRequired",
+  callOutcome: "callOutcome",
+  response: "response",
+  nextAction: "nextAction",
+  assignedCr: "assignedCrId",
+  branch: "branchId",
+};
+
+// High-cardinality free-text dimensions are capped so the chart stays readable; the
+// rest (enums, booleans, FK ids) have naturally bounded cardinality.
+const BREAKDOWN_ROW_CAP = 20;
+
+/**
+ * Generic "group enquiries by any dimension" powering the Reports Chart Builder.
+ * Returns every measure (total / converted / lost / conversionRate) per group in one
+ * shot so the client can switch the displayed measure without refetching. Only the
+ * grouping dimension changes the query.
+ */
+export async function getBreakdown(query: BreakdownQuery, branchFilter?: { branchId: string }) {
+  const where = buildWhere(query, branchFilter);
+  const field = DIMENSION_FIELD[query.dimension];
+
+  type GroupRow = Record<string, unknown> & { _count: number };
+  const groupBy = (extra: Prisma.EnquiryWhereInput) =>
+    prisma.enquiry.groupBy({
+      by: [field as Prisma.EnquiryScalarFieldEnum],
+      where: { ...where, ...extra },
+      _count: true,
+    }) as unknown as Promise<GroupRow[]>;
+
+  const [totals, converted, lost] = await Promise.all([
+    groupBy({}),
+    groupBy({ status: { in: CONVERTED_STATUSES } }),
+    groupBy({ status: "CLOSED" }),
+  ]);
+
+  const rawKey = (row: GroupRow) => {
+    const value = row[field as string];
+    return value == null ? null : String(value);
+  };
+  const convertedMap = new Map<string | null, number>();
+  for (const row of converted) convertedMap.set(rawKey(row), row._count);
+  const lostMap = new Map<string | null, number>();
+  for (const row of lost) lostMap.set(rawKey(row), row._count);
+
+  // For FK dimensions, resolve ids → display names.
+  let labelFor: (key: string | null) => string = (key) => key ?? "—";
+  if (query.dimension === "assignedCr") {
+    const ids = totals.map(rawKey).filter((k): k is string => !!k);
+    const users = await prisma.user.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } });
+    const nameMap = new Map(users.map((u) => [u.id, u.name]));
+    labelFor = (key) => (key ? nameMap.get(key) ?? "Unknown" : "Unassigned");
+  } else if (query.dimension === "branch") {
+    const ids = totals.map(rawKey).filter((k): k is string => !!k);
+    const branches = await prisma.branch.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } });
+    const nameMap = new Map(branches.map((b) => [b.id, b.name]));
+    labelFor = (key) => (key ? nameMap.get(key) ?? "Unknown" : "—");
+  } else if (query.dimension === "financeRequired") {
+    labelFor = (key) => (key === "true" ? "Finance required" : key === "false" ? "No finance" : "Not specified");
+  }
+
+  const rows = totals.map((row) => {
+    const key = rawKey(row);
+    const total = row._count;
+    const conv = convertedMap.get(key) ?? 0;
+    return {
+      key: key ?? "__null__",
+      label: labelFor(key),
+      total,
+      converted: conv,
+      lost: lostMap.get(key) ?? 0,
+      conversionRate: total > 0 ? Number(((conv / total) * 100).toFixed(1)) : 0,
+    };
+  });
+
+  rows.sort((a, b) => b.total - a.total);
+  return rows.slice(0, BREAKDOWN_ROW_CAP);
 }
 
 /** Flat CSV of enquiries matching the filters — for sharing outside the CRM. */
