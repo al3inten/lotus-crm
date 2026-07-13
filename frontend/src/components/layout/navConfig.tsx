@@ -18,7 +18,7 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import type { Role, ModuleKey } from "../../types";
 
-type IconType = ComponentType<{ size?: number | string; className?: string }>;
+type IconType = ComponentType<{ size?: number | string; strokeWidth?: number | string; className?: string }>;
 
 /** Sidebar sections, in display order. */
 export const NAV_GROUP_ORDER = ["WORKSPACE", "SALES", "ENGAGE", "INSIGHTS", "AUTOMATION", "ADMIN"] as const;

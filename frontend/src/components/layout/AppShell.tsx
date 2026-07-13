@@ -9,16 +9,27 @@ export function AppShell() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
-    <div className="flex h-screen bg-slate-50 dark:bg-slate-950 transition-colors">
-      <Sidebar isMobileMenuOpen={isMobileMenuOpen} setIsMobileMenuOpen={setIsMobileMenuOpen} />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <Topbar onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
-        {/* pb-24 on mobile keeps content clear of the fixed bottom nav; reset at md+ */}
-        <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-4 pb-24 md:p-6 lg:p-8">
-          <Outlet />
-        </main>
+    <div className="relative flex h-screen w-screen overflow-hidden bg-slate-50 dark:bg-[#0a0a0a] transition-colors selection:bg-blue-500/30 font-sans">
+      
+      {/* Precision Glow (Subtle, professional background depth) */}
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 h-[600px] w-[800px] rounded-[100%] bg-blue-500/5 blur-[120px] dark:bg-blue-500/10 mix-blend-screen" />
       </div>
-      <BottomNav onMore={() => setIsMobileMenuOpen(true)} />
+
+      <div className="z-10 flex h-full w-full">
+        <Sidebar isMobileMenuOpen={isMobileMenuOpen} setIsMobileMenuOpen={setIsMobileMenuOpen} />
+        
+        <div className="flex flex-1 flex-col overflow-hidden relative">
+          <Topbar onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
+          
+          <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-4 pb-24 md:p-8 lg:px-12 xl:px-16">
+            <Outlet />
+          </main>
+        </div>
+        
+        <BottomNav onMore={() => setIsMobileMenuOpen(true)} />
+      </div>
+      
       <ReminderModal />
     </div>
   );

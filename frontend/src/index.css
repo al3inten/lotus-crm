@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Plus Jakarta Sans", system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-sans: "Outfit", system-ui, "Segoe UI", Roboto, sans-serif;
   
   /* Premium colors */
   --color-brand-primary: var(--color-blue-600);
