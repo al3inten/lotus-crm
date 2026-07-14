@@ -1,4 +1,4 @@
-import { Check, XCircle, Inbox, PhoneCall, CalendarCheck, Car, BadgeCheck, Trophy, Ban } from "lucide-react";
+import { Check, XCircle, Inbox, PhoneCall, CalendarCheck, Car, BadgeCheck, Trophy, Ban, Flag } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import clsx from "clsx";
 import type { EnquiryStatus, EnquiryStatusHistoryEntry } from "../../types";
@@ -12,10 +12,112 @@ const MAIN_PATH: { status: EnquiryStatus; label: string; Icon: LucideIcon }[] = 
   { status: "RETAIL_DONE", label: "Retail Done", Icon: Trophy },
 ];
 
-interface PipelineStepperProps {
-  status: EnquiryStatus;
-  lossReason?: string | null;
-  statusHistory?: EnquiryStatusHistoryEntry[];
+type NodeTone = "blue" | "green" | "red" | "muted";
+
+const CIRCLE: Record<NodeTone, string> = {
+  blue: "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/40",
+  green: "bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/40",
+  red: "bg-gradient-to-br from-red-500 to-rose-600 text-white shadow-lg shadow-red-500/40",
+  muted: "border-2 border-slate-200 bg-slate-50 text-slate-400 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-500",
+};
+const RING: Record<NodeTone, string> = {
+  blue: "ring-4 ring-blue-600/20 dark:ring-blue-500/25",
+  green: "ring-4 ring-emerald-600/20 dark:ring-emerald-500/25",
+  red: "ring-4 ring-red-600/20 dark:ring-red-500/25",
+  muted: "",
+};
+const GLOW: Record<NodeTone, string> = {
+  blue: "bg-blue-500/20",
+  green: "bg-emerald-500/20",
+  red: "bg-red-500/20",
+  muted: "bg-transparent",
+};
+const CHECK: Record<NodeTone, string> = { blue: "bg-blue-600", green: "bg-emerald-600", red: "bg-red-600", muted: "bg-slate-400" };
+const NUMBER_COLOR: Record<NodeTone, string> = {
+  blue: "text-blue-700 dark:text-blue-400",
+  green: "text-emerald-700 dark:text-emerald-400",
+  red: "text-red-700 dark:text-red-400",
+  muted: "text-slate-500 dark:text-slate-400",
+};
+const LABEL: Record<NodeTone, string> = {
+  blue: "text-slate-900 font-bold dark:text-slate-100",
+  green: "text-emerald-800 font-bold dark:text-emerald-300",
+  red: "text-red-800 font-bold dark:text-red-300",
+  muted: "text-slate-500 font-medium dark:text-slate-400",
+};
+const PILL: Record<NodeTone, string> = {
+  blue: "bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-200",
+  green: "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-200",
+  red: "bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-200",
+  muted: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
+};
+const CONNECTOR: Record<NodeTone, string> = {
+  blue: "bg-blue-500 shadow-sm shadow-blue-500/20",
+  green: "bg-emerald-500 shadow-sm shadow-emerald-500/20",
+  red: "bg-red-500 shadow-sm shadow-red-500/20",
+  muted: "bg-slate-200 dark:bg-slate-700",
+};
+
+interface StagePill {
+  tone: NodeTone;
+  text: string;
+  check?: boolean;
+}
+
+/** One stage: number badge on top, gradient icon disc (with a check badge when reached),
+ * label, and a status pill — the vocabulary from the reference design. */
+function StageNode({
+  number,
+  label,
+  Icon,
+  tone,
+  glow,
+  showCheck,
+  pill,
+}: {
+  number: number;
+  label: string;
+  Icon: LucideIcon;
+  tone: NodeTone;
+  glow?: boolean;
+  showCheck?: boolean;
+  pill: StagePill;
+}) {
+  return (
+    <div className="flex w-[76px] flex-col items-center gap-1.5 sm:w-24">
+      <span className={clsx("flex h-4 items-center text-[11px] font-bold leading-none", NUMBER_COLOR[tone])}>{number}</span>
+      <span className="relative flex h-9 w-9 items-center justify-center">
+        {glow && (
+          <span
+            className={clsx("pointer-events-none absolute -inset-1 -z-10 animate-pulse rounded-full blur-md", GLOW[tone])}
+            style={{ animationDuration: "3s" }}
+          />
+        )}
+        <span className={clsx("flex h-9 w-9 items-center justify-center rounded-full transition-all", CIRCLE[tone], glow && RING[tone])}>
+          <Icon size={16} strokeWidth={2.2} />
+        </span>
+        {showCheck && (
+          <span
+            className={clsx(
+              "absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full text-white ring-2 ring-white dark:ring-slate-900",
+              CHECK[tone]
+            )}
+          >
+            <Check size={8} strokeWidth={4} />
+          </span>
+        )}
+      </span>
+      <span className={clsx("text-center text-[11px] font-semibold leading-tight sm:text-xs", LABEL[tone])}>{label}</span>
+      <span className={clsx("inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[9px] font-semibold sm:text-[10px]", PILL[pill.tone])}>
+        {pill.check && <Check size={8} strokeWidth={4} />}
+        {pill.text}
+      </span>
+    </div>
+  );
+}
+
+function Connector({ tone }: { tone: NodeTone }) {
+  return <div className={clsx("mt-[36px] h-1 w-4 shrink-0 rounded-full sm:w-8", CONNECTOR[tone])} />;
 }
 
 /**
@@ -32,134 +134,111 @@ export function PipelineStepper({ status, lossReason, statusHistory }: PipelineS
     .filter((i) => i >= 0);
   const forkIndex = reachedIndexes.length ? Math.max(...reachedIndexes) : 0;
   const currentIndex = isClosed ? forkIndex : MAIN_PATH.findIndex((s) => s.status === status);
-  const branchLeftPct = ((currentIndex + 0.5) / MAIN_PATH.length) * 100;
+
+  const forkTone: NodeTone = isLost ? "red" : "green";
 
   return (
     <div className="flex flex-col">
       <div className="relative min-w-0">
-        <div className="overflow-x-auto pb-1">
-          <div className="flex min-w-max items-start">
-            {MAIN_PATH.map((step, index) => {
+        <div className="overflow-x-auto pb-4">
+          <div className="flex min-w-max flex-col">
+            <div className="flex items-start">
+              {MAIN_PATH.map((step, index) => {
               const done = index < currentIndex;
               const current = index === currentIndex;
+              const upcoming = index > currentIndex;
               const { Icon } = step;
+
+              // The stage that a won deal ends on turns green; a dropped/active stage stays blue.
+              const tone: NodeTone = upcoming ? "muted" : isClosed && current && !isLost ? "green" : "blue";
+              const showCheck = done || (isClosed && current);
+              const glow = current;
+
+              const pill: StagePill = done
+                ? { tone: "green", text: "Completed", check: true }
+                : current
+                  ? isClosed
+                    ? isLost
+                      ? { tone: "blue", text: "Last stage" }
+                      : { tone: "green", text: "Completed", check: true }
+                    : { tone: "blue", text: "In progress" }
+                  : { tone: "muted", text: "Pending" };
+
               return (
                 <div key={step.status} className="flex items-start">
-                  {index > 0 && (
-                    <div
-                      className={clsx(
-                        "mt-[19px] h-0.5 w-7 rounded-full sm:w-11",
-                        index > currentIndex
-                          ? "bg-slate-200 dark:bg-slate-700"
-                          : index === currentIndex && isClosed
-                            ? isLost
-                              ? "bg-red-400"
-                              : "bg-emerald-500"
-                            : "bg-blue-500"
-                      )}
-                    />
-                  )}
-                  <div className="flex w-[72px] flex-col items-center gap-2 sm:w-24">
-                    <span
-                      className={clsx(
-                        "relative flex h-10 w-10 items-center justify-center rounded-full transition-all",
-                        done && "bg-blue-500 text-white shadow-sm shadow-blue-500/30",
-                        current &&
-                          !isClosed &&
-                          "bg-blue-600 text-white shadow-md shadow-blue-600/40 ring-4 ring-blue-100 dark:ring-blue-500/25",
-                        current &&
-                          isClosed &&
-                          (isLost
-                            ? "bg-red-500 text-white shadow-md shadow-red-500/40 ring-4 ring-red-100 dark:ring-red-500/25"
-                            : "bg-emerald-600 text-white shadow-md shadow-emerald-600/40 ring-4 ring-emerald-100 dark:ring-emerald-500/25"),
-                        !done &&
-                          !current &&
-                          "border-2 border-slate-200 bg-white text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500"
-                      )}
-                    >
-                      <Icon size={18} strokeWidth={done || current ? 2.2 : 2} />
-                      {done && (
-                        <span className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-white ring-2 ring-white dark:ring-slate-800">
-                          <Check size={9} strokeWidth={4} />
-                        </span>
-                      )}
-                    </span>
-                    <span
-                      className={clsx(
-                        "text-center text-[10px] leading-tight sm:text-[11px]",
-                        current
-                          ? isClosed
-                            ? isLost
-                              ? "font-semibold text-red-700 dark:text-red-300"
-                              : "font-semibold text-emerald-700 dark:text-emerald-300"
-                            : "font-semibold text-blue-700 dark:text-blue-300"
-                          : done
-                            ? "text-slate-600 dark:text-slate-300"
-                            : "text-slate-400 dark:text-slate-500"
-                      )}
-                    >
-                      {step.label}
-                    </span>
-                  </div>
+                  {index > 0 && <Connector tone={index <= currentIndex ? tone : "muted"} />}
+                  <StageNode number={index + 1} label={step.label} Icon={Icon} tone={tone} glow={glow} showCheck={showCheck} pill={pill} />
                 </div>
               );
             })}
+            </div>
+
+            {isClosed && (
+              <div className="relative mt-1 flex items-start">
+                {MAIN_PATH.map((step, index) => {
+                  if (index < currentIndex) {
+                    return (
+                      <div key={step.status} className="flex shrink-0">
+                        {index > 0 && <div className="w-4 shrink-0 sm:w-8" />}
+                        <div className="w-[76px] shrink-0 sm:w-24" />
+                      </div>
+                    );
+                  }
+                  if (index === currentIndex) {
+                    return (
+                      <div key={step.status} className="flex shrink-0">
+                        {index > 0 && <div className="w-4 shrink-0 sm:w-8" />}
+                        <div className="w-[38px] shrink-0 sm:w-12" />
+                        <div className="relative">
+                          {/* Curved drop from the main line down into the closing branch */}
+                          <svg className="absolute left-0 top-0 -translate-x-1/2" width="56" height="30" viewBox="0 0 56 30" fill="none" aria-hidden>
+                            <path
+                              d="M4 0 C 4 18, 28 12, 28 30"
+                              className={clsx("fill-none drop-shadow-sm", isLost ? "stroke-red-500 dark:stroke-red-500/60" : "stroke-emerald-500 dark:stroke-emerald-500/60")}
+                              strokeWidth="4"
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                          <div className="flex items-start pt-[26px]">
+                            <StageNode
+                              number={MAIN_PATH.length + 1}
+                              label={isLost ? "Cancelled" : "Won"}
+                              Icon={isLost ? Ban : Trophy}
+                              tone={forkTone}
+                              showCheck
+                              pill={isLost ? { tone: "red", text: "Lost" } : { tone: "green", text: "Completed", check: true }}
+                            />
+                            <Connector tone={forkTone} />
+                            <StageNode
+                              number={MAIN_PATH.length + 2}
+                              label="Closed"
+                              Icon={Flag}
+                              tone={forkTone}
+                              glow
+                              showCheck
+                              pill={{ tone: forkTone, text: isLost ? "Closed" : "Completed", check: !isLost }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+            )}
           </div>
         </div>
         {/* Fade hints signal there's more of the stepper to scroll to — otherwise it reads as "cut off". */}
         <div className="pointer-events-none absolute left-0 top-0 h-full w-6 bg-gradient-to-r from-white to-transparent dark:from-slate-900" />
         <div className="pointer-events-none absolute right-0 top-0 h-full w-6 bg-gradient-to-l from-white to-transparent dark:from-slate-900" />
       </div>
-
-      {isClosed && (
-        <div className="relative h-[78px]" style={{ marginLeft: `${branchLeftPct}%` }}>
-          <div
-            className={clsx(
-              "absolute left-0 top-0 h-5 w-0.5 -translate-x-1/2",
-              isLost ? "bg-red-300 dark:bg-red-500/40" : "bg-emerald-300 dark:bg-emerald-500/40"
-            )}
-          />
-          <div className="absolute left-0 top-5 flex -translate-x-1/2 items-start">
-            <div className="flex w-[72px] flex-col items-center gap-2 sm:w-24">
-              <span
-                className={clsx(
-                  "flex h-9 w-9 items-center justify-center rounded-full text-white",
-                  isLost ? "bg-red-500 shadow-sm shadow-red-500/30" : "bg-emerald-500 shadow-sm shadow-emerald-500/30"
-                )}
-              >
-                {isLost ? <Ban size={16} /> : <Trophy size={16} />}
-              </span>
-              <span
-                className={clsx(
-                  "text-center text-[10px] font-semibold leading-tight sm:text-[11px]",
-                  isLost ? "text-red-700 dark:text-red-300" : "text-emerald-700 dark:text-emerald-300"
-                )}
-              >
-                {isLost ? "Cancelled" : "Won"}
-              </span>
-            </div>
-            <div className={clsx("mt-[17px] h-0.5 w-7 rounded-full sm:w-11", isLost ? "bg-red-400" : "bg-emerald-400")} />
-            <div className="flex w-[72px] flex-col items-center gap-2 sm:w-24">
-              <span
-                className={clsx(
-                  "flex h-9 w-9 items-center justify-center rounded-full text-white ring-4",
-                  isLost ? "bg-red-600 ring-red-100 dark:ring-red-500/25" : "bg-emerald-600 ring-emerald-100 dark:ring-emerald-500/25"
-                )}
-              >
-                <XCircle size={16} />
-              </span>
-              <span
-                className={clsx(
-                  "text-center text-[10px] font-semibold leading-tight sm:text-[11px]",
-                  isLost ? "text-red-700 dark:text-red-300" : "text-emerald-700 dark:text-emerald-300"
-                )}
-              >
-                Closed
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
+}
+
+interface PipelineStepperProps {
+  status: EnquiryStatus;
+  lossReason?: string | null;
+  statusHistory?: EnquiryStatusHistoryEntry[];
 }

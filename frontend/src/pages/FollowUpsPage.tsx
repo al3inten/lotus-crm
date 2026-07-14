@@ -156,7 +156,10 @@ export function FollowUpsPage() {
   const patch = (p: Partial<FollowUpFilters>) => setFilters((f) => ({ ...f, ...p, page: 1 }));
   const goToPage = (p: number) => setFilters((f) => ({ ...f, page: Math.min(Math.max(1, p), totalPages) }));
 
-  const open = (item: UpcomingFollowUp) => navigate(`/leads/${item.leadId}/enquiries/${item.enquiryId}`);
+  // Carries this page of the follow-up queue along as nav state, so the detail page can
+  // offer "Next/Prev lead" through exactly the follow-ups the CR is working through.
+  const queue = (data?.items ?? []).map((item) => ({ leadId: item.leadId, enquiryId: item.enquiryId }));
+  const open = (item: UpcomingFollowUp) => navigate(`/leads/${item.leadId}/enquiries/${item.enquiryId}`, { state: { queue } });
   const onKey = (e: React.KeyboardEvent, item: UpcomingFollowUp) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();

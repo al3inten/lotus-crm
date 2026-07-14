@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Check, ChevronLeft, ChevronRight, Save } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Save, Building2, UserCircle2, Car, CalendarClock, RefreshCw, ClipboardEdit } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import clsx from "clsx";
 import { Modal } from "../common/Modal";
 import { Input, Select, Textarea } from "../common/Input";
@@ -31,6 +33,19 @@ const STEP_TITLES = [
   "Appointment & Test Drive",
   "Exchange Car",
   "Assignment & Follow-up",
+];
+
+const STEP_ICONS: LucideIcon[] = [Building2, UserCircle2, Car, CalendarClock, RefreshCw, ClipboardEdit];
+
+/** One accent color per section so the flattened "Complete Details" view reads as
+ * distinct groups at a glance, instead of six identical blue badges in a row. */
+const STEP_ICON_STYLES = [
+  "bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400",
+  "bg-violet-50 text-violet-600 dark:bg-violet-500/20 dark:text-violet-400",
+  "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400",
+  "bg-amber-50 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400",
+  "bg-cyan-50 text-cyan-600 dark:bg-cyan-500/20 dark:text-cyan-400",
+  "bg-rose-50 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400",
 ];
 
 const STEP_FIELDS: (keyof AddLeadFormInput)[][] = [
@@ -239,53 +254,242 @@ export function AddLeadWizard({
 
   const fieldError = (name: keyof AddLeadFormInput) => errors[name]?.message as string | undefined;
 
+  // One content block per step. In "create" mode only the active step renders (classic
+  // wizard); in "complete" mode every block renders at once under its own section header —
+  // there's nothing left to progressively disclose, so pagination just added clicks.
+  const stepPanels: ReactNode[] = [
+    (
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {isComplete ? (
+          <p className="sm:col-span-2 text-sm text-slate-500 dark:text-slate-400">
+            Branch, source, and assigned CR are already set for this enquiry — fill in department/sub-source below if
+            known.
+          </p>
+        ) : (
+          <>
+            <Select label="Dealer / Branch" error={fieldError("branchId")} {...register("branchId")}>
+              <option value="">Select branch</option>
+              {branches?.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.code} - {b.name}
+                </option>
+              ))}
+            </Select>
+            <Select label="CR (handled by)" error={fieldError("assignedCrId")} {...register("assignedCrId")}>
+              <option value="">Select CR</option>
+              {crStaff?.map((cr) => (
+                <option key={cr.id} value={cr.id}>
+                  {cr.name}
+                </option>
+              ))}
+            </Select>
+          </>
+        )}
+        <Select label="Department" error={fieldError("department")} {...register("department")}>
+          <option value="">Select department</option>
+          {DEPARTMENTS.map((d) => (
+            <option key={d} value={d}>
+              {d.replaceAll("_", " ")}
+            </option>
+          ))}
+        </Select>
+        <Select
+          label="Source"
+          error={fieldError("sourceCategory")}
+          {...register("sourceCategory", { onChange: () => setValue("subsource", "") })}
+        >
+          <option value="">Select source</option>
+          {SOURCE_CATEGORIES.map((c) => (
+            <option key={c} value={c}>
+              {c.replaceAll("_", " ")}
+            </option>
+          ))}
+        </Select>
+        <Select label="Subsource" error={fieldError("subsource")} {...register("subsource")}>
+          <option value="">Select subsource</option>
+          {subsourceOptions.map((s) => (
+            <option key={s} value={s}>
+              {s.replaceAll("_", " ")}
+            </option>
+          ))}
+        </Select>
+
+        {!isComplete && (
+          <div className="sm:col-span-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-t border-slate-100 dark:border-slate-800 pt-3 mt-1">
+            <p className="text-xs text-slate-400 dark:text-slate-500">Enquiry date: {new Date().toLocaleDateString()}</p>
+            <label className="flex items-center gap-2 text-sm text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-3 py-1.5 rounded-md border border-amber-200 dark:border-amber-800/50">
+              <input type="checkbox" {...register("forceNew")} className="text-amber-600 focus:ring-amber-500 rounded border-amber-300" />
+              <span className="font-medium">Force new enquiry</span>
+            </label>
+          </div>
+        )}
+      </div>
+    ),
+    (
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Input label="Name" disabled={isComplete} error={fieldError("name")} {...register("name")} />
+        <div className="relative">
+          <Input label="Phone" disabled={isComplete} error={fieldError("phone")} {...register("phone")} />
+          {lookupLoading && (
+            <div className="absolute right-3 top-[34px]">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600" />
+            </div>
+          )}
+        </div>
+        <Input label="Alternate mobile" error={fieldError("alternateMobile")} {...register("alternateMobile")} />
+        <Input label="Email" type="email" disabled={isComplete} error={fieldError("email")} {...register("email")} />
+        <Input label="Date of birth" type="date" error={fieldError("dob")} {...register("dob")} />
+        <Input label="Profession" error={fieldError("profession")} {...register("profession")} />
+        <Input label="Pincode" error={fieldError("pincode")} {...register("pincode")} />
+        <Input label="Location" disabled={isComplete} error={fieldError("location")} {...register("location")} />
+        <div className="sm:col-span-2">
+          <Textarea label="Address" rows={2} error={fieldError("address")} {...register("address")} />
+        </div>
+      </div>
+    ),
+    (
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Select
+          label="Model"
+          disabled={isComplete}
+          error={fieldError("carModel")}
+          {...register("carModel", { onChange: () => setValue("variant", "") })}
+        >
+          <option value="">Select model</option>
+          {selectedModelName && !activeModels.some((m) => m.name === selectedModelName) && (
+            <option value={selectedModelName}>{selectedModelName}</option>
+          )}
+          {activeModels.map((m) => (
+            <option key={m.id} value={m.name}>
+              {m.name}
+            </option>
+          ))}
+        </Select>
+        <Select label="Variant" disabled={isComplete || !selectedModelName} error={fieldError("variant")} {...register("variant")}>
+          <option value="">Select variant</option>
+          {watch("variant") && !variantOptions.some((v) => v.name === watch("variant")) && (
+            <option value={watch("variant") as string}>{watch("variant") as string}</option>
+          )}
+          {variantOptions.map((v) => (
+            <option key={v.id} value={v.name}>
+              {v.name} · {v.transmissionType} · {v.fuelType.replaceAll("_", " + ")}
+            </option>
+          ))}
+        </Select>
+        <Select label="Enquiry Type" disabled={isComplete} error={fieldError("enquiryType")} {...register("enquiryType")}>
+          {ENQUIRY_TYPES.map((type) => (
+            <option key={type} value={type}>
+              {type.replaceAll("_", " ")}
+            </option>
+          ))}
+        </Select>
+        <Select label="Enquiry Category" error={fieldError("enquiryCategory")} {...register("enquiryCategory")}>
+          <option value="">Select category</option>
+          {ENQUIRY_CATEGORIES.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </Select>
+        <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+          <input type="checkbox" {...register("financeRequired")} />
+          Finance required
+        </label>
+        {financeRequired && <Input label="Finance remarks" error={fieldError("financeRemarks")} {...register("financeRemarks")} />}
+      </div>
+    ),
+    (
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+          <input type="checkbox" {...register("appointmentScheduled")} />
+          Appointment scheduled
+        </label>
+        {appointmentScheduled && (
+          <Input label="Appointment date/time" type="datetime-local" error={fieldError("appointmentAt")} {...register("appointmentAt")} />
+        )}
+        <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+          <input type="checkbox" {...register("testDriveInterested")} />
+          Test drive interested
+        </label>
+        {testDriveInterested && (
+          <Input label="No. of test drives" type="number" min={0} error={fieldError("testDriveCount")} {...register("testDriveCount")} />
+        )}
+      </div>
+    ),
+    (
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <p className="sm:col-span-2 text-sm text-slate-500 dark:text-slate-400">Optional — only if the customer mentioned an exchange car.</p>
+        <Input label="Model name" error={fieldError("exchangeCarModel")} {...register("exchangeCarModel")} />
+        <Input label="Year" type="number" error={fieldError("exchangeCarYear")} {...register("exchangeCarYear")} />
+        <Input label="KMs driven" type="number" min={0} error={fieldError("exchangeCarKms")} {...register("exchangeCarKms")} />
+        <Input label="No. of owners" type="number" min={0} error={fieldError("exchangeCarOwners")} {...register("exchangeCarOwners")} />
+      </div>
+    ),
+    (
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Input label="Called date" type="date" error={fieldError("calledDate")} {...register("calledDate")} />
+        <div className="sm:col-span-2">
+          <Textarea label="Remarks (others)" rows={2} error={fieldError("remarks")} {...register("remarks")} />
+        </div>
+      </div>
+    ),
+  ];
+
   return (
     <>
       <Modal
         isOpen={isOpen}
         onClose={handleClose}
         title={isComplete ? "Complete Customer Details" : "Add Lead"}
-        maxWidth="max-w-2xl"
+        maxWidth={isComplete ? "max-w-3xl" : "max-w-2xl"}
       >
         {contextLabel && (
           <p className="-mt-2 mb-4 text-xs font-medium text-slate-500 dark:text-slate-400">{contextLabel}</p>
         )}
 
-        {/* Step indicator */}
-        <div className="mb-6 flex items-center gap-0.5 overflow-x-auto pb-1">
-          {STEP_TITLES.map((title, index) => {
-            const stepNumber = index + 1;
-            const active = stepNumber === step;
-            const done = stepNumber < step;
-            return (
-              <div key={title} className="flex items-center">
-                {index > 0 && (
-                  <div className={clsx("h-0.5 w-5 shrink-0 sm:w-8", done ? "bg-blue-500" : "bg-slate-200 dark:bg-slate-700")} />
-                )}
-                <div className="flex flex-col items-center gap-1 px-0.5">
-                  <span
-                    className={clsx(
-                      "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-colors",
-                      done && "bg-blue-500 text-white",
-                      active && "bg-blue-600 text-white ring-4 ring-blue-100 dark:ring-blue-500/20",
-                      !done && !active && "border-2 border-slate-200 bg-white text-slate-400 dark:border-slate-700 dark:bg-slate-900"
-                    )}
-                  >
-                    {done ? <Check size={12} strokeWidth={3} /> : stepNumber}
-                  </span>
-                  <span
-                    className={clsx(
-                      "hidden max-w-[70px] text-center text-[10px] leading-tight sm:block",
-                      active ? "font-semibold text-blue-700 dark:text-blue-400" : "text-slate-400"
-                    )}
-                  >
-                    {title}
-                  </span>
+        {isComplete && (
+          <p className="-mt-2 mb-5 text-sm text-slate-500 dark:text-slate-400">
+            Everything known about this customer, grouped below — review and fill in whatever's missing.
+          </p>
+        )}
+
+        {/* Step indicator — only meaningful for the "create" wizard flow */}
+        {!isComplete && (
+          <div className="mb-6 flex items-center gap-0.5 overflow-x-auto pb-1">
+            {STEP_TITLES.map((title, index) => {
+              const stepNumber = index + 1;
+              const active = stepNumber === step;
+              const done = stepNumber < step;
+              return (
+                <div key={title} className="flex items-center">
+                  {index > 0 && (
+                    <div className={clsx("h-0.5 w-5 shrink-0 sm:w-8", done ? "bg-blue-500" : "bg-slate-200 dark:bg-slate-700")} />
+                  )}
+                  <div className="flex flex-col items-center gap-1 px-0.5">
+                    <span
+                      className={clsx(
+                        "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-colors",
+                        done && "bg-blue-500 text-white",
+                        active && "bg-blue-600 text-white ring-4 ring-blue-100 dark:ring-blue-500/20",
+                        !done && !active && "border-2 border-slate-200 bg-white text-slate-400 dark:border-slate-700 dark:bg-slate-900"
+                      )}
+                    >
+                      {done ? <Check size={12} strokeWidth={3} /> : stepNumber}
+                    </span>
+                    <span
+                      className={clsx(
+                        "hidden max-w-[70px] text-center text-[10px] leading-tight sm:block",
+                        active ? "font-semibold text-blue-700 dark:text-blue-400" : "text-slate-400"
+                      )}
+                    >
+                      {title}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
 
         {lookupResult && !isComplete && (
           <div className="mb-4 flex flex-col gap-2">
@@ -305,206 +509,28 @@ export function AddLeadWizard({
         )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-          {/* Step 1 — Enquiry & source */}
-          {step === 1 && (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {isComplete ? (
-                <p className="sm:col-span-2 text-sm text-slate-500 dark:text-slate-400">
-                  Branch, source, and assigned CR are already set for this enquiry — fill in department/sub-source
-                  below if known.
-                </p>
-              ) : (
-                <>
-                  <Select label="Dealer / Branch" error={fieldError("branchId")} {...register("branchId")}>
-                    <option value="">Select branch</option>
-                    {branches?.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.code} - {b.name}
-                      </option>
-                    ))}
-                  </Select>
-                  <Select label="CR (handled by)" error={fieldError("assignedCrId")} {...register("assignedCrId")}>
-                    <option value="">Select CR</option>
-                    {crStaff?.map((cr) => (
-                      <option key={cr.id} value={cr.id}>
-                        {cr.name}
-                      </option>
-                    ))}
-                  </Select>
-                </>
-              )}
-              <Select label="Department" error={fieldError("department")} {...register("department")}>
-                <option value="">Select department</option>
-                {DEPARTMENTS.map((d) => (
-                  <option key={d} value={d}>
-                    {d.replaceAll("_", " ")}
-                  </option>
-                ))}
-              </Select>
-              <Select
-                label="Source"
-                error={fieldError("sourceCategory")}
-                {...register("sourceCategory", { onChange: () => setValue("subsource", "") })}
-              >
-                <option value="">Select source</option>
-                {SOURCE_CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c.replaceAll("_", " ")}
-                  </option>
-                ))}
-              </Select>
-              <Select label="Subsource" error={fieldError("subsource")} {...register("subsource")}>
-                <option value="">Select subsource</option>
-                {subsourceOptions.map((s) => (
-                  <option key={s} value={s}>
-                    {s.replaceAll("_", " ")}
-                  </option>
-                ))}
-              </Select>
-              
-              {!isComplete && (
-                <div className="sm:col-span-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-t border-slate-100 dark:border-slate-800 pt-3 mt-1">
-                  <p className="text-xs text-slate-400 dark:text-slate-500">
-                    Enquiry date: {new Date().toLocaleDateString()}
-                  </p>
-                  <label className="flex items-center gap-2 text-sm text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-3 py-1.5 rounded-md border border-amber-200 dark:border-amber-800/50">
-                    <input type="checkbox" {...register("forceNew")} className="text-amber-600 focus:ring-amber-500 rounded border-amber-300" />
-                    <span className="font-medium">Force new enquiry</span>
-                  </label>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Step 2 — Customer details */}
-          {step === 2 && (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Input label="Name" disabled={isComplete} error={fieldError("name")} {...register("name")} />
-              <div className="relative">
-                <Input label="Phone" disabled={isComplete} error={fieldError("phone")} {...register("phone")} />
-                {lookupLoading && (
-                  <div className="absolute right-3 top-[34px]">
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600" />
+          {isComplete ? (
+            <div className="flex flex-col gap-5">
+              {STEP_TITLES.map((title, index) => {
+                const Icon = STEP_ICONS[index];
+                return (
+                  <div
+                    key={title}
+                    className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4 shadow-sm shadow-slate-900/[0.02] dark:border-slate-800 dark:bg-slate-800/30"
+                  >
+                    <div className="mb-4 flex items-center gap-2.5">
+                      <span className={clsx("flex h-8 w-8 shrink-0 items-center justify-center rounded-xl", STEP_ICON_STYLES[index])}>
+                        <Icon size={15} />
+                      </span>
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">{title}</h3>
+                    </div>
+                    {stepPanels[index]}
                   </div>
-                )}
-              </div>
-              <Input label="Alternate mobile" error={fieldError("alternateMobile")} {...register("alternateMobile")} />
-              <Input label="Email" type="email" disabled={isComplete} error={fieldError("email")} {...register("email")} />
-              <Input label="Date of birth" type="date" error={fieldError("dob")} {...register("dob")} />
-              <Input label="Profession" error={fieldError("profession")} {...register("profession")} />
-              <Input label="Pincode" error={fieldError("pincode")} {...register("pincode")} />
-              <Input label="Location" disabled={isComplete} error={fieldError("location")} {...register("location")} />
-              <div className="sm:col-span-2">
-                <Textarea label="Address" rows={2} error={fieldError("address")} {...register("address")} />
-              </div>
+                );
+              })}
             </div>
-          )}
-
-          {/* Step 3 — Vehicle interest */}
-          {step === 3 && (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Select
-                label="Model"
-                disabled={isComplete}
-                error={fieldError("carModel")}
-                {...register("carModel", { onChange: () => setValue("variant", "") })}
-              >
-                <option value="">Select model</option>
-                {selectedModelName && !activeModels.some((m) => m.name === selectedModelName) && (
-                  <option value={selectedModelName}>{selectedModelName}</option>
-                )}
-                {activeModels.map((m) => (
-                  <option key={m.id} value={m.name}>
-                    {m.name}
-                  </option>
-                ))}
-              </Select>
-              <Select label="Variant" disabled={isComplete || !selectedModelName} error={fieldError("variant")} {...register("variant")}>
-                <option value="">Select variant</option>
-                {watch("variant") && !variantOptions.some((v) => v.name === watch("variant")) && (
-                  <option value={watch("variant") as string}>{watch("variant") as string}</option>
-                )}
-                {variantOptions.map((v) => (
-                  <option key={v.id} value={v.name}>
-                    {v.name} · {v.transmissionType} · {v.fuelType.replaceAll("_", " + ")}
-                  </option>
-                ))}
-              </Select>
-              <Select label="Enquiry Type" disabled={isComplete} error={fieldError("enquiryType")} {...register("enquiryType")}>
-                {ENQUIRY_TYPES.map((type) => (
-                  <option key={type} value={type}>
-                    {type.replaceAll("_", " ")}
-                  </option>
-                ))}
-              </Select>
-              <Select label="Enquiry Category" error={fieldError("enquiryCategory")} {...register("enquiryCategory")}>
-                <option value="">Select category</option>
-                {ENQUIRY_CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </Select>
-              <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                <input type="checkbox" {...register("financeRequired")} />
-                Finance required
-              </label>
-              {financeRequired && (
-                <Input label="Finance remarks" error={fieldError("financeRemarks")} {...register("financeRemarks")} />
-              )}
-            </div>
-          )}
-
-          {/* Step 4 — Appointment & test drive */}
-          {step === 4 && (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                <input type="checkbox" {...register("appointmentScheduled")} />
-                Appointment scheduled
-              </label>
-              {appointmentScheduled && (
-                <Input
-                  label="Appointment date/time"
-                  type="datetime-local"
-                  error={fieldError("appointmentAt")}
-                  {...register("appointmentAt")}
-                />
-              )}
-              <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                <input type="checkbox" {...register("testDriveInterested")} />
-                Test drive interested
-              </label>
-              {testDriveInterested && (
-                <Input
-                  label="No. of test drives"
-                  type="number"
-                  min={0}
-                  error={fieldError("testDriveCount")}
-                  {...register("testDriveCount")}
-                />
-              )}
-            </div>
-          )}
-
-          {/* Step 5 — Exchange car */}
-          {step === 5 && (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <p className="sm:col-span-2 text-sm text-slate-500 dark:text-slate-400">Optional — only if the customer mentioned an exchange car.</p>
-              <Input label="Model name" error={fieldError("exchangeCarModel")} {...register("exchangeCarModel")} />
-              <Input label="Year" type="number" error={fieldError("exchangeCarYear")} {...register("exchangeCarYear")} />
-              <Input label="KMs driven" type="number" min={0} error={fieldError("exchangeCarKms")} {...register("exchangeCarKms")} />
-              <Input label="No. of owners" type="number" min={0} error={fieldError("exchangeCarOwners")} {...register("exchangeCarOwners")} />
-            </div>
-          )}
-
-          {/* Step 6 — Assignment & follow-up */}
-          {step === 6 && (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Input label="Called date" type="date" error={fieldError("calledDate")} {...register("calledDate")} />
-              <div className="sm:col-span-2">
-                <Textarea label="Remarks (others)" rows={2} error={fieldError("remarks")} {...register("remarks")} />
-              </div>
-            </div>
+          ) : (
+            stepPanels[step - 1]
           )}
 
           {resultMessage && <p className="text-sm font-medium text-emerald-600">{resultMessage}</p>}
@@ -512,7 +538,7 @@ export function AddLeadWizard({
 
           <div className="mt-2 flex items-center justify-between gap-3 pt-2">
             <div>
-              {step > 1 && (
+              {!isComplete && step > 1 && (
                 <Button type="button" variant="secondary" icon={<ChevronLeft size={15} />} onClick={goBack}>
                   Back
                 </Button>
@@ -522,7 +548,7 @@ export function AddLeadWizard({
               <Button type="button" variant="secondary" onClick={handleClose}>
                 Cancel
               </Button>
-              {step < totalSteps && (
+              {!isComplete && step < totalSteps && (
                 <Button type="button" variant={step > 2 ? "secondary" : "primary"} onClick={goNext}>
                   Next
                   <ChevronRight size={15} />
@@ -539,7 +565,7 @@ export function AddLeadWizard({
                   Save as Draft
                 </Button>
               )}
-              {step > 2 && (
+              {(isComplete || step > 2) && (
                 <Button type="submit" isLoading={isSubmitting}>
                   {isComplete ? "Save Details" : "Save Enquiry"}
                 </Button>

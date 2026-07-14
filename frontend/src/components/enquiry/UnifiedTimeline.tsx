@@ -2,6 +2,17 @@ import { Calendar, Phone, Mail, User, Clock, CheckCircle2, MessageSquare } from 
 import type { EnquiryStatusHistoryEntry, FollowUp, Comment } from "../../types";
 import { useComments } from "../../hooks/useEnquiry";
 import { CommentInput } from "./CommentInput";
+import { motion } from "framer-motion";
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.1 } }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, x: -20 },
+  show: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+};
 
 type TimelineItem =
   | { type: "status"; data: EnquiryStatusHistoryEntry; date: Date }
@@ -32,13 +43,18 @@ export function UnifiedTimeline({
       {items.length === 0 ? (
         <p className="text-sm text-gray-500">No activity recorded yet.</p>
       ) : (
-        <div className="relative border-l border-gray-200 ml-3 space-y-6 pb-4 mt-4">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+          className="relative border-l border-gray-200 ml-3 space-y-6 pb-4 mt-4"
+        >
       {items.map((item) => {
         if (item.type === "status") {
           const h = item.data;
           const isCreation = !h.fromStatus;
           return (
-            <div key={`status-${h.id}`} className="relative pl-6">
+            <motion.div variants={itemVariants} key={`status-${h.id}`} className="relative pl-6">
               <span className="absolute -left-[13px] top-1 flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 ring-4 ring-white">
                 {isCreation ? <User size={12} className="text-blue-600" /> : <CheckCircle2 size={12} className="text-blue-600" />}
               </span>
@@ -65,13 +81,13 @@ export function UnifiedTimeline({
                   </>
                 )}
               </div>
-            </div>
+            </motion.div>
           );
         } else if (item.type === "comment") {
           const c = item.data;
           
           return (
-            <div key={`comment-${c.id}`} className="relative pl-6">
+            <motion.div variants={itemVariants} key={`comment-${c.id}`} className="relative pl-6">
               <span className="absolute -left-[13px] top-1 flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 ring-4 ring-white dark:bg-slate-800 dark:ring-slate-900">
                 <MessageSquare size={12} className="text-slate-600 dark:text-slate-400" />
               </span>
@@ -92,7 +108,7 @@ export function UnifiedTimeline({
                   return <span key={i}>{part}</span>;
                 })}
               </div>
-            </div>
+            </motion.div>
           );
         } else {
           const f = item.data;
@@ -111,7 +127,7 @@ export function UnifiedTimeline({
           }
 
           return (
-            <div key={`fu-${f.id}`} className="relative pl-6">
+            <motion.div variants={itemVariants} key={`fu-${f.id}`} className="relative pl-6">
               <span className={`absolute -left-[13px] top-1 flex h-6 w-6 items-center justify-center rounded-full ${bgColor} ring-4 ring-white`}>
                 <Icon size={12} className={iconColor} />
               </span>
@@ -136,11 +152,11 @@ export function UnifiedTimeline({
                   </div>
                 )}
               </div>
-            </div>
+            </motion.div>
           );
         }
       })}
-        </div>
+        </motion.div>
       )}
     </div>
   );

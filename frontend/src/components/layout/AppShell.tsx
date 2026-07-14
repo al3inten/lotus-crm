@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Outlet } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { Outlet, useLocation } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { BottomNav } from "./BottomNav";
@@ -7,6 +7,13 @@ import { ReminderModal } from "./ReminderModal";
 
 export function AppShell() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const location = useLocation();
+  const mainRef = useRef<HTMLElement>(null);
+
+  // Automatically scroll to the top of the main content area when navigating between pages
+  useEffect(() => {
+    mainRef.current?.scrollTo(0, 0);
+  }, [location.pathname]);
 
   return (
     <div className="relative flex h-screen w-screen overflow-hidden bg-slate-50 dark:bg-[#0a0a0a] transition-colors selection:bg-blue-500/30 font-sans">
@@ -22,7 +29,7 @@ export function AppShell() {
         <div className="flex flex-1 flex-col overflow-hidden relative">
           <Topbar onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
           
-          <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-4 pb-24 md:p-8 lg:px-12 xl:px-16">
+          <main ref={mainRef} className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-4 pb-24 md:p-8 lg:px-12 xl:px-16">
             <Outlet />
           </main>
         </div>

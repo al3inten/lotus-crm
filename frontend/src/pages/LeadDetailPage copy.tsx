@@ -121,29 +121,19 @@ const INSIGHT_TONE: Record<InsightTone, string> = {
 /** The deal's current "mood" — active/won/lost — used to tint the hero accent bar, the
  * pipeline card's edge, and the avatar ring so the whole page reads the outcome at a glance. */
 type Mood = "blue" | "emerald" | "red";
-type MoodStyle = { base: string; blobA: string; blobB: string; blobC: string; border: string; glow: string };
-const MOOD_STYLES: Record<Mood, MoodStyle> = {
+const MOOD_STYLES: Record<Mood, { cover: string; border: string; glow: string }> = {
   blue: {
-    base: "from-slate-950 via-indigo-950 to-slate-900",
-    blobA: "bg-indigo-500",
-    blobB: "bg-sky-400",
-    blobC: "bg-violet-500",
+    cover: "from-blue-600 via-indigo-600 to-violet-600",
     border: "border-l-blue-500",
     glow: "shadow-[0_30px_80px_-25px_rgba(79,70,229,0.5)] dark:shadow-[0_30px_80px_-25px_rgba(79,70,229,0.35)]",
   },
   emerald: {
-    base: "from-slate-950 via-emerald-950 to-slate-900",
-    blobA: "bg-emerald-400",
-    blobB: "bg-teal-400",
-    blobC: "bg-cyan-400",
+    cover: "from-emerald-600 via-teal-600 to-cyan-600",
     border: "border-l-emerald-500",
     glow: "shadow-[0_30px_80px_-25px_rgba(5,150,105,0.5)] dark:shadow-[0_30px_80px_-25px_rgba(5,150,105,0.35)]",
   },
   red: {
-    base: "from-slate-950 via-rose-950 to-slate-900",
-    blobA: "bg-rose-500",
-    blobB: "bg-orange-400",
-    blobC: "bg-red-500",
+    cover: "from-rose-600 via-red-600 to-orange-600",
     border: "border-l-red-500",
     glow: "shadow-[0_30px_80px_-25px_rgba(225,29,72,0.5)] dark:shadow-[0_30px_80px_-25px_rgba(225,29,72,0.35)]",
   },
@@ -158,14 +148,6 @@ function moodOf(enquiry?: Enquiry): Mood {
 function buildInsights(lead: LeadWithHistory, enquiry: Enquiry): Insight[] {
   const out: Insight[] = [];
   const now = new Date();
-
-  if (enquiry.status === "RETAIL_DONE") {
-    out.push({
-      tone: "positive",
-      icon: <Sparkles size={14} />,
-      text: "Retail is complete! Please update the status to CLOSED to finalise this deal.",
-    });
-  }
 
   if (enquiry.status !== "CLOSED") {
     if (enquiry.followUpDueAt) {
@@ -323,12 +305,12 @@ function MetaPill({ icon, children }: { icon: ReactNode; children: ReactNode }) 
 
 const ACTION_TONES = {
   default:
-    "bg-slate-100 text-slate-700 hover:bg-slate-200/80 dark:bg-white/[0.06] dark:text-slate-200 dark:hover:bg-white/[0.12]",
-  call: "bg-blue-100/70 text-blue-700 hover:bg-blue-100 dark:bg-blue-500/15 dark:text-blue-300 dark:hover:bg-blue-500/25",
+    "border border-slate-200 bg-white text-slate-600 hover:-translate-y-0.5 hover:border-slate-300 hover:text-slate-900 hover:shadow-md hover:shadow-slate-900/5 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:text-white",
+  call: "border border-blue-200 bg-blue-50 text-blue-700 hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md hover:shadow-blue-500/20 dark:border-blue-500/25 dark:bg-blue-500/10 dark:text-blue-300 dark:hover:border-blue-500/40",
   whatsapp:
-    "bg-emerald-100/70 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-300 dark:hover:bg-emerald-500/25",
+    "border border-emerald-200 bg-emerald-50 text-emerald-700 hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md hover:shadow-emerald-500/20 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-300 dark:hover:border-emerald-500/40",
   primary:
-    "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm shadow-blue-600/25 ring-1 ring-inset ring-white/25 hover:from-blue-500 hover:to-indigo-500",
+    "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/30 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-blue-600/40 hover:from-blue-500 hover:to-indigo-500",
 } as const;
 
 /** Compact toolbar action — anchor (tel/wa) or button — with label hidden on small screens. */
@@ -350,7 +332,7 @@ function ActionButton({
   disabled?: boolean;
 }) {
   const cls = clsx(
-    "inline-flex h-9 min-w-9 items-center justify-center gap-1.5 rounded-full px-3.5 text-sm font-semibold backdrop-blur-sm transition-all active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50",
+    "inline-flex h-11 min-w-11 items-center justify-center gap-1.5 rounded-full px-4 text-sm font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50",
     ACTION_TONES[tone],
     disabled && "pointer-events-none opacity-40"
   );
@@ -396,7 +378,6 @@ export function LeadDetailPage() {
   const [consultantEdit, setConsultantEdit] = useState(false);
   const [consultantValue, setConsultantValue] = useState("");
   const [activeTab, setActiveTab] = useState<DetailTab>("activity");
-  const [enquiriesExpanded, setEnquiriesExpanded] = useState(false);
 
   const prevStatusRef = useRef<EnquiryStatus | null>(null);
   const assignRef = useRef<HTMLDivElement>(null);
@@ -448,47 +429,12 @@ export function LeadDetailPage() {
 
   if (leadLoading) {
     return (
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 pb-12">
-        {/* Skeleton Hero */}
-        <div className="relative overflow-hidden rounded-3xl ring-1 ring-slate-200 dark:ring-slate-800 bg-white dark:bg-slate-900">
-          <div className="h-16 sm:h-20 bg-slate-100 dark:bg-slate-800/50 animate-pulse" />
-          <div className="px-4 pb-4 sm:px-5">
-            <div className="flex flex-col gap-2.5 pb-3 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex items-center gap-3">
-                <div className="-mt-8 h-16 w-16 sm:-mt-9 sm:h-[72px] sm:w-[72px] shrink-0 rounded-full ring-4 ring-white dark:ring-slate-900 bg-slate-200 dark:bg-slate-800 animate-pulse" />
-                <div className="pt-2">
-                  <div className="h-6 w-48 rounded-lg bg-slate-200 dark:bg-slate-800 animate-pulse" />
-                  <div className="mt-2 h-4 w-32 rounded-md bg-slate-100 dark:bg-slate-800/50 animate-pulse" />
-                </div>
-              </div>
-              <div className="flex gap-2 pt-2 lg:pt-0">
-                 <div className="h-9 w-24 rounded-full bg-slate-200 dark:bg-slate-800 animate-pulse" />
-                 <div className="h-9 w-24 rounded-full bg-slate-200 dark:bg-slate-800 animate-pulse" />
-                 <div className="h-9 w-24 rounded-full bg-slate-200 dark:bg-slate-800 animate-pulse" />
-              </div>
-            </div>
-            <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-5 border-t border-slate-100 dark:border-slate-800/50 pt-4">
-               {[1, 2, 3, 4, 5].map((i) => (
-                 <div key={i} className="flex flex-col gap-1.5">
-                   <div className="h-3 w-16 rounded bg-slate-100 dark:bg-slate-800/50 animate-pulse" />
-                   <div className="h-4 w-24 rounded bg-slate-200 dark:bg-slate-800 animate-pulse" />
-                 </div>
-               ))}
-            </div>
-          </div>
-        </div>
-        
-        {/* Skeleton Pipeline */}
-        <div className="h-40 rounded-2xl bg-white dark:bg-slate-900 ring-1 ring-slate-200 dark:ring-slate-800 animate-pulse" />
-        
-        {/* Skeleton Tabs & Content */}
-        <div className="flex items-center gap-2">
-           <div className="h-9 w-32 rounded-xl bg-slate-200 dark:bg-slate-800 animate-pulse" />
-           <div className="h-9 w-24 rounded-xl bg-slate-200 dark:bg-slate-800 animate-pulse" />
-        </div>
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-           <div className="h-64 rounded-2xl bg-white dark:bg-slate-900 ring-1 ring-slate-200 dark:ring-slate-800 animate-pulse lg:col-span-1" />
-           <div className="h-64 rounded-2xl bg-white dark:bg-slate-900 ring-1 ring-slate-200 dark:ring-slate-800 animate-pulse lg:col-span-2" />
+      <div className="mx-auto flex max-w-7xl flex-col gap-6">
+        <div className="h-12 animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-800" />
+        <div className="h-44 animate-pulse rounded-3xl bg-slate-200 dark:bg-slate-800" />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="h-56 animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-800" />
+          <div className="h-56 animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-800" />
         </div>
       </div>
     );
@@ -571,118 +517,105 @@ export function LeadDetailPage() {
       )}
 
       {/* ---------- HERO HEADER (identity, actions, and info all live in one card now) ---------- */}
-      <motion.div variants={fadeUp} className="relative overflow-hidden rounded-3xl ring-1 ring-slate-900/5 dark:ring-white/10">
-        {/* Cover banner — a living "aurora mesh" tinted by the deal's mood (active/won/lost) */}
-        <div className={clsx("grain-overlay relative h-16 overflow-hidden bg-gradient-to-br sm:h-20", moodStyle.base)}>
-          {/* Drifting colour blobs form a soft, premium mesh */}
-          <div className={clsx("pointer-events-none absolute -left-10 -top-12 h-40 w-40 animate-aurora rounded-full opacity-70 blur-3xl", moodStyle.blobA)} />
-          <div className={clsx("pointer-events-none absolute right-0 -top-16 h-48 w-48 animate-aurora rounded-full opacity-60 blur-3xl [animation-delay:-5s]", moodStyle.blobB)} />
-          <div className={clsx("pointer-events-none absolute -bottom-16 left-1/3 h-40 w-40 animate-aurora rounded-full opacity-50 blur-3xl [animation-delay:-9s]", moodStyle.blobC)} />
-          {/* Fine dot grid for a technical, high-end texture */}
-          <div
-            className="pointer-events-none absolute inset-0 opacity-[0.18]"
-            style={{ backgroundImage: "radial-gradient(rgba(255,255,255,0.7) 1px, transparent 1px)", backgroundSize: "16px 16px" }}
-          />
-          {/* Diagonal glass sheen + crisp top highlight */}
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.04] to-white/10" />
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent" />
-          {/* Bottom vignette so the panel below reads as one continuous surface */}
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/25 to-transparent" />
+      <motion.div variants={fadeUp} className={clsx("relative overflow-hidden rounded-3xl", moodStyle.glow)}>
+        {/* Cover banner — the deal's mood (active/won/lost), bold and unmissable */}
+        <div className={clsx("grain-overlay relative h-20 overflow-hidden bg-gradient-to-br sm:h-24", moodStyle.cover)}>
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent" />
+          <div className="pointer-events-none absolute -right-8 -top-14 h-40 w-40 rounded-full bg-white/20 blur-2xl" />
+          <div className="pointer-events-none absolute -bottom-10 left-10 h-28 w-28 rounded-full bg-white/10 blur-2xl" />
+          <div className="pointer-events-none absolute right-1/3 top-0 h-24 w-24 rounded-full bg-white/10 blur-3xl" />
           <Link
             to="/leads"
             aria-label="Back to Leads"
-            className="absolute left-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur-md transition-colors hover:bg-white/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+            className="absolute left-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-colors hover:bg-white/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
           >
-            <ArrowLeft size={16} />
+            <ArrowLeft size={17} />
           </Link>
           {enquiry && (
             <button
               type="button"
               onClick={() => setShowCustomerView(true)}
               aria-label="View full customer details"
-              className="absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur-md transition-colors hover:bg-white/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+              className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-colors hover:bg-white/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
             >
               <Eye size={16} />
             </button>
           )}
         </div>
 
-        <div className="glass-panel relative px-4 pb-4 sm:px-5">
-          <div className="flex flex-col gap-2.5 pb-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex min-w-0 flex-1 items-center gap-3">
-              <span className="-mt-8 shrink-0 rounded-full ring-4 ring-white sm:-mt-9 dark:ring-slate-900">
-                <Avatar name={lead.name} size="xl" />
-              </span>
-              <div className="min-w-0 flex-1 pb-1">
-                <h1 className="truncate text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">{lead.name}</h1>
-                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                  {enquiry && <StatusBadge status={enquiry.status} lossReason={enquiry.lossReason} />}
-                  {enquiry && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-700/60 dark:text-slate-300">
-                      <Hash size={11} />
-                      {enquiry.id.slice(-6).toUpperCase()}
-                    </span>
-                  )}
-                  {enquiry && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-700/60 dark:text-slate-300">
-                      <Radio size={11} />
-                      {enquiry.source.replaceAll("_", " ")}
-                    </span>
-                  )}
-                  {enquiry && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-700/60 dark:text-slate-300">
-                      <Building2 size={11} />
-                      {enquiry.branch.name}
-                    </span>
-                  )}
-                </div>
+        <div className="glass-panel relative px-4 pb-4 sm:px-5 sm:pb-5">
+          <div className="flex flex-wrap items-end gap-3 pb-3">
+            <span className="-mt-10 shrink-0 rounded-full ring-[5px] ring-white sm:-mt-12 dark:ring-slate-900">
+              <Avatar name={lead.name} size="xl" />
+            </span>
+            <div className="min-w-0 flex-1 pb-1">
+              <h1 className="truncate text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">{lead.name}</h1>
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                {enquiry && <StatusBadge status={enquiry.status} lossReason={enquiry.lossReason} />}
+                {enquiry && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-700/60 dark:text-slate-300">
+                    <Hash size={11} />
+                    {enquiry.id.slice(-6).toUpperCase()}
+                  </span>
+                )}
+                {enquiry && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-700/60 dark:text-slate-300">
+                    <Radio size={11} />
+                    {enquiry.source.replaceAll("_", " ")}
+                  </span>
+                )}
+                {enquiry && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-700/60 dark:text-slate-300">
+                    <Building2 size={11} />
+                    {enquiry.branch.name}
+                  </span>
+                )}
               </div>
             </div>
+          </div>
 
-            {/* Actions sit inline with the identity on wide screens — top-right, tight, premium */}
-            <div className="flex flex-wrap items-center gap-1.5 pb-0.5">
-              <ActionButton icon={<Phone size={16} />} label="Call" href={`tel:${lead.phoneRaw}`} tone="call" disabled={!lead.phoneRaw} />
-              <ActionButton
-                icon={<MessageCircle size={16} />}
-                label="WhatsApp"
-                href={phoneDigits ? `https://wa.me/${phoneDigits}` : undefined}
-                external
-                tone="whatsapp"
-                disabled={!phoneDigits}
-              />
-              <ActionButton icon={<Zap size={16} />} label="Follow-up" onClick={openFollowUp} tone="primary" disabled={!enquiry || enquiry.status === "CLOSED"} />
-              <ActionButton icon={<Pencil size={16} />} label="Edit" onClick={() => setShowDetailsWizard(true)} disabled={!enquiry} />
-              {canReassign && (
-                <div className="relative" ref={assignRef}>
-                  <ActionButton icon={<UserPlus size={16} />} label="Assign" onClick={() => setAssignOpen((o) => !o)} disabled={!enquiry} />
-                  {assignOpen && enquiry && (
-                    <div className="absolute right-0 top-full z-40 mt-2 w-64 rounded-xl border border-slate-200 bg-white p-3 shadow-xl dark:border-slate-700 dark:bg-slate-900">
-                      <p className="mb-2 text-xs font-semibold text-slate-500 dark:text-slate-400">Reassign to CR</p>
-                      <Select value={reassignTo} onChange={(e) => setReassignTo(e.target.value)} className="w-full text-sm">
-                        <option value="">Select CR…</option>
-                        {crTeam?.map((cr) => (
-                          <option key={cr.id} value={cr.id}>
-                            {cr.name}
-                          </option>
-                        ))}
-                      </Select>
-                      <Button
-                        size="sm"
-                        className="mt-2 w-full"
-                        disabled={!reassignTo}
-                        onClick={() => {
-                          reassign.mutate({ toUserId: reassignTo });
-                          setReassignTo("");
-                          setAssignOpen(false);
-                        }}
-                      >
-                        Assign
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+          <div className="flex flex-wrap items-center gap-1.5 pb-3">
+            <ActionButton icon={<Phone size={16} />} label="Call" href={`tel:${lead.phoneRaw}`} tone="call" disabled={!lead.phoneRaw} />
+            <ActionButton
+              icon={<MessageCircle size={16} />}
+              label="WhatsApp"
+              href={phoneDigits ? `https://wa.me/${phoneDigits}` : undefined}
+              external
+              tone="whatsapp"
+              disabled={!phoneDigits}
+            />
+            <ActionButton icon={<Zap size={16} />} label="Follow-up" onClick={openFollowUp} tone="primary" disabled={!enquiry || enquiry.status === "CLOSED"} />
+            <ActionButton icon={<Pencil size={16} />} label="Edit" onClick={() => setShowDetailsWizard(true)} disabled={!enquiry} />
+            {canReassign && (
+              <div className="relative" ref={assignRef}>
+                <ActionButton icon={<UserPlus size={16} />} label="Assign" onClick={() => setAssignOpen((o) => !o)} disabled={!enquiry} />
+                {assignOpen && enquiry && (
+                  <div className="absolute left-0 top-full z-40 mt-2 w-64 rounded-xl border border-slate-200 bg-white p-3 shadow-xl dark:border-slate-700 dark:bg-slate-900">
+                    <p className="mb-2 text-xs font-semibold text-slate-500 dark:text-slate-400">Reassign to CR</p>
+                    <Select value={reassignTo} onChange={(e) => setReassignTo(e.target.value)} className="w-full text-sm">
+                      <option value="">Select CR…</option>
+                      {crTeam?.map((cr) => (
+                        <option key={cr.id} value={cr.id}>
+                          {cr.name}
+                        </option>
+                      ))}
+                    </Select>
+                    <Button
+                      size="sm"
+                      className="mt-2 w-full"
+                      disabled={!reassignTo}
+                      onClick={() => {
+                        reassign.mutate({ toUserId: reassignTo });
+                        setReassignTo("");
+                        setAssignOpen(false);
+                      }}
+                    >
+                      Assign
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {completeDetailsNeeded && (
@@ -705,13 +638,9 @@ export function LeadDetailPage() {
                   icon={<Phone size={13} />}
                   label="Mobile Number"
                   value={
-                    <span className="group flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5">
                       {lead.phoneRaw}
-                      <span className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                        <a href={`tel:${lead.phoneRaw}`} className="flex h-6 w-6 items-center justify-center rounded bg-slate-100 text-blue-600 transition-colors hover:bg-blue-100 dark:bg-slate-800 dark:text-blue-400 dark:hover:bg-blue-900/40" title="Call"><Phone size={12} /></a>
-                        {phoneDigits && <a href={`https://wa.me/${phoneDigits}`} target="_blank" rel="noreferrer" className="flex h-6 w-6 items-center justify-center rounded bg-slate-100 text-emerald-600 transition-colors hover:bg-emerald-100 dark:bg-slate-800 dark:text-emerald-400 dark:hover:bg-emerald-900/40" title="WhatsApp"><MessageCircle size={12} /></a>}
-                        <CopyButton value={lead.phoneRaw} label="Copy phone number" />
-                      </span>
+                      <CopyButton value={lead.phoneRaw} label="Copy phone number" />
                     </span>
                   }
                 />
@@ -719,14 +648,9 @@ export function LeadDetailPage() {
                   icon={<Mail size={13} />}
                   label="Email"
                   value={
-                    <span className="group flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5">
                       {lead.email || "—"}
-                      {lead.email && (
-                        <span className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                          <a href={`mailto:${lead.email}`} className="flex h-6 w-6 items-center justify-center rounded bg-slate-100 text-indigo-600 transition-colors hover:bg-indigo-100 dark:bg-slate-800 dark:text-indigo-400 dark:hover:bg-indigo-900/40" title="Send Email"><Mail size={12} /></a>
-                          <CopyButton value={lead.email} label="Copy email" />
-                        </span>
-                      )}
+                      {lead.email && <CopyButton value={lead.email} label="Copy email" />}
                     </span>
                   }
                 />
@@ -829,8 +753,8 @@ export function LeadDetailPage() {
       {lead.enquiries.length > 1 && (
         <motion.div variants={fadeUp}>
           <Card padded={false} className="overflow-hidden">
-            <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-2.5 dark:border-slate-800">
-              <Layers size={15} className="text-blue-500 dark:text-blue-400" />
+            <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+              <Layers size={16} className="text-blue-500 dark:text-blue-400" />
               <h2 className="text-sm font-bold text-slate-900 dark:text-white">Enquiries</h2>
               <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-600 dark:bg-slate-700/60 dark:text-slate-300">
                 {lead.enquiries.length}
@@ -843,120 +767,55 @@ export function LeadDetailPage() {
                 <Plus size={13} /> New enquiry
               </button>
             </div>
-            <div className="flex gap-2 overflow-x-auto p-2.5 [scrollbar-width:thin]">
-              {(() => {
-                const COLLAPSED = 4;
-                const many = lead.enquiries.length > COLLAPSED;
-                let visible = lead.enquiries;
-                if (many && !enquiriesExpanded) {
-                  visible = lead.enquiries.slice(0, COLLAPSED);
-                  // Keep the currently-viewed enquiry visible even when it's past the cutoff.
-                  if (!visible.some((e) => e.id === activeEnquiryId)) {
-                    const act = lead.enquiries.find((e) => e.id === activeEnquiryId);
-                    if (act) visible = [act, ...lead.enquiries.filter((e) => e.id !== act.id).slice(0, COLLAPSED - 1)];
-                  }
-                }
+            <div className="flex gap-2 overflow-x-auto p-3 [scrollbar-width:thin]">
+              {lead.enquiries.map((enq) => {
+                const active = enq.id === activeEnquiryId;
                 return (
-                  <>
-                    {visible.map((enq) => {
-                      const active = enq.id === activeEnquiryId;
-                      return (
-                        <button
-                          key={enq.id}
-                          type="button"
-                          onClick={() => navigate(`/leads/${leadId}/enquiries/${enq.id}`)}
-                          aria-current={active}
-                          className={clsx(
-                            "flex min-w-[150px] max-w-[210px] flex-col gap-1 rounded-lg border p-2.5 text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
-                            active
-                              ? "border-blue-300 bg-gradient-to-br from-blue-50 to-indigo-50/60 dark:border-blue-500/40 dark:from-blue-500/10 dark:to-indigo-500/5"
-                              : "border-slate-200 bg-white hover:border-blue-200 dark:border-slate-700 dark:bg-slate-900/40 dark:hover:border-blue-500/30"
-                          )}
-                        >
-                          <div className="flex items-center gap-1.5">
-                            {active && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />}
-                            <span className="truncate text-xs font-semibold text-slate-900 dark:text-white">{enq.carModel}</span>
-                          </div>
-                          <StatusBadge status={enq.status} lossReason={enq.lossReason} />
-                          <span className="text-[10px] text-slate-400 dark:text-slate-500">
-                            {new Date(enq.createdAt).toLocaleDateString()} · {enq.source.replaceAll("_", " ")}
-                          </span>
-                        </button>
-                      );
-                    })}
-                    {many && (
-                      <button
-                        type="button"
-                        onClick={() => setEnquiriesExpanded((v) => !v)}
-                        className="flex min-w-[64px] shrink-0 flex-col items-center justify-center gap-0.5 rounded-lg border border-dashed border-slate-300 px-3 text-xs font-semibold text-slate-500 transition-colors hover:border-blue-300 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:border-slate-700 dark:text-slate-400 dark:hover:border-blue-500/40 dark:hover:text-blue-400"
-                      >
-                        {enquiriesExpanded ? "Show less" : `+${lead.enquiries.length - COLLAPSED}`}
-                        <span className="text-[9px] font-medium uppercase tracking-wide">{enquiriesExpanded ? "" : "more"}</span>
-                      </button>
+                  <button
+                    key={enq.id}
+                    type="button"
+                    onClick={() => navigate(`/leads/${leadId}/enquiries/${enq.id}`)}
+                    aria-current={active}
+                    className={clsx(
+                      "flex min-w-[190px] flex-col gap-1.5 rounded-xl border p-3 text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+                      active
+                        ? "border-blue-300 bg-gradient-to-br from-blue-50 to-indigo-50/60 shadow-sm shadow-blue-500/10 dark:border-blue-500/40 dark:from-blue-500/10 dark:to-indigo-500/5"
+                        : "border-slate-200 bg-white hover:-translate-y-0.5 hover:border-blue-200 dark:border-slate-700 dark:bg-slate-900/40 dark:hover:border-blue-500/30"
                     )}
-                  </>
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="truncate text-sm font-semibold text-slate-900 dark:text-white">{enq.carModel}</span>
+                      {active && <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-blue-600 dark:text-blue-400">Viewing</span>}
+                    </div>
+                    <StatusBadge status={enq.status} lossReason={enq.lossReason} />
+                    <span className="text-xs text-slate-400 dark:text-slate-500">
+                      {new Date(enq.createdAt).toLocaleDateString()} · {enq.source.replaceAll("_", " ")}
+                    </span>
+                  </button>
                 );
-              })()}
+              })}
             </div>
           </Card>
         </motion.div>
       )}
 
       {lead.enquiries.length === 0 ? (
-        <Card className="flex flex-col items-center justify-center gap-6 py-20 text-center relative overflow-hidden">
-          {/* Background Ambient Glow */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-40 dark:opacity-20">
-             <div className="h-64 w-64 rounded-full bg-blue-400/20 blur-3xl" />
-             <div className="absolute top-1/2 left-1/2 h-48 w-48 -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-500/20 blur-3xl" />
-          </div>
-
-          {/* Abstract Illustration */}
-          <div className="relative flex h-32 w-32 items-center justify-center">
-             {/* Glowing base ring */}
-             <div className="absolute inset-0 rounded-full border border-blue-200 bg-blue-50/50 dark:border-blue-500/20 dark:bg-blue-500/10 animate-[spin_10s_linear_infinite]" />
-             <div className="absolute inset-2 rounded-full border border-dashed border-indigo-200 dark:border-indigo-500/30 animate-[spin_15s_linear_infinite_reverse]" />
-             
-             {/* Center icon */}
-             <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-xl shadow-blue-500/25 ring-4 ring-white dark:ring-slate-900 z-10">
-               <Car size={32} strokeWidth={1.5} />
-             </div>
-             
-             {/* Floating elements */}
-             <motion.div animate={{ y: [-4, 4, -4] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }} className="absolute -left-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-white text-emerald-500 shadow-md ring-1 ring-slate-900/5 dark:bg-slate-800 dark:ring-white/10 z-20">
-                <Check size={16} strokeWidth={3} />
-             </motion.div>
-             <motion.div animate={{ y: [4, -4, 4] }} transition={{ repeat: Infinity, duration: 3.5, ease: "easeInOut" }} className="absolute -bottom-2 -right-2 flex h-10 w-10 items-center justify-center rounded-full bg-white text-blue-500 shadow-lg ring-1 ring-slate-900/5 dark:bg-slate-800 dark:ring-white/10 z-20">
-                <Plus size={20} />
-             </motion.div>
-          </div>
-
-          <div className="relative z-10 max-w-sm">
-            <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">Start the Journey</h2>
-            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-              This lead doesn't have an active vehicle enquiry yet. Add their preferences to open the pipeline and unlock AI insights.
+        <Card className="flex flex-col items-center gap-3 py-14 text-center">
+          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300">
+            <ClipboardEdit size={26} />
+          </span>
+          <div>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">No enquiries yet</h2>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              This customer doesn't have any enquiries. Create one to start the pipeline.
             </p>
           </div>
-
-          <div className="relative z-10">
-             <button 
-               type="button" 
-               onClick={() => setShowNewEnquiry(true)}
-               className="group relative inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 transition-all hover:scale-105 hover:shadow-blue-500/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50"
-             >
-                <div className="absolute inset-0 rounded-full bg-white/20 opacity-0 transition-opacity group-hover:opacity-100" />
-                <Plus size={16} />
-                <span>Create New Enquiry</span>
-             </button>
-          </div>
+          <Button icon={<Plus size={14} />} onClick={() => setShowNewEnquiry(true)}>
+            New enquiry
+          </Button>
         </Card>
       ) : enquiryLoading ? (
-        <div className="flex flex-col gap-6 animate-pulse">
-           <div className="h-40 rounded-2xl bg-white dark:bg-slate-900 ring-1 ring-slate-200 dark:ring-slate-800" />
-           <div className="flex items-center gap-2">
-             <div className="h-9 w-32 rounded-xl bg-slate-200 dark:bg-slate-800" />
-           </div>
-           <div className="h-64 rounded-2xl bg-white dark:bg-slate-900 ring-1 ring-slate-200 dark:ring-slate-800" />
-        </div>
+        <div className="h-64 animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-800" />
       ) : enquiryError || !enquiry ? (
         <Card className="flex flex-col items-center gap-3 py-14 text-center">
           <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-300">
@@ -1095,91 +954,42 @@ export function LeadDetailPage() {
 
                 {/* ---------- ACTIVITY TAB ---------- */}
                 {activeTab === "activity" && (
-                  <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                    <div className="flex flex-col gap-6 lg:col-span-2">
-                      {/* ---------- FOLLOW-UP HISTORY ---------- */}
-                      <motion.div variants={fadeUp}>
-                        <FollowUpTable
-                          followUps={enquiry.followUps || []}
-                          onAddClick={openFollowUp}
-                          canAdd={false}
-                          limit={4}
-                          onViewAll={() => setShowFollowUpsModal(true)}
+                  <div className="flex flex-col gap-6">
+                    {/* ---------- FOLLOW-UP HISTORY ---------- */}
+                    <motion.div variants={fadeUp}>
+                      <FollowUpTable
+                        followUps={enquiry.followUps || []}
+                        onAddClick={openFollowUp}
+                        canAdd={false}
+                        limit={4}
+                        onViewAll={() => setShowFollowUpsModal(true)}
+                      />
+                    </motion.div>
+
+                    {/* ---------- ACTIVITY TIMELINE ---------- */}
+                    <motion.div variants={fadeUp}>
+                      <Card>
+                        <CardHeader
+                          icon={<MessagesSquare size={18} />}
+                          iconClassName="bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400"
+                          title="Activity Timeline"
+                          subtitle="Complete audit history of stage changes and follow-ups"
+                          actions={
+                            <button
+                              type="button"
+                              onClick={() => setShowTimelineModal(true)}
+                              aria-label="View full timeline"
+                              className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-blue-400"
+                            >
+                              <Eye size={16} />
+                            </button>
+                          }
                         />
-                      </motion.div>
-
-                      {/* ---------- ACTIVITY TIMELINE ---------- */}
-                      <motion.div variants={fadeUp}>
-                        <Card>
-                          <CardHeader
-                            icon={<MessagesSquare size={18} />}
-                            iconClassName="bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400"
-                            title="Activity Timeline"
-                            subtitle="Complete audit history of stage changes and follow-ups"
-                            actions={
-                              <button
-                                type="button"
-                                onClick={() => setShowTimelineModal(true)}
-                                aria-label="View full timeline"
-                                className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-blue-400"
-                              >
-                                <Eye size={16} />
-                              </button>
-                            }
-                          />
-                          <div className="max-h-[360px] overflow-y-auto pr-1 [scrollbar-width:thin]">
-                            <UnifiedTimeline enquiryId={enquiry.id} statusHistory={enquiry.statusHistory || []} followUps={enquiry.followUps || []} />
-                          </div>
-                        </Card>
-                      </motion.div>
-                    </div>
-
-                    <div className="flex flex-col gap-6 lg:col-span-1">
-                       {/* ---------- RICH NOTES ---------- */}
-                       <motion.div variants={fadeUp} className="h-full">
-                         <Card className="flex flex-col h-full min-h-[500px] overflow-hidden">
-                           <CardHeader 
-                             icon={<Pencil size={18} />} 
-                             iconClassName="bg-amber-50 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400"
-                             title="Consultant Notes"
-                             subtitle="Private notes for this enquiry"
-                           />
-                           <div className="flex-1 overflow-y-auto p-4 [scrollbar-width:thin] border-y border-slate-100 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-900/20">
-                              {enquiry.remarks ? (
-                                 <div className="rounded-xl bg-amber-50 border border-amber-100 p-4 text-sm text-amber-900 dark:bg-amber-500/10 dark:border-amber-500/20 dark:text-amber-200">
-                                    <p className="whitespace-pre-wrap">{enquiry.remarks}</p>
-                                 </div>
-                              ) : (
-                                 <div className="flex h-full flex-col items-center justify-center text-center text-slate-400">
-                                    <ClipboardEdit size={32} className="mb-3 opacity-20" />
-                                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400">No notes yet</p>
-                                    <p className="mt-1 text-xs text-slate-400/80">Jot down important details or context for the next follow-up.</p>
-                                 </div>
-                              )}
-                           </div>
-                           <div className="p-4 bg-white dark:bg-slate-900">
-                             <textarea
-                               placeholder="Type a new note (press Enter to save)..."
-                               className="w-full resize-none rounded-xl border border-slate-200 bg-white p-3 text-sm placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                               rows={3}
-                               onKeyDown={(e) => {
-                                 if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    const val = e.currentTarget.value.trim();
-                                    if (val) {
-                                      updateDetails.mutate({ remarks: enquiry.remarks ? enquiry.remarks + '\n\n---\n\n' + val : val });
-                                      e.currentTarget.value = '';
-                                    }
-                                 }
-                               }}
-                             />
-                             <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
-                                <span>Press Enter to save</span>
-                             </div>
-                           </div>
-                         </Card>
-                       </motion.div>
-                    </div>
+                        <div className="max-h-[360px] overflow-y-auto pr-1 [scrollbar-width:thin]">
+                          <UnifiedTimeline enquiryId={enquiry.id} statusHistory={enquiry.statusHistory || []} followUps={enquiry.followUps || []} />
+                        </div>
+                      </Card>
+                    </motion.div>
                   </div>
                 )}
 

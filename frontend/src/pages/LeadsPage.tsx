@@ -59,7 +59,7 @@ export function LeadsPage() {
   const goToPage = (p: number) => setFilters((f) => ({ ...f, page: Math.min(Math.max(1, p), totalPages) }));
 
   const ViewToggle = (
-    <div className="flex items-center rounded-xl bg-white/10 p-1 ring-1 ring-white/20 backdrop-blur-md">
+    <div className="flex items-center rounded-xl bg-white/5 p-1 ring-1 ring-white/10 backdrop-blur-md">
       {(["list", "kanban"] as const).map((v) => (
         <button
           key={v}
@@ -67,8 +67,8 @@ export function LeadsPage() {
           onClick={() => setView(v)}
           aria-pressed={view === v}
           className={clsx(
-            "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60",
-            view === v ? "bg-white text-blue-600 shadow-sm" : "text-slate-200 hover:text-white"
+            "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50",
+            view === v ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-white hover:bg-white/5"
           )}
         >
           {v === "list" ? <List size={16} /> : <LayoutGrid size={16} />}
@@ -80,27 +80,30 @@ export function LeadsPage() {
 
   return (
     <motion.div initial="hidden" animate="visible" variants={pageVariants} className="flex flex-col gap-5">
-      {/* ---------- HERO HEADER ---------- */}
-      <div className="relative overflow-hidden rounded-3xl bg-slate-900 px-6 py-8 shadow-xl dark:bg-slate-950 sm:px-9 sm:py-9">
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -left-[10%] -top-[60%] h-[220%] w-[45%] rounded-full bg-blue-600/25 blur-[110px] dark:bg-blue-600/12" />
-          <div className="absolute -right-[15%] top-[-30%] h-[170%] w-[55%] rounded-full bg-indigo-500/20 blur-[120px] dark:bg-indigo-500/10" />
-        </div>
-
+      {/* ---------- PREMIUM HERO HEADER ---------- */}
+      <div className="relative overflow-hidden rounded-3xl bg-[#0B0F19] px-6 py-8 shadow-2xl shadow-blue-900/10 ring-1 ring-slate-900/5 dark:bg-slate-950 dark:ring-white/10 sm:px-9 sm:py-9">
+        {/* Subtle grid pattern for premium texture */}
+        <div 
+          className="pointer-events-none absolute inset-0 opacity-[0.03] dark:opacity-[0.05]"
+          style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h1v1H0V0zm23 23h1v1h-1v-1z' fill='white'/%3E%3C/svg%3E\")", backgroundSize: "24px 24px" }}
+        />
+        {/* Very subtle ambient glow */}
+        <div className="pointer-events-none absolute -left-20 -top-20 h-[300px] w-[300px] rounded-full bg-blue-500/10 blur-[80px]" />
+        
         <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-4">
-            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-white shadow-inner ring-1 ring-white/20 backdrop-blur-md">
-              <Car size={26} />
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-b from-slate-700 to-slate-800 text-white shadow-inner ring-1 ring-white/20">
+              <Car size={26} className="drop-shadow-md opacity-90" />
             </span>
             <div>
-              <h1 className="text-3xl font-extrabold tracking-tight text-white">Leads</h1>
-              <p className="mt-1.5 flex items-center gap-2 text-sm font-medium text-slate-300">
-                <Users size={15} className="text-blue-400" />
+              <h1 className="text-3xl font-extrabold tracking-tight text-white drop-shadow-sm">Leads</h1>
+              <p className="mt-1.5 flex items-center gap-2 text-sm font-medium text-slate-400">
+                <Users size={15} className="text-slate-500" />
                 {isLoading ? (
-                  <span className="inline-block h-4 w-28 animate-pulse rounded bg-white/15" />
+                  <span className="inline-block h-4 w-28 animate-pulse rounded bg-white/10" />
                 ) : (
                   <>
-                    <span className="font-bold text-white tabular-nums">{total.toLocaleString()}</span>
+                    <span className="font-bold text-slate-200 tabular-nums">{total.toLocaleString()}</span>
                     {total === 1 ? "lead" : "leads"} across your showrooms
                   </>
                 )}

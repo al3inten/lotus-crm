@@ -1,6 +1,11 @@
 import { z } from "zod";
 import { ENQUIRY_TYPES, LEAD_SOURCES, DEPARTMENTS, LEAD_SUBSOURCES, SOURCE_CATEGORIES, ENQUIRY_CATEGORIES } from "../types";
 
+/** z.coerce.number() turns a blank input ("") into 0, which then fails min()/nonnegative()
+ * checks meant only for real values — treat "" (and null) as genuinely unset first. */
+const optionalInt = <T extends z.ZodType<number>>(schema: T) =>
+  z.preprocess((v) => (v === "" || v === null || v === undefined ? undefined : v), schema.optional());
+
 // Offline-intake enrichment fields, shared by the Add Lead wizard (creation) and the
 // Complete Customer Details flow (patch on an existing enquiry) — every field here is
 // optional, matching the backend's leadEnrichmentSchema.
@@ -20,11 +25,11 @@ export const leadEnrichmentFormSchema = z.object({
   appointmentScheduled: z.boolean().optional(),
   appointmentAt: z.string().optional().or(z.literal("")),
   testDriveInterested: z.boolean().optional(),
-  testDriveCount: z.coerce.number().int().nonnegative().optional(),
+  testDriveCount: optionalInt(z.coerce.number().int().nonnegative()),
   exchangeCarModel: z.string().optional().or(z.literal("")),
-  exchangeCarYear: z.coerce.number().int().min(1980).optional(),
-  exchangeCarKms: z.coerce.number().int().nonnegative().optional(),
-  exchangeCarOwners: z.coerce.number().int().nonnegative().optional(),
+  exchangeCarYear: optionalInt(z.coerce.number().int().min(1980)),
+  exchangeCarKms: optionalInt(z.coerce.number().int().nonnegative()),
+  exchangeCarOwners: optionalInt(z.coerce.number().int().nonnegative()),
   calledDate: z.string().optional().or(z.literal("")),
   remarks: z.string().optional().or(z.literal("")),
 });
