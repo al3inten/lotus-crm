@@ -27,6 +27,7 @@ export const CONSULTANT_REQUIRED_AT_STATUS: EnquiryStatus = "APPOINTMENT_FIXED";
 export const MODULE_KEYS = [
   "dashboard",
   "leads",
+  "follow-ups",
   "social-inbox",
   "departments",
   "reports",

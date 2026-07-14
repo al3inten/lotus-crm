@@ -11,7 +11,7 @@ export function Card({ interactive, padded = true, className, children, ...props
   return (
     <div
       className={clsx(
-        "relative overflow-hidden rounded-2xl transition-all duration-300 glass-panel",
+        "relative rounded-2xl transition-all duration-300 glass-panel",
         "shadow-[0_8px_30px_rgb(0,0,0,0.04)]",
         "dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)]",
         padded && "p-6",
@@ -21,9 +21,12 @@ export function Card({ interactive, padded = true, className, children, ...props
       )}
       {...props}
     >
-      {/* Optional subtle glassmorphism accent in the corner */}
-      <div className="pointer-events-none absolute -right-20 -top-20 h-40 w-40 rounded-full bg-blue-500/10 blur-[40px] dark:bg-blue-500/20" />
-      
+      {/* Optional subtle glassmorphism accent in the corner — clipped to its own layer
+          rather than the whole card, so dropdowns/popovers in children aren't cut off. */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
+        <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-blue-500/10 blur-[40px] dark:bg-blue-500/20" />
+      </div>
+
       <div className="relative z-10">
         {children}
       </div>

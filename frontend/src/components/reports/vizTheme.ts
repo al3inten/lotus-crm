@@ -16,6 +16,16 @@ export const VIZ = {
   surface: "#fcfcfb",
 } as const;
 
+// 8-slot categorical palette from the dataviz reference palette (validated as a set:
+// light worst-adjacent CVD ΔE 24.2, dark 10.3). Fixed order — assign by slot, never
+// cycle a 9th hue (those fold into "Other"). Used by the Chart Builder donut, where
+// each enquiry group gets its own hue. Dark steps are the same hues re-stepped for the
+// dark surface, not a separate palette.
+export const CATEGORICAL = {
+  light: ["#2a78d6", "#1baf7a", "#eda100", "#008300", "#4a3aa7", "#e34948", "#e87ba4", "#eb6834"],
+  dark: ["#3987e5", "#199e70", "#c98500", "#008300", "#9085e9", "#e66767", "#d55181", "#d95926"],
+} as const;
+
 export function formatCompact(value: number): string {
   if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
   if (Math.abs(value) >= 10_000) return `${(value / 1_000).toFixed(1)}K`;

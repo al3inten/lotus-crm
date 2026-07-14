@@ -77,3 +77,13 @@ export function useLostReasonsReport(filters: reportsApi.ReportFilters) {
     queryFn: () => reportsApi.fetchLostReasons(filters),
   });
 }
+
+export function useBreakdownReport(
+  filters: reportsApi.ReportFilters & { dimension: reportsApi.BreakdownDimension }
+) {
+  return useQuery({
+    queryKey: ["reports", "breakdown", filters],
+    queryFn: () => reportsApi.fetchBreakdown(filters),
+    placeholderData: (prev) => prev, // keep the old chart visible while a new dimension loads
+  });
+}

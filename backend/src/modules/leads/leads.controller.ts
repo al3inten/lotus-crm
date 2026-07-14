@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { UnauthorizedError, ValidationError } from "../../lib/errors";
 import * as leadsService from "./leads.service";
 import * as importService from "./import.service";
-import { LeadListQuery } from "./leads.schema";
+import { LeadListQuery, CustomerListQuery } from "./leads.schema";
 
 export async function createEnquiryHandler(req: Request, res: Response) {
   if (!req.user) throw new UnauthorizedError();
@@ -22,6 +22,11 @@ export async function createWalkInHandler(req: Request, res: Response) {
 
 export async function listEnquiriesHandler(req: Request, res: Response) {
   const result = await leadsService.listEnquiries(req.query as unknown as LeadListQuery, req.branchFilter);
+  res.json(result);
+}
+
+export async function listCustomersHandler(req: Request, res: Response) {
+  const result = await leadsService.listCustomers(req.query as unknown as CustomerListQuery, req.branchFilter);
   res.json(result);
 }
 

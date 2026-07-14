@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Car, ChevronLeft, ChevronRight, FileSpreadsheet, Users, MessageSquare, Building2, LayoutGrid, List } from "lucide-react";
+import { Car, ChevronLeft, ChevronRight, FileSpreadsheet, Users, Loader2, LayoutGrid, List, Plus, Upload } from "lucide-react";
 import { motion } from "framer-motion";
 import clsx from "clsx";
 import { useLeads } from "../hooks/useLeads";
@@ -22,12 +22,21 @@ const PAGE_SIZE = 20;
 
 const pageVariants = {
   hidden: { opacity: 0, y: 5 },
-  visible: { 
-    opacity: 1, 
-    y: 0, 
-    transition: { duration: 0.35, ease: "easeOut" as const } 
-  }
+  visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" as const } },
 };
+
+/** Compact page-number list with ellipses (1 … 4 5 6 … 20). */
+function getPageNumbers(current: number, total: number): (number | "ellipsis")[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const out: (number | "ellipsis")[] = [1];
+  const left = Math.max(2, current - 1);
+  const right = Math.min(total - 1, current + 1);
+  if (left > 2) out.push("ellipsis");
+  for (let i = left; i <= right; i++) out.push(i);
+  if (right < total - 1) out.push("ellipsis");
+  out.push(total);
+  return out;
+}
 
 export function LeadsPage() {
   const [filters, setFilters] = useState<LeadFiltersType>({ page: 1, pageSize: PAGE_SIZE });
@@ -40,75 +49,76 @@ export function LeadsPage() {
   const { data, isLoading, isFetching } = useLeads(filters);
   const { data: integrations } = useIntegrations();
   const googleSheetsConnected = integrations?.find((i) => i.key === "GOOGLE_SHEETS")?.hasCredentials ?? false;
-  const totalPages = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1;
+
+  const page = data?.page ?? 1;
+  const total = data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const from = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const to = Math.min(page * PAGE_SIZE, total);
+
+  const goToPage = (p: number) => setFilters((f) => ({ ...f, page: Math.min(Math.max(1, p), totalPages) }));
+
+  const ViewToggle = (
+    <div className="flex items-center rounded-xl bg-white/5 p-1 ring-1 ring-white/10 backdrop-blur-md">
+      {(["list", "kanban"] as const).map((v) => (
+        <button
+          key={v}
+          type="button"
+          onClick={() => setView(v)}
+          aria-pressed={view === v}
+          className={clsx(
+            "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50",
+            view === v ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-white hover:bg-white/5"
+          )}
+        >
+          {v === "list" ? <List size={16} /> : <LayoutGrid size={16} />}
+          {v === "list" ? "List" : "Kanban"}
+        </button>
+      ))}
+    </div>
+  );
 
   return (
-    <motion.div 
-      initial="hidden"
-      animate="visible"
-      variants={pageVariants}
-      className="flex flex-col gap-4"
-    >
-      <div className="relative overflow-hidden rounded-3xl bg-slate-900 px-6 py-10 shadow-xl dark:bg-slate-950 sm:px-10 sm:py-12 mb-6">
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -left-[10%] -top-[50%] h-[200%] w-[50%] rounded-full bg-blue-600/20 blur-[100px] dark:bg-blue-600/10" />
-          <div className="absolute -right-[20%] top-[-20%] h-[150%] w-[60%] rounded-full bg-indigo-500/20 blur-[120px] dark:bg-indigo-500/10" />
-        </div>
+    <motion.div initial="hidden" animate="visible" variants={pageVariants} className="flex flex-col gap-5">
+      {/* ---------- PREMIUM HERO HEADER ---------- */}
+      <div className="relative overflow-hidden rounded-3xl bg-[#0B0F19] px-6 py-8 shadow-2xl shadow-blue-900/10 ring-1 ring-slate-900/5 dark:bg-slate-950 dark:ring-white/10 sm:px-9 sm:py-9">
+        {/* Subtle grid pattern for premium texture */}
+        <div 
+          className="pointer-events-none absolute inset-0 opacity-[0.03] dark:opacity-[0.05]"
+          style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h1v1H0V0zm23 23h1v1h-1v-1z' fill='white'/%3E%3C/svg%3E\")", backgroundSize: "24px 24px" }}
+        />
+        {/* Very subtle ambient glow */}
+        <div className="pointer-events-none absolute -left-20 -top-20 h-[300px] w-[300px] rounded-full bg-blue-500/10 blur-[80px]" />
         
-        <div className="relative z-10 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-5">
-            <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-white shadow-inner ring-1 ring-white/20 backdrop-blur-md">
-              <Car size={26} />
+        <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-4">
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-b from-slate-700 to-slate-800 text-white shadow-inner ring-1 ring-white/20">
+              <Car size={26} className="drop-shadow-md opacity-90" />
             </span>
             <div>
-              <h1 className="text-3xl font-extrabold tracking-tight text-white">Leads Management</h1>
-              <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-medium text-slate-300">
-                <span className="flex items-center gap-1.5">
-                  <Users size={16} className="text-blue-400" /> 
-                  Customer Relationships
-                </span>
-                <span className="hidden h-1 w-1 rounded-full bg-slate-600 sm:block" />
-                <span className="flex items-center gap-1.5">
-                  <MessageSquare size={16} className="text-emerald-400" /> 
-                  Follow-ups
-                </span>
-                <span className="hidden h-1 w-1 rounded-full bg-slate-600 sm:block" />
-                <span className="flex items-center gap-1.5">
-                  <Building2 size={16} className="text-indigo-400" /> 
-                  Across Showrooms
-                </span>
-              </div>
+              <h1 className="text-3xl font-extrabold tracking-tight text-white drop-shadow-sm">Leads</h1>
+              <p className="mt-1.5 flex items-center gap-2 text-sm font-medium text-slate-400">
+                <Users size={15} className="text-slate-500" />
+                {isLoading ? (
+                  <span className="inline-block h-4 w-28 animate-pulse rounded bg-white/10" />
+                ) : (
+                  <>
+                    <span className="font-bold text-slate-200 tabular-nums">{total.toLocaleString()}</span>
+                    {total === 1 ? "lead" : "leads"} across your showrooms
+                  </>
+                )}
+              </p>
             </div>
           </div>
-          
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center rounded-lg bg-white/10 p-1 backdrop-blur-md ring-1 ring-white/20">
-              <button
-                onClick={() => setView("list")}
-                className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                  view === "list" ? "bg-white text-blue-600 shadow-sm" : "text-slate-300 hover:text-white"
-                }`}
-              >
-                <List size={16} />
-                List
-              </button>
-              <button
-                onClick={() => setView("kanban")}
-                className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                  view === "kanban" ? "bg-white text-blue-600 shadow-sm" : "text-slate-300 hover:text-white"
-                }`}
-              >
-                <LayoutGrid size={16} />
-                Kanban
-              </button>
-            </div>
 
+          <div className="flex flex-wrap items-center gap-2.5">
+            {ViewToggle}
             {googleSheetsConnected && (
               <Button variant="secondary" icon={<FileSpreadsheet size={14} />} onClick={() => setShowSheetsSyncModal(true)}>
                 Sync
               </Button>
             )}
-            <Button variant="secondary" onClick={() => setShowImportModal(true)}>
+            <Button variant="secondary" icon={<Upload size={14} />} onClick={() => setShowImportModal(true)}>
               Import
             </Button>
             <LeadDraftsButton
@@ -118,21 +128,46 @@ export function LeadsPage() {
               }}
             />
             <Button
+              icon={<Plus size={16} />}
               onClick={() => {
                 setResumeDraft(undefined);
                 setShowAddLeadForm(true);
               }}
             >
-              + Add Lead
+              Add Lead
             </Button>
           </div>
         </div>
       </div>
 
+      {/* ---------- FILTERS ---------- */}
       <Card>
         <LeadFilters filters={filters} onChange={setFilters} />
       </Card>
 
+      {/* ---------- RESULT SUMMARY BAR ---------- */}
+      {!isLoading && data && (
+        <div className="flex items-center justify-between gap-3 px-1 text-sm">
+          <p className="text-slate-500 dark:text-slate-400">
+            {total === 0 ? (
+              "No leads match your filters"
+            ) : (
+              <>
+                Showing <span className="font-semibold text-slate-700 tabular-nums dark:text-slate-200">{from}–{to}</span> of{" "}
+                <span className="font-semibold text-slate-700 tabular-nums dark:text-slate-200">{total.toLocaleString()}</span>
+              </>
+            )}
+          </p>
+          {isFetching && (
+            <span className="flex items-center gap-1.5 text-xs font-medium text-blue-600 dark:text-blue-400">
+              <Loader2 size={13} className="animate-spin" />
+              Updating…
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* ---------- CONTENT ---------- */}
       {isLoading || !data ? (
         <Card padded={false} className="overflow-hidden">
           <div className="flex flex-col gap-3 p-4">
@@ -153,31 +188,58 @@ export function LeadsPage() {
           ) : (
             <Card padded={false} className="overflow-hidden">
               <LeadTable enquiries={data.items} />
-              <div className="flex items-center justify-between border-t border-slate-100 px-5 py-4 text-sm font-medium text-slate-500 dark:border-slate-800 dark:text-slate-400">
-                <span>
-                  Page {data.page} of {totalPages} · {data.total} total
-                </span>
-                <div className="flex gap-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    icon={<ChevronLeft size={14} />}
-                    disabled={data.page <= 1}
-                    onClick={() => setFilters((f) => ({ ...f, page: (f.page ?? 1) - 1 }))}
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setFilters((f) => ({ ...f, page: (f.page ?? 1) + 1 }))}
-                    disabled={data.page >= totalPages}
-                  >
-                    Next
-                    <ChevronRight size={14} />
-                  </Button>
+
+              {/* Numbered pagination */}
+              {total > 0 && (
+                <div className="flex flex-col items-center justify-between gap-3 border-t border-slate-100 px-5 py-4 sm:flex-row dark:border-slate-800">
+                  <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                    Page {page} of {totalPages}
+                  </span>
+                  <nav aria-label="Pagination" className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      aria-label="Previous page"
+                      disabled={page <= 1}
+                      onClick={() => goToPage(page - 1)}
+                      className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:pointer-events-none disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
+                    >
+                      <ChevronLeft size={16} />
+                    </button>
+                    {getPageNumbers(page, totalPages).map((p, i) =>
+                      p === "ellipsis" ? (
+                        <span key={`e${i}`} className="px-1.5 text-slate-400 dark:text-slate-600">
+                          …
+                        </span>
+                      ) : (
+                        <button
+                          key={p}
+                          type="button"
+                          aria-label={`Page ${p}`}
+                          aria-current={p === page}
+                          onClick={() => goToPage(p)}
+                          className={clsx(
+                            "flex h-9 min-w-9 items-center justify-center rounded-lg px-2 text-sm font-semibold tabular-nums transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50",
+                            p === page
+                              ? "bg-blue-600 text-white shadow-sm shadow-blue-600/25"
+                              : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+                          )}
+                        >
+                          {p}
+                        </button>
+                      )
+                    )}
+                    <button
+                      type="button"
+                      aria-label="Next page"
+                      disabled={page >= totalPages}
+                      onClick={() => goToPage(page + 1)}
+                      className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:pointer-events-none disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
+                    >
+                      <ChevronRight size={16} />
+                    </button>
+                  </nav>
                 </div>
-              </div>
+              )}
             </Card>
           )}
         </div>

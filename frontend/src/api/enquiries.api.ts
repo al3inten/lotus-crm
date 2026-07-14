@@ -23,6 +23,7 @@ export interface ChangeStatusPayload {
   note?: string;
   lossReason?: LossReason;
   followUpDueAt?: string;
+  appointmentAt?: string;
   consultantId?: string;
 }
 

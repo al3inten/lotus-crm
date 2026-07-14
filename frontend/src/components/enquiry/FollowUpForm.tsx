@@ -5,16 +5,19 @@ import { Button } from "../common/Button";
 import { followUpFormSchema } from "../../schemas/enquiry.schema";
 import type { FollowUpFormValues } from "../../schemas/enquiry.schema";
 import { FOLLOW_UP_TYPES } from "../../types";
+import type { FollowUpType } from "../../types";
 import { useSaveFollowUp } from "../../hooks/useEnquiry";
 import { format } from "date-fns";
 
 interface FollowUpFormProps {
   enquiryId: string;
+  /** Pre-selects the type — e.g. the CR just tapped Call/WhatsApp, so default to that channel instead of always CALL. */
+  initialType?: FollowUpType;
   onSuccess?: () => void;
   onCancel?: () => void;
 }
 
-export function FollowUpForm({ enquiryId, onSuccess, onCancel }: FollowUpFormProps) {
+export function FollowUpForm({ enquiryId, initialType = "CALL", onSuccess, onCancel }: FollowUpFormProps) {
   const saveFollowUp = useSaveFollowUp(enquiryId);
 
   const {
@@ -26,7 +29,7 @@ export function FollowUpForm({ enquiryId, onSuccess, onCancel }: FollowUpFormPro
     resolver: zodResolver(followUpFormSchema),
     defaultValues: {
       followUpDate: format(new Date(), "yyyy-MM-dd"),
-      type: "CALL",
+      type: initialType,
     },
   });
 
@@ -44,9 +47,7 @@ export function FollowUpForm({ enquiryId, onSuccess, onCancel }: FollowUpFormPro
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 border border-gray-200 rounded-md p-4 bg-white shadow-sm mt-4">
-      <h3 className="font-medium text-gray-900">Add Follow-up</h3>
-      
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Input label="Date" type="date" error={errors.followUpDate?.message} {...register("followUpDate")} />
         <Input label="Time (optional)" type="time" error={errors.followUpTime?.message} {...register("followUpTime")} />

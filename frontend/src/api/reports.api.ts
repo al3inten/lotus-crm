@@ -146,6 +146,44 @@ export async function fetchLostReasons(filters: ReportFilters): Promise<LostReas
   return data;
 }
 
+// Dimensions the Chart Builder can group enquiries by — must stay in sync with
+// BREAKDOWN_DIMENSIONS in the backend reports.schema.ts allow-list.
+export type BreakdownDimension =
+  | "source"
+  | "enquiryType"
+  | "status"
+  | "department"
+  | "subsource"
+  | "sourceCategory"
+  | "enquiryCategory"
+  | "lossReason"
+  | "carModel"
+  | "variant"
+  | "financeRequired"
+  | "callOutcome"
+  | "response"
+  | "nextAction"
+  | "assignedCr"
+  | "branch";
+
+export type BreakdownMeasure = "total" | "converted" | "conversionRate" | "lost";
+
+export interface BreakdownRow {
+  key: string;
+  label: string;
+  total: number;
+  converted: number;
+  lost: number;
+  conversionRate: number;
+}
+
+export async function fetchBreakdown(
+  filters: ReportFilters & { dimension: BreakdownDimension }
+): Promise<BreakdownRow[]> {
+  const { data } = await axiosClient.get<BreakdownRow[]>("/reports/breakdown", { params: filters });
+  return data;
+}
+
 export async function downloadEnquiriesCsv(filters: ReportFilters): Promise<Blob> {
   const { data } = await axiosClient.get("/reports/export", { params: filters, responseType: "blob" });
   return data as Blob;

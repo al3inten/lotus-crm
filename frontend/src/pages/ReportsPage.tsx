@@ -19,6 +19,7 @@ import { FunnelChart } from "../components/reports/FunnelChart";
 import { HBarList } from "../components/reports/HBarList";
 import { SourcePerformanceTable } from "../components/reports/SourcePerformanceTable";
 import { CrPerformanceTable } from "../components/reports/CrPerformanceTable";
+import { ChartBuilder } from "../components/reports/ChartBuilder";
 import { TrendChart } from "../components/reports/TrendChart";
 import { formatHours } from "../components/reports/vizTheme";
 import { Button } from "../components/common/Button";
@@ -214,6 +215,10 @@ export function ReportsPage() {
           iconClassName="bg-amber-50 text-amber-600"
         />
       </div>
+
+      <Section title="Chart Builder" subtitle="Break enquiries down by any field — pick a dimension and measure, view as bars or a donut">
+        <ChartBuilder filters={filters} />
+      </Section>
 
       <Section title="Trend" subtitle="Enquiry volume, conversions, and losses over time">
         {trend ? <TrendChart points={trend} /> : <p className="text-sm text-gray-400">Loading…</p>}

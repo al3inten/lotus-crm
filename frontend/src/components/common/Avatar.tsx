@@ -31,6 +31,8 @@ const SIZE_CLASSES = {
   sm: "h-8 w-8 text-xs",
   md: "h-11 w-11 text-sm",
   lg: "h-14 w-14 text-lg",
+  xl: "h-20 w-20 text-2xl",
+  xxl: "h-28 w-28 text-4xl",
 };
 
 export function Avatar({ name, size = "sm" }: { name: string; size?: keyof typeof SIZE_CLASSES }) {

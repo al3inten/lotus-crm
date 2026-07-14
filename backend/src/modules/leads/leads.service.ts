@@ -4,7 +4,7 @@ import { NotFoundError } from "../../lib/errors";
 import { normalizePhone } from "./phone.util";
 import { getNextCrForBranch } from "../enquiries/routing.service";
 import { DIGITAL_SOURCES, TRANSACTION_OPTIONS } from "../../config/constants";
-import { CreateEnquiryInput, LeadListQuery } from "./leads.schema";
+import { CreateEnquiryInput, LeadListQuery, CustomerListQuery } from "./leads.schema";
 import { triggerAutoCallForEnquiry } from "../voice/voice.service";
 
 // A lead with an enquiry in any of these states is mid-journey; new contacts from any
@@ -212,6 +212,97 @@ export async function listEnquiries(query: LeadListQuery, branchFilter?: { branc
     .filter((e): e is NonNullable<typeof e> => !!e);
 
   return { items, total: allGroups.length, page: query.page, pageSize: query.pageSize };
+}
+
+/**
+ * Customer directory — one row per PERSON (Lead, unique by phone), with a tier
+ * auto-derived from purchases (RETAIL_DONE = bought a car). No stored tier column:
+ * it's always computed so it can never drift from reality.
+ *   Diamond = repeat buyer (2+) · Gold = owns a car (1) · Prospect = not yet bought.
+ * Returns `stats` (tier counts for the search/branch filter, ignoring pagination
+ * and the tier filter) so the UI can show KPI tiles and filter pills.
+ */
+export async function listCustomers(query: CustomerListQuery, branchFilter?: { branchId: string }) {
+  const leadWhere: Prisma.LeadWhereInput = {};
+  if (query.search) {
+    leadWhere.OR = [
+      { name: { contains: query.search, mode: "insensitive" } },
+      { phoneNormalized: { contains: query.search } },
+    ];
+  }
+  const branchId = branchFilter?.branchId ?? query.branchId;
+  if (branchId) leadWhere.enquiries = { some: { branchId } };
+
+  // Purchases per matching customer → tiers + KPI stats.
+  const purchaseGroups = await prisma.enquiry.groupBy({
+    by: ["leadId"],
+    where: { status: "RETAIL_DONE", lead: leadWhere },
+    _count: true,
+  });
+  const purchaseCount = new Map<string, number>(purchaseGroups.map((g) => [g.leadId, g._count]));
+  const diamondIds = purchaseGroups.filter((g) => g._count >= 2).map((g) => g.leadId);
+  const goldIds = purchaseGroups.filter((g) => g._count === 1).map((g) => g.leadId);
+  const ownerIds = [...diamondIds, ...goldIds];
+
+  const totalAll = await prisma.lead.count({ where: leadWhere });
+  const stats = {
+    total: totalAll,
+    diamond: diamondIds.length,
+    gold: goldIds.length,
+    prospect: totalAll - ownerIds.length,
+  };
+
+  // Tier filter narrows the paginated result (stats stay full-set).
+  let where: Prisma.LeadWhereInput = leadWhere;
+  if (query.tier === "DIAMOND") where = { ...leadWhere, id: { in: diamondIds } };
+  else if (query.tier === "GOLD") where = { ...leadWhere, id: { in: goldIds } };
+  else if (query.tier === "PROSPECT") where = { ...leadWhere, id: { notIn: ownerIds } };
+
+  const [leads, total] = await Promise.all([
+    prisma.lead.findMany({
+      where,
+      orderBy: { updatedAt: "desc" },
+      skip: (query.page - 1) * query.pageSize,
+      take: query.pageSize,
+      include: {
+        _count: { select: { enquiries: true, touches: true } },
+        enquiries: {
+          orderBy: { createdAt: "desc" },
+          select: { id: true, status: true, carModel: true, createdAt: true, branch: { select: { name: true } } },
+        },
+      },
+    }),
+    prisma.lead.count({ where }),
+  ]);
+
+  const items = leads.map((lead) => {
+    const purchases = lead.enquiries.filter((e) => e.status === "RETAIL_DONE");
+    const ownedVehicles = Array.from(new Set(purchases.map((e) => e.carModel)));
+    const pc = purchaseCount.get(lead.id) ?? purchases.length;
+    const tier: "DIAMOND" | "GOLD" | "PROSPECT" = pc >= 2 ? "DIAMOND" : pc === 1 ? "GOLD" : "PROSPECT";
+
+    const latest = lead.enquiries[0];
+    return {
+      id: lead.id,
+      name: lead.name,
+      phoneRaw: lead.phoneRaw,
+      email: lead.email,
+      profession: lead.profession,
+      createdAt: lead.createdAt,
+      tier,
+      enquiryCount: lead._count.enquiries,
+      touchCount: lead._count.touches,
+      purchaseCount: purchases.length,
+      ownedVehicles,
+      latestEnquiryId: latest?.id ?? null,
+      latestStatus: latest?.status ?? null,
+      latestCarModel: latest?.carModel ?? null,
+      lastActivityAt: (latest?.createdAt ?? lead.updatedAt).toISOString(),
+      branches: Array.from(new Set(lead.enquiries.map((e) => e.branch.name))),
+    };
+  });
+
+  return { items, total, page: query.page, pageSize: query.pageSize, stats };
 }
 
 export async function getLeadWithHistory(leadId: string) {

@@ -40,7 +40,7 @@ export function Button({
   return (
     <button
       className={clsx(
-        "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors disabled:cursor-not-allowed",
+        "group inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors disabled:cursor-not-allowed",
         variantClasses[variant],
         sizeClasses[size],
         className
@@ -51,7 +51,7 @@ export function Button({
       {isLoading ? (
         <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
       ) : (
-        icon
+        icon && <span className="inline-flex transition-transform duration-200 ease-out group-hover:scale-110">{icon}</span>
       )}
       {children}
     </button>

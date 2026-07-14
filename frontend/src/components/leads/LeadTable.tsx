@@ -11,6 +11,33 @@ const CATEGORY_STYLES: Record<EnquiryCategory, string> = {
   COLD: "bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300",
 };
 
+/** A colored ring around the avatar so temperature reads at a glance while scanning the list. */
+const CATEGORY_RING: Record<EnquiryCategory, string> = {
+  HOT: "ring-red-300 dark:ring-red-500/40",
+  WARM: "ring-amber-300 dark:ring-amber-500/40",
+  COLD: "ring-sky-300 dark:ring-sky-500/40",
+};
+
+/** Left-edge accent for the mobile cards, same temperature language as the ring. */
+const CATEGORY_ACCENT: Record<EnquiryCategory, string> = {
+  HOT: "border-l-red-400 dark:border-l-red-500/60",
+  WARM: "border-l-amber-400 dark:border-l-amber-500/60",
+  COLD: "border-l-sky-400 dark:border-l-sky-500/60",
+};
+
+function AvatarWithTemperature({ name, category, size }: { name: string; category?: EnquiryCategory | null; size: "sm" | "md" }) {
+  return (
+    <span
+      className={clsx(
+        "shrink-0 rounded-full",
+        category ? clsx("ring-2 ring-offset-1 dark:ring-offset-slate-900", CATEGORY_RING[category]) : undefined
+      )}
+    >
+      <Avatar name={name} size={size} />
+    </span>
+  );
+}
+
 function CategoryPill({ category }: { category?: EnquiryCategory | null }) {
   if (!category) return <span className="text-xs text-slate-400 dark:text-slate-500">—</span>;
   return (
@@ -44,7 +71,10 @@ export function LeadTable({ enquiries }: { enquiries: Enquiry[] }) {
     );
   }
 
-  const open = (leadId: string) => navigate(`/leads/${leadId}`);
+  // Carries the whole visible (filtered/sorted) list along as nav state, so the detail
+  // page can offer "Next/Prev lead" through exactly what's on screen here.
+  const queue = enquiries.map((e) => ({ leadId: e.leadId, enquiryId: e.id }));
+  const open = (leadId: string) => navigate(`/leads/${leadId}`, { state: { queue } });
   const onKey = (e: React.KeyboardEvent, leadId: string) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
@@ -55,6 +85,8 @@ export function LeadTable({ enquiries }: { enquiries: Enquiry[] }) {
   return (
     <>
       {/* ---------- DESKTOP TABLE (md+) ---------- */}
+      {/* Lower-priority columns hide progressively by breakpoint instead of forcing a
+          horizontal scrollbar — the core columns (name/contact/car/category/status) always fit. */}
       <div className="hidden overflow-x-auto md:block">
         <table className="w-full text-sm">
           <thead className="sticky top-0 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-800/50 dark:text-slate-400">
@@ -62,14 +94,14 @@ export function LeadTable({ enquiries }: { enquiries: Enquiry[] }) {
               <th className="px-4 py-3">Lead Name</th>
               <th className="px-4 py-3">Contact</th>
               <th className="px-4 py-3">Car</th>
-              <th className="px-4 py-3">Source</th>
-              <th className="px-4 py-3">Enquiry Type</th>
-              <th className="px-4 py-3">Enquiries</th>
+              <th className="hidden px-4 py-3 xl:table-cell">Source</th>
+              <th className="hidden px-4 py-3 xl:table-cell">Enquiry Type</th>
+              <th className="hidden px-4 py-3 lg:table-cell">Enquiries</th>
               <th className="px-4 py-3">Category</th>
-              <th className="px-4 py-3">Location</th>
+              <th className="hidden px-4 py-3 lg:table-cell">Location</th>
               <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Assigned Rep</th>
-              <th className="px-4 py-3">Branch</th>
+              <th className="hidden px-4 py-3 lg:table-cell">Assigned Rep</th>
+              <th className="hidden px-4 py-3 xl:table-cell">Branch</th>
               <th className="px-4 py-3" />
             </tr>
           </thead>
@@ -89,24 +121,24 @@ export function LeadTable({ enquiries }: { enquiries: Enquiry[] }) {
               >
                 <td className="px-4 py-2.5">
                   <div className="flex items-center gap-2.5">
-                    <Avatar name={enquiry.lead.name} size="sm" />
+                    <AvatarWithTemperature name={enquiry.lead.name} category={enquiry.enquiryCategory} size="sm" />
                     <span className="font-medium text-slate-900 dark:text-slate-200">{enquiry.lead.name}</span>
                   </div>
                 </td>
                 <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">{enquiry.lead.phoneRaw}</td>
                 <td className="px-4 py-2.5 text-slate-900 dark:text-slate-200">{enquiry.carModel}</td>
-                <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">{enquiry.source.replaceAll("_", " ")}</td>
-                <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">{enquiry.enquiryType.replaceAll("_", " ")}</td>
-                <td className="px-4 py-2.5">{contactsBadge(enquiry)}</td>
+                <td className="hidden px-4 py-2.5 text-slate-600 xl:table-cell dark:text-slate-300">{enquiry.source.replaceAll("_", " ")}</td>
+                <td className="hidden px-4 py-2.5 text-slate-600 xl:table-cell dark:text-slate-300">{enquiry.enquiryType.replaceAll("_", " ")}</td>
+                <td className="hidden px-4 py-2.5 lg:table-cell">{contactsBadge(enquiry)}</td>
                 <td className="px-4 py-2.5">
                   <CategoryPill category={enquiry.enquiryCategory} />
                 </td>
-                <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">{enquiry.location ?? "—"}</td>
+                <td className="hidden px-4 py-2.5 text-slate-600 lg:table-cell dark:text-slate-300">{enquiry.location ?? "—"}</td>
                 <td className="px-4 py-2.5">
-                  <StatusBadge status={enquiry.status} />
+                  <StatusBadge status={enquiry.status} lossReason={enquiry.lossReason} />
                 </td>
-                <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">{enquiry.assignedCr?.name ?? "Unassigned"}</td>
-                <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">{enquiry.branch.name}</td>
+                <td className="hidden px-4 py-2.5 text-slate-600 lg:table-cell dark:text-slate-300">{enquiry.assignedCr?.name ?? "Unassigned"}</td>
+                <td className="hidden px-4 py-2.5 text-slate-600 xl:table-cell dark:text-slate-300">{enquiry.branch.name}</td>
                 <td className="px-4 py-2.5 text-slate-300 group-hover:text-blue-500 dark:text-slate-600 dark:group-hover:text-blue-400">
                   <ChevronRight size={16} />
                 </td>
@@ -126,11 +158,14 @@ export function LeadTable({ enquiries }: { enquiries: Enquiry[] }) {
               aria-label={`Open lead ${enquiry.lead.name}`}
               onClick={() => open(enquiry.leadId)}
               onKeyDown={(e) => onKey(e, enquiry.leadId)}
-              className="cursor-pointer rounded-2xl border border-slate-200 bg-white p-4 transition-colors hover:border-blue-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 active:scale-[0.99] dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-blue-500/40"
+              className={clsx(
+                "cursor-pointer rounded-2xl border-y border-r border-l-4 border-slate-200 bg-white p-4 transition-all hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md hover:shadow-slate-900/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 active:scale-[0.99] dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-blue-500/40",
+                enquiry.enquiryCategory && CATEGORY_ACCENT[enquiry.enquiryCategory]
+              )}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-3">
-                  <Avatar name={enquiry.lead.name} size="md" />
+                  <AvatarWithTemperature name={enquiry.lead.name} category={enquiry.enquiryCategory} size="md" />
                   <div className="min-w-0">
                     <p className="truncate font-semibold text-slate-900 dark:text-white">{enquiry.lead.name}</p>
                     <p className="flex items-center gap-1 truncate text-xs text-slate-500 dark:text-slate-400">
@@ -139,7 +174,7 @@ export function LeadTable({ enquiries }: { enquiries: Enquiry[] }) {
                   </div>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-1.5">
-                  <StatusBadge status={enquiry.status} />
+                  <StatusBadge status={enquiry.status} lossReason={enquiry.lossReason} />
                   <CategoryPill category={enquiry.enquiryCategory} />
                 </div>
               </div>
