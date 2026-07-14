@@ -8,7 +8,8 @@ const optionalInt = <T extends z.ZodType<number>>(schema: T) =>
 
 // Offline-intake enrichment fields, shared by the Add Lead wizard (creation) and the
 // Complete Customer Details flow (patch on an existing enquiry) — every field here is
-// optional, matching the backend's leadEnrichmentSchema.
+// optional, matching the backend's leadEnrichmentSchema, except sourceCategory (Lead
+// Source), which the Add Lead form now requires up front.
 export const leadEnrichmentFormSchema = z.object({
   alternateMobile: z.string().optional().or(z.literal("")),
   dob: z.string().optional().or(z.literal("")),
@@ -16,7 +17,7 @@ export const leadEnrichmentFormSchema = z.object({
   pincode: z.string().optional().or(z.literal("")),
   address: z.string().optional().or(z.literal("")),
   department: z.enum(DEPARTMENTS).optional().or(z.literal("")),
-  sourceCategory: z.enum(SOURCE_CATEGORIES).optional().or(z.literal("")),
+  sourceCategory: z.enum(SOURCE_CATEGORIES, { message: "Lead source is required" }),
   subsource: z.enum(LEAD_SUBSOURCES).optional().or(z.literal("")),
   variant: z.string().optional().or(z.literal("")),
   enquiryCategory: z.enum(ENQUIRY_CATEGORIES).optional().or(z.literal("")),
@@ -39,9 +40,9 @@ export const walkInLeadFormSchema = z
     name: z.string().min(1, "Name is required"),
     phone: z.string().min(10, "Enter a valid phone number"),
     email: z.string().email("Enter a valid email").optional().or(z.literal("")),
-    carModel: z.string().min(1, "Car model is required"),
+    carModel: z.string().min(1, "Vehicle model is required"),
     enquiryType: z.enum(ENQUIRY_TYPES),
-    location: z.string().optional(),
+    location: z.string().min(1, "City is required"),
     branchId: z.string().min(1, "Branch is required"),
     assignedCrId: z.string().optional(),
     forceNew: z.boolean().optional(),
@@ -59,7 +60,7 @@ export interface WalkInLeadFormInput {
   email?: string;
   carModel: string;
   enquiryType: WalkInLeadFormValues["enquiryType"];
-  location?: string;
+  location: string;
   branchId: string;
   assignedCrId?: string;
   forceNew?: boolean;
@@ -69,7 +70,7 @@ export interface WalkInLeadFormInput {
   pincode?: string;
   address?: string;
   department?: WalkInLeadFormValues["department"];
-  sourceCategory?: WalkInLeadFormValues["sourceCategory"];
+  sourceCategory: WalkInLeadFormValues["sourceCategory"];
   subsource?: WalkInLeadFormValues["subsource"];
   variant?: string;
   enquiryCategory?: WalkInLeadFormValues["enquiryCategory"];

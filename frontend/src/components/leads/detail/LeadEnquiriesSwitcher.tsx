@@ -1,32 +1,51 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import clsx from "clsx";
 import { Layers, Plus } from "lucide-react";
+
 import { Card } from "../../../components/common/Card";
 import { StatusBadge } from "../../../components/common/StatusBadge";
 import { fadeUp } from "../../../lib/motion";
-import type { LeadWithHistory } from "../../../types";
-import { useNavigate, useParams } from "react-router-dom";
+import type { Enquiry, LeadWithHistory } from "../../../types";
 
 interface LeadEnquiriesSwitcherProps {
-  lead: LeadWithHistory;
+  leadId: string;
+  enquiries: Enquiry[];
   activeEnquiryId?: string;
-  setShowNewEnquiry: (val: boolean) => void;
+  setShowNewEnquiry: (v: boolean) => void;
 }
 
-export function LeadEnquiriesSwitcher({ lead, activeEnquiryId, setShowNewEnquiry }: LeadEnquiriesSwitcherProps) {
+export function LeadEnquiriesSwitcher({
+  leadId,
+  enquiries,
+  activeEnquiryId,
+  setShowNewEnquiry,
+}: LeadEnquiriesSwitcherProps) {
   const navigate = useNavigate();
-  const { leadId } = useParams<{ leadId: string }>();
-  
-  if (lead.enquiries.length <= 1) return null;
+  const [enquiriesExpanded, setEnquiriesExpanded] = useState(false);
+
+  if (enquiries.length <= 1) return null;
+
+  const COLLAPSED = 4;
+  const many = enquiries.length > COLLAPSED;
+  let visible = enquiries;
+  if (many && !enquiriesExpanded) {
+    visible = enquiries.slice(0, COLLAPSED);
+    if (!visible.some((e) => e.id === activeEnquiryId)) {
+      const act = enquiries.find((e) => e.id === activeEnquiryId);
+      if (act) visible = [act, ...enquiries.filter((e) => e.id !== act.id).slice(0, COLLAPSED - 1)];
+    }
+  }
 
   return (
     <motion.div variants={fadeUp}>
       <Card padded={false} className="overflow-hidden">
-        <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3 dark:border-slate-800">
-          <Layers size={16} className="text-blue-500 dark:text-blue-400" />
+        <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-2.5 dark:border-slate-800">
+          <Layers size={15} className="text-blue-500 dark:text-blue-400" />
           <h2 className="text-sm font-bold text-slate-900 dark:text-white">Enquiries</h2>
           <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-600 dark:bg-slate-700/60 dark:text-slate-300">
-            {lead.enquiries.length}
+            {enquiries.length}
           </span>
           <button
             type="button"
@@ -36,8 +55,8 @@ export function LeadEnquiriesSwitcher({ lead, activeEnquiryId, setShowNewEnquiry
             <Plus size={13} /> New enquiry
           </button>
         </div>
-        <div className="flex gap-2 overflow-x-auto p-3 [scrollbar-width:thin]">
-          {lead.enquiries.map((enq) => {
+        <div className="flex gap-2 overflow-x-auto p-2.5 [scrollbar-width:thin]">
+          {visible.map((enq) => {
             const active = enq.id === activeEnquiryId;
             return (
               <button
@@ -46,23 +65,33 @@ export function LeadEnquiriesSwitcher({ lead, activeEnquiryId, setShowNewEnquiry
                 onClick={() => navigate(`/leads/${leadId}/enquiries/${enq.id}`)}
                 aria-current={active}
                 className={clsx(
-                  "flex min-w-[190px] flex-col gap-1.5 rounded-xl border p-3 text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+                  "flex min-w-[150px] max-w-[210px] flex-col gap-1 rounded-lg border p-2.5 text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
                   active
-                    ? "border-blue-300 bg-blue-50 dark:border-blue-500/40 dark:bg-blue-500/10"
-                    : "border-slate-200 bg-white hover:-translate-y-0.5 hover:border-blue-200 dark:border-slate-700 dark:bg-slate-900/40 dark:hover:border-blue-500/30"
+                    ? "border-blue-300 bg-gradient-to-br from-blue-50 to-indigo-50/60 dark:border-blue-500/40 dark:from-blue-500/10 dark:to-indigo-500/5"
+                    : "border-slate-200 bg-white hover:border-blue-200 dark:border-slate-700 dark:bg-slate-900/40 dark:hover:border-blue-500/30"
                 )}
               >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="truncate text-sm font-semibold text-slate-900 dark:text-white">{enq.carModel}</span>
-                  {active && <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-blue-600 dark:text-blue-400">Viewing</span>}
+                <div className="flex items-center gap-1.5">
+                  {active && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />}
+                  <span className="truncate text-xs font-semibold text-slate-900 dark:text-white">{enq.carModel}</span>
                 </div>
                 <StatusBadge status={enq.status} lossReason={enq.lossReason} />
-                <span className="text-xs text-slate-400 dark:text-slate-500">
+                <span className="text-[10px] text-slate-400 dark:text-slate-500">
                   {new Date(enq.createdAt).toLocaleDateString()} · {enq.source.replaceAll("_", " ")}
                 </span>
               </button>
             );
           })}
+          {many && (
+            <button
+              type="button"
+              onClick={() => setEnquiriesExpanded((v) => !v)}
+              className="flex min-w-[64px] shrink-0 flex-col items-center justify-center gap-0.5 rounded-lg border border-dashed border-slate-300 px-3 text-xs font-semibold text-slate-500 transition-colors hover:border-blue-300 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:border-slate-700 dark:text-slate-400 dark:hover:border-blue-500/40 dark:hover:text-blue-400"
+            >
+              {enquiriesExpanded ? "Show less" : `+${enquiries.length - COLLAPSED}`}
+              <span className="text-[9px] font-medium uppercase tracking-wide">{enquiriesExpanded ? "" : "more"}</span>
+            </button>
+          )}
         </div>
       </Card>
     </motion.div>

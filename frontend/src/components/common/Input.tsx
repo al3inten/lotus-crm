@@ -6,23 +6,29 @@ import { ChevronDown } from "lucide-react";
 interface FieldWrapperProps {
   label?: string;
   error?: string;
+  required?: boolean;
   children: React.ReactNode;
 }
 
-export function FieldWrapper({ label, error, children }: FieldWrapperProps) {
+export function FieldWrapper({ label, error, required, children }: FieldWrapperProps) {
   return (
-    <label className="flex flex-col gap-1 text-sm">
-      {label && <span className="font-semibold text-slate-700 dark:text-slate-300">{label}</span>}
+    <label className="flex flex-col gap-1.5 text-sm">
+      {label && (
+        <span className="font-semibold text-slate-700 dark:text-slate-300">
+          {label}
+          {required && <span className="ml-0.5 text-red-500">*</span>}
+        </span>
+      )}
       {children}
-      {error && <span className="text-xs text-red-600">{error}</span>}
+      {error && <span className="text-xs font-medium text-red-600 dark:text-red-400">{error}</span>}
     </label>
   );
 }
 
-type InputProps = InputHTMLAttributes<HTMLInputElement> & { label?: string; error?: string };
+type InputProps = InputHTMLAttributes<HTMLInputElement> & { label?: string; error?: string; required?: boolean };
 
-export const Input = forwardRef<HTMLInputElement, InputProps>(({ label, error, className, ...props }, ref) => (
-  <FieldWrapper label={label} error={error}>
+export const Input = forwardRef<HTMLInputElement, InputProps>(({ label, error, required, className, ...props }, ref) => (
+  <FieldWrapper label={label} error={error} required={required}>
     <input
       ref={ref}
       className={clsx(
@@ -36,10 +42,10 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(({ label, error, c
 ));
 Input.displayName = "Input";
 
-type SelectProps = SelectHTMLAttributes<HTMLSelectElement> & { label?: string; error?: string };
+type SelectProps = SelectHTMLAttributes<HTMLSelectElement> & { label?: string; error?: string; required?: boolean };
 
-export const Select = forwardRef<HTMLSelectElement, SelectProps>(({ label, error, className, children, ...props }, ref) => (
-  <FieldWrapper label={label} error={error}>
+export const Select = forwardRef<HTMLSelectElement, SelectProps>(({ label, error, required, className, children, ...props }, ref) => (
+  <FieldWrapper label={label} error={error} required={required}>
     <div className="relative">
       <select
         ref={ref}
@@ -58,10 +64,10 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(({ label, error
 ));
 Select.displayName = "Select";
 
-type TextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement> & { label?: string; error?: string };
+type TextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement> & { label?: string; error?: string; required?: boolean };
 
-export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(({ label, error, className, ...props }, ref) => (
-  <FieldWrapper label={label} error={error}>
+export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(({ label, error, required, className, ...props }, ref) => (
+  <FieldWrapper label={label} error={error} required={required}>
     <textarea
       ref={ref}
       className={clsx(

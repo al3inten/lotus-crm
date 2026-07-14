@@ -1,11 +1,10 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import clsx from "clsx";
 import {
   ClipboardList,
   KeyRound,
-  Percent,
   CircleX,
   PhoneOutgoing,
   UserPlus,
@@ -13,189 +12,274 @@ import {
   BarChart3,
   PhoneCall,
   ArrowUpRight,
-  TrendingUp,
-  TrendingDown,
-  Sparkles,
-  MoreHorizontal
+  ArrowDownRight,
+  ChevronRight,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { useSummaryReport, useYoyReport, useTrendReport, useSourcePerformanceReport } from "../hooks/useReports";
+import {
+  useSummaryReport,
+  useYoyReport,
+  useTrendReport,
+  useSourcePerformanceReport,
+} from "../hooks/useReports";
 import { useLeads, useReminders } from "../hooks/useLeads";
 import { Card } from "../components/common/Card";
 import { TrendChart } from "../components/reports/TrendChart";
 import { HBarList } from "../components/reports/HBarList";
-import { VIZ } from "../components/reports/vizTheme";
 import { Avatar } from "../components/common/Avatar";
 import { StatusBadge } from "../components/common/StatusBadge";
 import { CountUp } from "../components/common/CountUp";
 import { Sparkline } from "../components/common/Sparkline";
 import { Skeleton } from "@/components/ui/skeleton";
 
-// Refined framer-motion variants for a snappy, modern feel
-const springTransition = { type: "spring", stiffness: 300, damping: 30 };
-const pageFade = {
-  hidden: { opacity: 0, y: 10 },
-  show: { opacity: 1, y: 0, transition: { staggerChildren: 0.1, ...springTransition } },
-};
-const fadeUp = {
-  hidden: { opacity: 0, y: 15 },
-  show: { opacity: 1, y: 0, transition: springTransition },
-};
+/* ────────────────────────────────────────────────────────────────────────────
+   Design system — "Quiet Precision"
+   One surface color, hairline borders, a single indigo accent reserved for
+   data. Numbers are the hero: tabular, tight-tracked, oversized. Everything
+   else recedes. Motion is one orchestrated entrance, then near-silence.
+──────────────────────────────────────────────────────────────────────────── */
+
+const ACCENT = "#5B5BD6"; // restrained indigo — used only where data lives
+
+const SURFACE =
+  "rounded-2xl border border-slate-200/70 bg-white dark:border-white/[0.07] dark:bg-[#0E1015]";
+
+const HAIRLINE = "border-slate-200/70 dark:border-white/[0.07]";
 
 const REPORT_VISIBLE_ROLES = ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"];
 
 const QUICK_ACTIONS = [
-  { to: "/leads", icon: <UserPlus size={16} />, title: "New Lead", roles: undefined },
-  { to: "/social-inbox", icon: <Inbox size={16} />, title: "Inbox", roles: ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER", "CR_TEAM"] },
-  { to: "/call-campaigns", icon: <PhoneCall size={16} />, title: "Campaigns", roles: ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER", "CR_TEAM"] },
-  { to: "/reports", icon: <BarChart3 size={16} />, title: "Reports", roles: REPORT_VISIBLE_ROLES },
+  { to: "/leads", icon: <UserPlus size={15} strokeWidth={1.75} />, title: "New lead", roles: undefined },
+  { to: "/social-inbox", icon: <Inbox size={15} strokeWidth={1.75} />, title: "Inbox", roles: ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER", "CR_TEAM"] },
+  { to: "/call-campaigns", icon: <PhoneCall size={15} strokeWidth={1.75} />, title: "Campaigns", roles: ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER", "CR_TEAM"] },
+  { to: "/reports", icon: <BarChart3 size={15} strokeWidth={1.75} />, title: "Reports", roles: REPORT_VISIBLE_ROLES },
 ];
+
+/* ── Utilities ─────────────────────────────────────────────────────────── */
 
 function timeAgo(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime();
   const minutes = Math.floor(diffMs / 60000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 1) return "now";
+  if (minutes < 60) return `${minutes}m`;
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return `${hours}h`;
   const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
+  if (days < 7) return `${days}d`;
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+function greeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
+}
+
+/* ── Motion (respects prefers-reduced-motion) ──────────────────────────── */
+
+function useVariants() {
+  const reduce = useReducedMotion();
+  const spring = { type: "spring" as const, stiffness: 320, damping: 34 };
+  return {
+    page: {
+      hidden: { opacity: reduce ? 1 : 0 },
+      show: { opacity: 1, transition: { staggerChildren: reduce ? 0 : 0.06 } },
+    },
+    item: {
+      hidden: reduce ? { opacity: 1 } : { opacity: 0, y: 12 },
+      show: { opacity: 1, y: 0, transition: spring },
+    },
+  };
+}
+
+/* ── Micro-components ──────────────────────────────────────────────────── */
+
+function Eyebrow({ children }: { children: ReactNode }) {
+  return (
+    <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500">
+      {children}
+    </span>
+  );
 }
 
 function SectionHeader({ title, to, cta }: { title: string; to?: string; cta?: string }) {
   return (
-    <div className="flex items-center justify-between w-full mb-5">
-      <h2 className="text-sm font-semibold tracking-tight text-slate-900 dark:text-slate-100">{title}</h2>
+    <div className="flex items-center justify-between">
+      <h2 className="text-[13px] font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+        {title}
+      </h2>
       {to && cta && (
-        <Link to={to} className="group flex items-center gap-1 text-[13px] font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 transition-colors">
+        <Link
+          to={to}
+          className="group inline-flex items-center gap-0.5 rounded-md text-[12px] font-medium text-slate-500 transition-colors hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 dark:text-slate-400 dark:hover:text-slate-100"
+        >
           {cta}
-          <ArrowUpRight size={14} className="opacity-50 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:opacity-100" />
+          <ChevronRight
+            size={13}
+            className="translate-x-0 opacity-60 transition-transform duration-200 group-hover:translate-x-0.5"
+          />
         </Link>
       )}
     </div>
   );
 }
 
-function DeltaBadge({ delta, upIsGood = true }: { delta?: number | null; upIsGood?: boolean }) {
+/* Stripe-style delta: no chip, no border — a small signed figure. */
+function Delta({ delta, upIsGood = true }: { delta?: number | null; upIsGood?: boolean }) {
   if (delta == null || Number.isNaN(delta)) return null;
   const positive = delta >= 0;
   const good = upIsGood ? positive : !positive;
   return (
-    <div
+    <span
       className={clsx(
-        "flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium tabular-nums tracking-wide border",
-        good
-          ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400"
-          : "bg-rose-500/10 text-rose-600 border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400"
+        "inline-flex items-center gap-0.5 text-[12px] font-medium tabular-nums",
+        good ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
       )}
     >
-      {positive ? <TrendingUp size={12} strokeWidth={2.5} /> : <TrendingDown size={12} strokeWidth={2.5} />}
+      {positive ? <ArrowUpRight size={12} strokeWidth={2.25} /> : <ArrowDownRight size={12} strokeWidth={2.25} />}
       {Math.abs(delta)}%
+    </span>
+  );
+}
+
+/* ── Signature element: one continuous stat ledger ──────────────────────
+   Instead of four floating cards, a single surface divided by hairlines —
+   the way Stripe and Vercel present headline metrics. Sparklines sit as
+   quiet baselines under each number.                                       */
+
+function StatCell({
+  label, value, suffix, icon, series, delta, upIsGood = true,
+}: {
+  label: string;
+  value: number;
+  suffix?: string;
+  icon: ReactNode;
+  series?: number[];
+  delta?: number | null;
+  upIsGood?: boolean;
+}) {
+  return (
+    <div className="group relative flex flex-col gap-4 p-5 lg:p-6 transition-colors hover:bg-slate-50/60 dark:hover:bg-white/[0.02]">
+      <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500">
+        <span className="[&>svg]:h-[15px] [&>svg]:w-[15px]">{icon}</span>
+        <span className="text-[12px] font-medium text-slate-500 dark:text-slate-400">{label}</span>
+      </div>
+
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="text-[28px] font-semibold leading-none tracking-[-0.02em] text-slate-900 tabular-nums dark:text-white">
+          <CountUp value={value} />
+          {suffix}
+        </span>
+        <Delta delta={delta} upIsGood={upIsGood} />
+      </div>
+
+      {series && series.length > 1 ? (
+        <div className="h-6 opacity-40 transition-opacity duration-300 group-hover:opacity-90">
+          <Sparkline data={series} color={ACCENT} width={140} height={24} className="w-full" />
+        </div>
+      ) : (
+        <div className="h-6" />
+      )}
     </div>
   );
 }
 
-/* ---------- 2026 Minimalist KPI Cell ---------- */
-function KpiCell({
-  label, value, suffix, icon, accentHex, series, delta, upIsGood = true,
-}: {
-  label: string; value: number; suffix?: string; icon: ReactNode; accentHex: string; series?: number[]; delta?: number | null; upIsGood?: boolean;
-}) {
-  return (
-    <motion.div
-      variants={fadeUp}
-      className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-slate-200/60 bg-white/50 p-5 backdrop-blur-xl transition-all duration-300 hover:shadow-sm dark:border-white/[0.08] dark:bg-slate-900/40"
-    >
-      {/* Subtle top gradient line for premium feel */}
-      <div className="absolute top-0 left-0 right-0 h-[2px] opacity-0 transition-opacity duration-300 group-hover:opacity-100" style={{ background: `linear-gradient(90deg, transparent, ${accentHex}, transparent)` }} />
+/* ── Win-rate ring — thin stroke, tick marks, one accent ────────────────── */
 
-      <div className="flex items-start justify-between">
-        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-          {icon}
-        </div>
-        {series && series.length > 1 && (
-          <div className="w-24 opacity-60 grayscale transition-all duration-300 group-hover:opacity-100 group-hover:grayscale-0">
-            <Sparkline data={series} color={accentHex} width={96} height={24} className="w-full" />
-          </div>
-        )}
-      </div>
-
-      <div className="mt-6 flex items-end justify-between">
-        <div>
-          <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400">{label}</p>
-          <p className="mt-1 text-3xl font-semibold tracking-tight text-slate-900 dark:text-white tabular-nums">
-            <CountUp value={value} />{suffix}
-          </p>
-        </div>
-        <div className="mb-1">
-          <DeltaBadge delta={delta} upIsGood={upIsGood} />
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-/* ---------- Refined Conversion Ring ---------- */
 function ConversionRing({ rate }: { rate: number }) {
-  const r = 58;
+  const r = 56;
   const c = 2 * Math.PI * r;
-  const off = c * (1 - Math.min(100, Math.max(0, rate)) / 100);
+  const clamped = Math.min(100, Math.max(0, rate));
+  const off = c * (1 - clamped / 100);
   return (
-    <div className="relative flex items-center justify-center h-48 w-48 mx-auto">
+    <div className="relative mx-auto flex h-44 w-44 items-center justify-center">
       <svg viewBox="0 0 140 140" className="h-full w-full -rotate-90">
-        <circle cx="70" cy="70" r={r} fill="none" strokeWidth="8" className="stroke-slate-100 dark:stroke-slate-800" />
+        {/* tick marks every 10% */}
+        {Array.from({ length: 10 }).map((_, i) => {
+          const a = (i / 10) * 2 * Math.PI;
+          const x1 = 70 + Math.cos(a) * 64;
+          const y1 = 70 + Math.sin(a) * 64;
+          const x2 = 70 + Math.cos(a) * 67;
+          const y2 = 70 + Math.sin(a) * 67;
+          return (
+            <line
+              key={i}
+              x1={x1} y1={y1} x2={x2} y2={y2}
+              className="stroke-slate-200 dark:stroke-white/10"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            />
+          );
+        })}
+        <circle cx="70" cy="70" r={r} fill="none" strokeWidth="5" className="stroke-slate-100 dark:stroke-white/[0.06]" />
         <circle
-          cx="70"
-          cy="70"
-          r={r}
+          cx="70" cy="70" r={r}
           fill="none"
-          strokeWidth="8"
-          stroke="currentColor"
+          strokeWidth="5"
+          stroke={ACCENT}
           strokeLinecap="round"
           strokeDasharray={c}
           strokeDashoffset={off}
-          className="text-violet-500 dark:text-violet-400 drop-shadow-sm"
-          style={{ transition: "stroke-dashoffset 1.5s cubic-bezier(0.16, 1, 0.3, 1)" }}
+          style={{ transition: "stroke-dashoffset 1.4s cubic-bezier(0.16, 1, 0.3, 1)" }}
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-4xl font-semibold tracking-tight tabular-nums text-slate-900 dark:text-white">
-          <CountUp value={rate} />%
+        <span className="text-[34px] font-semibold leading-none tracking-[-0.02em] tabular-nums text-slate-900 dark:text-white">
+          <CountUp value={rate} />
+          <span className="text-[18px] text-slate-400 dark:text-slate-500">%</span>
         </span>
-        <span className="mt-1 text-[11px] font-medium tracking-wide text-slate-500 dark:text-slate-400">Conversion</span>
+        <span className="mt-1.5 text-[11px] font-medium tracking-wide text-slate-400 dark:text-slate-500">
+          of enquiries won
+        </span>
       </div>
     </div>
   );
 }
+
+/* ── Follow-ups due — neutral surface, urgency lives in the badge only ─── */
 
 function ActionRequiredList({ data }: { data: ReturnType<typeof useReminders>["data"] }) {
   if (!data || data.length === 0) return null;
 
   return (
-    <Card padded={false} className="overflow-hidden rounded-3xl border-rose-100 bg-rose-50/30 dark:border-rose-900/30 dark:bg-rose-950/10">
-      <div className="px-6 py-5 border-b border-rose-100/60 dark:border-rose-900/30 flex justify-between items-center">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-rose-100 text-rose-600 dark:bg-rose-900/50 dark:text-rose-400">
-            <PhoneOutgoing size={14} />
-          </div>
-          <h2 className="text-sm font-semibold tracking-tight text-slate-900 dark:text-slate-100">Action Required</h2>
+    <Card padded={false} className={clsx(SURFACE, "overflow-hidden")}>
+      <div className={clsx("flex items-center justify-between border-b px-5 py-4", HAIRLINE)}>
+        <div className="flex items-center gap-2">
+          <PhoneOutgoing size={14} strokeWidth={1.75} className="text-slate-400 dark:text-slate-500" />
+          <h2 className="text-[13px] font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+            Follow-ups due
+          </h2>
         </div>
-        <span className="px-2.5 py-1 text-[11px] font-semibold bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-300 rounded-full">
-          {data.length} pending
+        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-slate-600 dark:bg-white/[0.06] dark:text-slate-300">
+          {data.length}
         </span>
       </div>
-      <div className="divide-y divide-rose-100/50 dark:divide-rose-900/20">
+      <div className={clsx("divide-y", "divide-slate-100 dark:divide-white/[0.05]")}>
         {data.slice(0, 5).map((enquiry) => {
-          const isOverdue = new Date(enquiry.followUpDueAt!) < new Date() && new Date(enquiry.followUpDueAt!).toDateString() !== new Date().toDateString();
+          const due = new Date(enquiry.followUpDueAt!);
+          const isOverdue = due < new Date() && due.toDateString() !== new Date().toDateString();
           return (
-            <Link key={enquiry.id} to={`/leads/${enquiry.leadId}`} className="flex items-center gap-4 px-6 py-4 transition-colors hover:bg-white/50 dark:hover:bg-slate-900/50">
+            <Link
+              key={enquiry.id}
+              to={`/leads/${enquiry.leadId}`}
+              className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-slate-50/60 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-indigo-500 dark:hover:bg-white/[0.02]"
+            >
               <Avatar name={enquiry.lead.name} size="sm" />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] font-medium text-slate-900 dark:text-slate-200">{enquiry.lead.name}</p>
+                <p className="truncate text-[13px] font-medium text-slate-900 dark:text-slate-200">
+                  {enquiry.lead.name}
+                </p>
                 <p className="truncate text-[12px] text-slate-500 dark:text-slate-400">{enquiry.carModel}</p>
               </div>
-              <span className={clsx("rounded-md px-2 py-1 text-[10px] font-semibold tracking-wide", isOverdue ? "bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400" : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400")}>
+              <span
+                className={clsx(
+                  "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                  isOverdue
+                    ? "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400"
+                    : "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400"
+                )}
+              >
                 {isOverdue ? "Overdue" : "Today"}
               </span>
             </Link>
@@ -206,17 +290,82 @@ function ActionRequiredList({ data }: { data: ReturnType<typeof useReminders>["d
   );
 }
 
+/* ── Pipeline rows (shared between both role views) ─────────────────────── */
+
+function PipelineRows({ data }: { data: ReturnType<typeof useLeads>["data"] }) {
+  if (!data) {
+    return (
+      <>
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-3 px-5 py-3.5">
+            <Skeleton className="h-8 w-8 rounded-full" />
+            <div className="flex-1 space-y-1.5">
+              <Skeleton className="h-3.5 w-1/3" />
+              <Skeleton className="h-3 w-1/4" />
+            </div>
+          </div>
+        ))}
+      </>
+    );
+  }
+  if (data.items.length === 0) {
+    return (
+      <div className="px-5 py-12 text-center">
+        <p className="text-[13px] font-medium text-slate-900 dark:text-slate-200">No leads yet</p>
+        <p className="mt-1 text-[12px] text-slate-500 dark:text-slate-400">
+          Add your first lead to start tracking the pipeline.
+        </p>
+        <Link
+          to="/leads"
+          className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-slate-700 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
+        >
+          <UserPlus size={13} /> New lead
+        </Link>
+      </div>
+    );
+  }
+  return (
+    <>
+      {data.items.slice(0, 5).map((enquiry) => (
+        <Link
+          key={enquiry.id}
+          to={`/leads/${enquiry.leadId}`}
+          className="group grid grid-cols-[auto_1fr_auto_auto] items-center gap-3 px-5 py-3.5 transition-colors hover:bg-slate-50/60 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-indigo-500 dark:hover:bg-white/[0.02]"
+        >
+          <Avatar name={enquiry.lead.name} size="sm" />
+          <div className="min-w-0">
+            <p className="truncate text-[13px] font-medium text-slate-900 dark:text-slate-200">
+              {enquiry.lead.name}
+            </p>
+            <p className="truncate text-[12px] text-slate-500 dark:text-slate-400">
+              {enquiry.carModel} · {enquiry.branch.name}
+            </p>
+          </div>
+          <StatusBadge status={enquiry.status} />
+          <span className="hidden w-12 text-right text-[12px] tabular-nums text-slate-400 dark:text-slate-500 sm:block">
+            {timeAgo(enquiry.createdAt)}
+          </span>
+        </Link>
+      ))}
+    </>
+  );
+}
+
+/* ── Page ───────────────────────────────────────────────────────────────── */
+
 export function DashboardPage() {
   const { user } = useAuth();
+  const variants = useVariants();
   const canSeeStats = user?.role && REPORT_VISIBLE_ROLES.includes(user.role);
 
   const { data: reminders } = useReminders();
-  const actionItems = reminders?.filter((r) => {
-    if (!r.followUpDueAt) return false;
-    const due = new Date(r.followUpDueAt);
-    const now = new Date();
-    return (due < now && due.toDateString() !== now.toDateString()) || (due.toDateString() === now.toDateString());
-  }) ?? [];
+  const actionItems =
+    reminders?.filter((r) => {
+      if (!r.followUpDueAt) return false;
+      const due = new Date(r.followUpDueAt);
+      const now = new Date();
+      return (due < now && due.toDateString() !== now.toDateString()) || due.toDateString() === now.toDateString();
+    }) ?? [];
 
   const { data: summary } = useSummaryReport({}, canSeeStats);
   const { data: yoy } = useYoyReport({}, canSeeStats);
@@ -228,200 +377,225 @@ export function DashboardPage() {
   const maxSource = Math.max(1, ...(sources ?? []).map((s) => s.total));
   const conversionRate = yoy?.currentPeriod.conversionRate ?? 0;
   const statsLoading = canSeeStats && !summary;
+  const firstName = user?.name?.split(" ")[0];
 
   return (
-    <motion.div variants={pageFade} initial="hidden" animate="show" className="mx-auto flex w-full max-w-[1400px] flex-col gap-8 pb-12">
-
-      {/* ============ NEO-HEADER ============ */}
-      <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-        <div>
-          <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400 mb-1">
+    <motion.div
+      variants={variants.page}
+      initial="hidden"
+      animate="show"
+      className="mx-auto flex w-full max-w-[1360px] flex-col gap-8 pb-16"
+    >
+      {/* ── Header ── */}
+      <motion.header
+        variants={variants.item}
+        className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between"
+      >
+        <div className="flex flex-col gap-1.5">
+          <Eyebrow>
             {new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
-          </p>
-          <h1 className="text-3xl font-semibold tracking-tight text-slate-900 dark:text-white sm:text-4xl">
-            Command Center
+          </Eyebrow>
+          <h1 className="text-[26px] font-semibold tracking-[-0.02em] text-slate-900 dark:text-white">
+            {greeting()}
+            {firstName ? `, ${firstName}` : ""}
           </h1>
+          {canSeeStats && (
+            <p className="flex items-center gap-2 text-[13px] text-slate-500 dark:text-slate-400">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              </span>
+              {actionItems.length > 0
+                ? `${actionItems.length} follow-up${actionItems.length === 1 ? "" : "s"} need attention today`
+                : "Pipeline is up to date D-CRM"}
+            </p>
+          )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          {visibleActions.map((action) => (
-            <Link key={action.to} to={action.to}>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-[13px] font-medium text-slate-700 shadow-sm ring-1 ring-inset ring-slate-200/50 transition-all hover:bg-slate-50 dark:bg-slate-900/50 dark:text-slate-300 dark:ring-white/[0.08] dark:hover:bg-slate-800"
-              >
-                <span className="text-slate-400 dark:text-slate-500">{action.icon}</span>
-                {action.title}
-              </motion.button>
+        <div className="flex flex-wrap items-center gap-2">
+          {visibleActions.map((action, i) => (
+            <Link
+              key={action.to}
+              to={action.to}
+              className={clsx(
+                "inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-[13px] font-medium transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 active:scale-[0.98]",
+                i === 0
+                  ? "bg-slate-900 text-white shadow-sm hover:bg-slate-700 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
+                  : "border border-slate-200/80 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-white/[0.08] dark:bg-white/[0.03] dark:text-slate-300 dark:hover:bg-white/[0.06]"
+              )}
+            >
+              <span className={i === 0 ? "opacity-80" : "text-slate-400 dark:text-slate-500"}>
+                {action.icon}
+              </span>
+              {action.title}
             </Link>
           ))}
         </div>
-      </header>
+      </motion.header>
 
-      {/* ============ BENTO GRID ============ */}
       {canSeeStats ? (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-          {/* Main Canvas (Left 8 Columns) */}
-          <div className="lg:col-span-8 flex flex-col gap-6">
-
-            {/* KPI Row */}
+        <>
+          {/* ── Stat ledger: one surface, hairline-divided ── */}
+          <motion.div variants={variants.item}>
             {statsLoading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <Skeleton key={i} className="h-40 rounded-3xl" />
-                ))}
-              </div>
+              <Skeleton className="h-[136px] w-full rounded-2xl" />
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <KpiCell
-                  label="Total Enquiries"
+              <div
+                className={clsx(
+                  SURFACE,
+                  "grid grid-cols-1 divide-y sm:grid-cols-2 sm:divide-y lg:grid-cols-4 lg:divide-y-0 lg:divide-x",
+                  "divide-slate-200/70 dark:divide-white/[0.07] overflow-hidden"
+                )}
+              >
+                <StatCell
+                  label="Enquiries"
                   value={summary?.totalEnquiries ?? 0}
                   delta={yoy?.growth.total}
-                  icon={<ClipboardList size={20} />}
-                  accentHex="#8b5cf6"
+                  icon={<ClipboardList strokeWidth={1.75} />}
                   series={trend?.map((p) => p.total)}
                 />
-                <KpiCell
-                  label="Converted Leads"
+                <StatCell
+                  label="Converted"
                   value={summary?.converted ?? 0}
                   delta={yoy?.growth.converted}
-                  icon={<KeyRound size={20} />}
-                  accentHex="#10b981"
+                  icon={<KeyRound strokeWidth={1.75} />}
                   series={trend?.map((p) => p.converted)}
                 />
-                <KpiCell
-                  label="Pending Follow-ups"
+                <StatCell
+                  label="Awaiting follow-up"
                   value={summary?.followUpPending ?? 0}
-                  icon={<PhoneOutgoing size={20} />}
-                  accentHex="#f59e0b"
+                  icon={<PhoneOutgoing strokeWidth={1.75} />}
                 />
-                <KpiCell
-                  label="Lost Opportunities"
+                <StatCell
+                  label="Lost"
                   value={summary?.lost ?? 0}
                   delta={yoy?.growth.lost}
                   upIsGood={false}
-                  icon={<CircleX size={20} />}
-                  accentHex="#ef4444"
+                  icon={<CircleX strokeWidth={1.75} />}
                   series={trend?.map((p) => p.lost)}
                 />
               </div>
             )}
+          </motion.div>
 
-            {/* Performance Chart */}
-            <motion.div variants={fadeUp}>
-              <Card className="rounded-3xl border border-slate-200/60 bg-white/50 p-6 dark:border-white/[0.08] dark:bg-slate-900/40 backdrop-blur-xl">
-                <SectionHeader title="Performance Trend" to="/reports" cta="Detailed Report" />
-                <div className="min-h-[280px] w-full mt-4">
-                  {trend ? <TrendChart points={trend} /> : <Skeleton className="h-[280px] w-full rounded-2xl" />}
-                </div>
-              </Card>
-            </motion.div>
-
-            {/* Recent Leads Table-style */}
-            <motion.div variants={fadeUp}>
-              <Card padded={false} className="rounded-3xl border border-slate-200/60 bg-white/50 dark:border-white/[0.08] dark:bg-slate-900/40 backdrop-blur-xl overflow-hidden">
-                <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800/50">
-                  <SectionHeader title="Live Pipeline" to="/leads" cta="View All Leads" />
-                </div>
-                <div className="divide-y divide-slate-100/80 dark:divide-slate-800/50">
-                  {!recentLeads ? (
-                    Array.from({ length: 5 }).map((_, i) => (
-                      <div key={i} className="flex items-center gap-4 px-6 py-4">
-                        <Skeleton className="h-9 w-9 rounded-full" />
-                        <div className="flex-1 space-y-2"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-3 w-1/4" /></div>
-                      </div>
-                    ))
-                  ) : recentLeads.items.length > 0 ? (
-                    recentLeads.items.slice(0, 5).map((enquiry) => (
-                      <Link key={enquiry.id} to={`/leads/${enquiry.leadId}`} className="group flex items-center gap-4 px-6 py-4 transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                        <Avatar name={enquiry.lead.name} size="sm" />
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-[13px] font-medium text-slate-900 dark:text-slate-200">{enquiry.lead.name}</p>
-                          <p className="truncate text-[12px] text-slate-500 dark:text-slate-400">{enquiry.carModel} · {enquiry.branch.name}</p>
-                        </div>
-                        <StatusBadge status={enquiry.status} />
-                        <div className="hidden lg:flex items-center gap-2 w-24 justify-end text-[12px] text-slate-400">
-                          {timeAgo(enquiry.createdAt)}
-                          <MoreHorizontal size={14} className="opacity-0 transition-opacity group-hover:opacity-100" />
-                        </div>
-                      </Link>
-                    ))
-                  ) : (
-                    <div className="py-12 text-center text-[13px] text-slate-500">No leads in the pipeline yet.</div>
-                  )}
-                </div>
-              </Card>
-            </motion.div>
-          </div>
-
-          {/* Insights Rail (Right 4 Columns) */}
-          <div className="lg:col-span-4 flex flex-col gap-6">
-
-            {/* Conversion Widget */}
-            <motion.div variants={fadeUp}>
-              <Card className="rounded-3xl border border-slate-200/60 bg-white/50 p-6 dark:border-white/[0.08] dark:bg-slate-900/40 backdrop-blur-xl">
-                <div className="flex items-center justify-between mb-8">
-                  <h3 className="text-sm font-semibold tracking-tight text-slate-900 dark:text-slate-100">Win Rate</h3>
-                  <DeltaBadge delta={yoy?.growth.conversionRate} />
-                </div>
-                {summary ? <ConversionRing rate={conversionRate} /> : <div className="h-48 flex items-center justify-center"><Skeleton className="h-40 w-40 rounded-full" /></div>}
-
-                <div className="mt-8 grid grid-cols-2 gap-4">
-                  <div className="flex flex-col items-center justify-center rounded-2xl bg-slate-50/50 py-3 dark:bg-slate-800/30">
-                    <span className="text-[11px] font-medium text-slate-500 mb-1">Total</span>
-                    <span className="text-lg font-semibold text-slate-900 dark:text-white tabular-nums"><CountUp value={summary?.totalEnquiries ?? 0} /></span>
+          {/* ── Bento: canvas + rail ── */}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+            <div className="flex flex-col gap-6 lg:col-span-8">
+              {/* Trend */}
+              <motion.div variants={variants.item}>
+                <Card className={clsx(SURFACE, "p-6")}>
+                  <SectionHeader title="Weekly performance" to="/reports" cta="Full report" />
+                  <div className="mt-5 min-h-[280px] w-full">
+                    {trend ? <TrendChart points={trend} /> : <Skeleton className="h-[280px] w-full rounded-xl" />}
                   </div>
-                  <div className="flex flex-col items-center justify-center rounded-2xl bg-violet-50/50 py-3 dark:bg-violet-900/10">
-                    <span className="text-[11px] font-medium text-slate-500 mb-1">Won</span>
-                    <span className="text-lg font-semibold text-violet-600 dark:text-violet-400 tabular-nums"><CountUp value={summary?.converted ?? 0} /></span>
+                </Card>
+              </motion.div>
+
+              {/* Pipeline */}
+              <motion.div variants={variants.item}>
+                <Card padded={false} className={clsx(SURFACE, "overflow-hidden")}>
+                  <div className={clsx("border-b px-5 py-4", HAIRLINE)}>
+                    <SectionHeader title="Live pipeline" to="/leads" cta="All leads" />
                   </div>
-                </div>
-              </Card>
-            </motion.div>
-
-            {/* Top Sources */}
-            <motion.div variants={fadeUp}>
-              <Card className="rounded-3xl border border-slate-200/60 bg-white/50 p-6 dark:border-white/[0.08] dark:bg-slate-900/40 backdrop-blur-xl">
-                <SectionHeader title="Acquisition Channels" />
-                <div className="mt-2">
-                  {sources && sources.length > 0 ? (
-                    <HBarList
-                      rows={[...sources].sort((a, b) => b.total - a.total).slice(0, 5).map((s) => ({
-                        label: s.source.replaceAll("_", " "),
-                        value: s.total,
-                        fraction: s.total / maxSource,
-                        valueLabel: `${s.total}`
-                      }))}
-                      color="#8b5cf6"
-                    />
-                  ) : sources ? (
-                    <p className="py-6 text-center text-[13px] text-slate-400">No channel data available.</p>
-                  ) : (
-                    <div className="space-y-4">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-8 w-full rounded-md" />)}</div>
-                  )}
-                </div>
-              </Card>
-            </motion.div>
-
-            {/* Action Required */}
-            <motion.div variants={fadeUp}>
-              <ActionRequiredList data={actionItems} />
-            </motion.div>
-
-          </div>
-        </div>
-      ) : (
-        /* Focused view for non-stat roles */
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <ActionRequiredList data={actionItems} />
-          <Card padded={false} className="rounded-3xl border border-slate-200/60 bg-white/50 overflow-hidden dark:border-white/[0.08] dark:bg-slate-900/40">
-            <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800/50">
-              <SectionHeader title="Your Recent Leads" to="/leads" cta="View All" />
+                  <div className="divide-y divide-slate-100 dark:divide-white/[0.05]">
+                    <PipelineRows data={recentLeads} />
+                  </div>
+                </Card>
+              </motion.div>
             </div>
-            {/* ... reuse the recentLeads map logic from above here ... */}
-          </Card>
+
+            {/* Rail */}
+            <div className="flex flex-col gap-6 lg:col-span-4">
+              <motion.div variants={variants.item}>
+                <Card className={clsx(SURFACE, "p-6")}>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-[13px] font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+                      Win rate
+                    </h3>
+                    <Delta delta={yoy?.growth.conversionRate} />
+                  </div>
+
+                  <div className="mt-6">
+                    {summary ? (
+                      <ConversionRing rate={conversionRate} />
+                    ) : (
+                      <div className="flex h-44 items-center justify-center">
+                        <Skeleton className="h-40 w-40 rounded-full" />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className={clsx("mt-6 grid grid-cols-2 divide-x border-t pt-4", HAIRLINE, "divide-slate-200/70 dark:divide-white/[0.07]")}>
+                    <div className="flex flex-col items-center gap-0.5">
+                      <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500">Enquiries</span>
+                      <span className="text-lg font-semibold tabular-nums tracking-tight text-slate-900 dark:text-white">
+                        <CountUp value={summary?.totalEnquiries ?? 0} />
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-center gap-0.5">
+                      <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500">Won</span>
+                      <span className="text-lg font-semibold tabular-nums tracking-tight" style={{ color: ACCENT }}>
+                        <CountUp value={summary?.converted ?? 0} />
+                      </span>
+                    </div>
+                  </div>
+                </Card>
+              </motion.div>
+
+              <motion.div variants={variants.item}>
+                <Card className={clsx(SURFACE, "p-6")}>
+                  <SectionHeader title="Where leads come from" />
+                  <div className="mt-4">
+                    {sources && sources.length > 0 ? (
+                      <HBarList
+                        rows={[...sources]
+                          .sort((a, b) => b.total - a.total)
+                          .slice(0, 5)
+                          .map((s) => ({
+                            label: s.source.replaceAll("_", " "),
+                            value: s.total,
+                            fraction: s.total / maxSource,
+                            valueLabel: `${s.total}`,
+                          }))}
+                        color={ACCENT}
+                      />
+                    ) : sources ? (
+                      <p className="py-6 text-center text-[13px] text-slate-400 dark:text-slate-500">
+                        Channel data appears once leads have a source.
+                      </p>
+                    ) : (
+                      <div className="space-y-3">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Skeleton key={i} className="h-7 w-full rounded-md" />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              </motion.div>
+
+              <motion.div variants={variants.item}>
+                <ActionRequiredList data={actionItems} />
+              </motion.div>
+            </div>
+          </div>
+        </>
+      ) : (
+        /* ── Focused view for non-stat roles ── */
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <motion.div variants={variants.item}>
+            <ActionRequiredList data={actionItems} />
+          </motion.div>
+          <motion.div variants={variants.item}>
+            <Card padded={false} className={clsx(SURFACE, "overflow-hidden")}>
+              <div className={clsx("border-b px-5 py-4", HAIRLINE)}>
+                <SectionHeader title="Your recent leads" to="/leads" cta="All leads" />
+              </div>
+              <div className="divide-y divide-slate-100 dark:divide-white/[0.05]">
+                <PipelineRows data={recentLeads} />
+              </div>
+            </Card>
+          </motion.div>
         </div>
       )}
     </motion.div>
