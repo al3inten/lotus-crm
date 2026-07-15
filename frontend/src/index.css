@@ -229,3 +229,44 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .animate-blob-a, .animate-blob-b, .aurora-layer, .glow-border::before { animation: none; }
 }
+
+/* Auto-scrolling marquee for logo/channel strips. The track is duplicated once in
+   markup so a 50% translate loops seamlessly. Paused on hover/focus so users can
+   actually read an item, and disabled outright under reduced-motion. */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.animate-marquee {
+  animation: marquee 26s linear infinite;
+}
+.animate-marquee:hover,
+.animate-marquee:focus-within {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee { animation: none; }
+}
+
+/* Mouse-tracked spotlight highlight for interactive cards. JS only ever writes the
+   --spot-x/--spot-y custom properties (via ref, no re-render); the radial gradient
+   itself is pure CSS so it stays GPU-cheap. */
+.spotlight-card {
+  position: relative;
+}
+.spotlight-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 0.3s;
+  background: radial-gradient(220px circle at var(--spot-x, 50%) var(--spot-y, 50%), rgba(37, 99, 235, 0.12), transparent 70%);
+  pointer-events: none;
+}
+.dark .spotlight-card::before {
+  background: radial-gradient(220px circle at var(--spot-x, 50%) var(--spot-y, 50%), rgba(96, 165, 250, 0.16), transparent 70%);
+}
+.spotlight-card:hover::before {
+  opacity: 1;
+}

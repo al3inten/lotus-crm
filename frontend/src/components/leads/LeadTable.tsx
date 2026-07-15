@@ -1,86 +1,27 @@
-import { useNavigate } from "react-router-dom";
-import { ChevronRight, Inbox, Phone, Car, MapPin, UserCircle2 } from "lucide-react";
+import { ChevronRight, Inbox, Plus } from "lucide-react";
 import clsx from "clsx";
-import type { Enquiry, EnquiryCategory } from "../../types";
+import type { Enquiry } from "../../types";
 import { StatusBadge } from "../common/StatusBadge";
-import { Avatar } from "../common/Avatar";
+import { Button } from "../common/Button";
+import { LeadCard } from "./LeadCard";
+import { AvatarWithTemperature, CategoryPill, contactsBadge, onOpenKeyDown, useLeadOpener } from "./leadPresentation";
 
-const CATEGORY_STYLES: Record<EnquiryCategory, string> = {
-  HOT: "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300",
-  WARM: "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300",
-  COLD: "bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300",
-};
-
-/** A colored ring around the avatar so temperature reads at a glance while scanning the list. */
-const CATEGORY_RING: Record<EnquiryCategory, string> = {
-  HOT: "ring-red-300 dark:ring-red-500/40",
-  WARM: "ring-amber-300 dark:ring-amber-500/40",
-  COLD: "ring-sky-300 dark:ring-sky-500/40",
-};
-
-/** Left-edge accent for the mobile cards, same temperature language as the ring. */
-const CATEGORY_ACCENT: Record<EnquiryCategory, string> = {
-  HOT: "border-l-red-400 dark:border-l-red-500/60",
-  WARM: "border-l-amber-400 dark:border-l-amber-500/60",
-  COLD: "border-l-sky-400 dark:border-l-sky-500/60",
-};
-
-function AvatarWithTemperature({ name, category, size }: { name: string; category?: EnquiryCategory | null; size: "sm" | "md" }) {
-  return (
-    <span
-      className={clsx(
-        "shrink-0 rounded-full",
-        category ? clsx("ring-2 ring-offset-1 dark:ring-offset-slate-900", CATEGORY_RING[category]) : undefined
-      )}
-    >
-      <Avatar name={name} size={size} />
-    </span>
-  );
-}
-
-function CategoryPill({ category }: { category?: EnquiryCategory | null }) {
-  if (!category) return <span className="text-xs text-slate-400 dark:text-slate-500">—</span>;
-  return (
-    <span className={clsx("inline-block rounded-full px-2 py-0.5 text-xs font-medium", CATEGORY_STYLES[category])}>
-      {category}
-    </span>
-  );
-}
-
-function contactsBadge(enquiry: Enquiry) {
-  const count = Math.max(enquiry.lead._count?.enquiries ?? 1, enquiry.lead._count?.touches ?? 0);
-  if (count > 1) {
-    return (
-      <span className="inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-500/20 dark:text-amber-300">
-        ×{count} contacts
-      </span>
-    );
-  }
-  return <span className="text-xs text-slate-400 dark:text-slate-500">1st</span>;
-}
-
-export function LeadTable({ enquiries }: { enquiries: Enquiry[] }) {
-  const navigate = useNavigate();
+export function LeadTable({ enquiries, onAddLead }: { enquiries: Enquiry[]; onAddLead?: () => void }) {
+  const open = useLeadOpener(enquiries);
 
   if (enquiries.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-2 py-14 text-slate-400 dark:text-slate-500">
+      <div className="flex flex-col items-center gap-3 py-14 text-slate-400 dark:text-slate-500">
         <Inbox size={28} />
         <p className="text-sm">No leads match these filters.</p>
+        {onAddLead && (
+          <Button size="sm" icon={<Plus size={14} />} onClick={onAddLead}>
+            Add Lead
+          </Button>
+        )}
       </div>
     );
   }
-
-  // Carries the whole visible (filtered/sorted) list along as nav state, so the detail
-  // page can offer "Next/Prev lead" through exactly what's on screen here.
-  const queue = enquiries.map((e) => ({ leadId: e.leadId, enquiryId: e.id }));
-  const open = (leadId: string) => navigate(`/leads/${leadId}`, { state: { queue } });
-  const onKey = (e: React.KeyboardEvent, leadId: string) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      open(leadId);
-    }
-  };
 
   return (
     <>
@@ -117,7 +58,7 @@ export function LeadTable({ enquiries }: { enquiries: Enquiry[] }) {
                   index % 2 === 1 && "bg-slate-50/40 dark:bg-slate-800/30"
                 )}
                 onClick={() => open(enquiry.leadId)}
-                onKeyDown={(e) => onKey(e, enquiry.leadId)}
+                onKeyDown={(e) => onOpenKeyDown(e, enquiry.leadId, open)}
               >
                 <td className="px-4 py-2.5">
                   <div className="flex items-center gap-2.5">
@@ -149,54 +90,12 @@ export function LeadTable({ enquiries }: { enquiries: Enquiry[] }) {
       </div>
 
       {/* ---------- MOBILE CARDS (< md) ---------- */}
+      {/* A 12-column table doesn't work on a phone regardless of the view the user picked,
+          so this reuses the same LeadCard the explicit card-grid view renders. */}
       <ul className="flex flex-col gap-3 p-3 md:hidden">
         {enquiries.map((enquiry) => (
           <li key={enquiry.id}>
-            <div
-              role="button"
-              tabIndex={0}
-              aria-label={`Open lead ${enquiry.lead.name}`}
-              onClick={() => open(enquiry.leadId)}
-              onKeyDown={(e) => onKey(e, enquiry.leadId)}
-              className={clsx(
-                "cursor-pointer rounded-2xl border-y border-r border-l-4 border-slate-200 bg-white p-4 transition-all hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md hover:shadow-slate-900/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 active:scale-[0.99] dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-blue-500/40",
-                enquiry.enquiryCategory && CATEGORY_ACCENT[enquiry.enquiryCategory]
-              )}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-3">
-                  <AvatarWithTemperature name={enquiry.lead.name} category={enquiry.enquiryCategory} size="md" />
-                  <div className="min-w-0">
-                    <p className="truncate font-semibold text-slate-900 dark:text-white">{enquiry.lead.name}</p>
-                    <p className="flex items-center gap-1 truncate text-xs text-slate-500 dark:text-slate-400">
-                      <Phone size={11} /> {enquiry.lead.phoneRaw}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex shrink-0 flex-col items-end gap-1.5">
-                  <StatusBadge status={enquiry.status} lossReason={enquiry.lossReason} />
-                  <CategoryPill category={enquiry.enquiryCategory} />
-                </div>
-              </div>
-
-              <div className="mt-3 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3 text-xs dark:border-slate-800">
-                <p className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
-                  <Car size={13} className="shrink-0 text-slate-400" />
-                  <span className="truncate">{enquiry.carModel}</span>
-                </p>
-                <p className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
-                  <MapPin size={13} className="shrink-0 text-slate-400" />
-                  <span className="truncate">{enquiry.location ?? "—"}</span>
-                </p>
-                <p className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
-                  <UserCircle2 size={13} className="shrink-0 text-slate-400" />
-                  <span className="truncate">{enquiry.assignedCr?.name ?? "Unassigned"}</span>
-                </p>
-                <p className="flex items-center justify-end gap-1.5 text-slate-500 dark:text-slate-400">
-                  {enquiry.source.replaceAll("_", " ")}
-                </p>
-              </div>
-            </div>
+            <LeadCard enquiry={enquiry} onOpen={open} />
           </li>
         ))}
       </ul>

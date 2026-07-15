@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { ReactNode } from "react";
+import type { MouseEvent as ReactMouseEvent, ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence, useInView, useReducedMotion } from "framer-motion";
 import clsx from "clsx";
@@ -31,10 +31,26 @@ import {
   Zap,
   Sun,
   Moon,
+  Menu,
+  X,
+  Plus,
 } from "lucide-react";
 import { CountUp } from "../components/common/CountUp";
 import { EASE } from "../lib/motion";
 import { useTheme } from "../hooks/useTheme";
+
+/* Shared focus-visible ring for every interactive element on the page —
+ * keeps keyboard-navigation affordance consistent (WCAG 2.4.7). */
+const FOCUS_RING =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-950";
+
+/* Writes pointer position into CSS vars (no re-render) so .spotlight-card's
+ * ::before can track the cursor with a radial-gradient highlight. */
+function handleSpotlight(e: ReactMouseEvent<HTMLDivElement>) {
+  const rect = e.currentTarget.getBoundingClientRect();
+  e.currentTarget.style.setProperty("--spot-x", `${e.clientX - rect.left}px`);
+  e.currentTarget.style.setProperty("--spot-y", `${e.clientY - rect.top}px`);
+}
 
 /* ------------------------------------------------------------------ *
  * Scroll-reveal wrapper — fades + rises children when they enter view.
@@ -189,8 +205,68 @@ const STEPS = [
   { icon: <KeyRound size={18} />, title: "Delivery", desc: "Key handover, deal closed" },
 ];
 
+const FAQS = [
+  {
+    q: "Which lead channels does Lotus CRM capture from?",
+    a: "Meta Ads, WhatsApp, Instagram DMs, Google Sheets imports, walk-in registrations and the built-in Voice AI agent — all deduplicated into a single inbox.",
+  },
+  {
+    q: "How are leads assigned to Customer Reps?",
+    a: "A round-robin engine assigns every new lead to the rep with the lowest live workload, so distribution stays fair and instant with no manual triage.",
+  },
+  {
+    q: "Is data isolated across branches?",
+    a: "Yes. Role-based access keeps every branch's leads, pipeline and reports scoped to that branch — reps and managers only see what's relevant to them.",
+  },
+  {
+    q: "What happens after a lead is captured?",
+    a: "It moves through a tracked pipeline — follow-up, test drive, quotation, finance, exchange and delivery — with the AI agent nudging warm leads along the way.",
+  },
+];
+
+/* Independent-toggle FAQ row; height-animates via Framer Motion. */
+function FaqItem({ q, a }: { q: string; a: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white px-6 dark:border-white/10 dark:bg-white/[0.03]">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className={clsx(
+          "flex w-full items-center justify-between gap-4 rounded-lg py-5 text-left text-sm font-semibold text-slate-900 dark:text-white",
+          FOCUS_RING
+        )}
+      >
+        {q}
+        <Plus
+          size={18}
+          className={clsx(
+            "shrink-0 text-blue-600 transition-transform duration-300 dark:text-blue-400",
+            open && "rotate-45"
+          )}
+        />
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: EASE }}
+            className="overflow-hidden"
+          >
+            <p className="pb-5 text-sm leading-relaxed text-slate-600 dark:text-slate-400">{a}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 export function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const { theme, toggle } = useTheme();
   const reduceMotion = useReducedMotion();
 
@@ -198,6 +274,10 @@ export function LandingPage() {
   // timer on a manual nav so a click doesn't get immediately overridden.
   const [activeSlide, setActiveSlide] = useState(0);
   const [slidesPaused, setSlidesPaused] = useState(false);
+
+  // Header renders opaque either once the page has scrolled, or while the mobile
+  // menu is open — otherwise its top row stays transparent over the hero video.
+  const navSolid = scrolled || mobileOpen;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -216,6 +296,15 @@ export function LandingPage() {
     return () => clearInterval(t);
   }, [reduceMotion, slidesPaused, activeSlide]);
 
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mobileOpen]);
+
   const prevSlide = () => setActiveSlide((i) => (i - 1 + HERO_SLIDES.length) % HERO_SLIDES.length);
   const nextSlide = () => setActiveSlide((i) => (i + 1) % HERO_SLIDES.length);
 
@@ -224,17 +313,17 @@ export function LandingPage() {
       {/* ============================= NAVBAR ============================= */}
       <header
         className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
-          scrolled
+          navSolid
             ? "border-b border-slate-200/80 bg-white/80 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/70"
             : "border-b border-transparent bg-transparent"
         }`}
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 sm:px-8">
-          <a href="#top" className="flex items-center gap-3">
+          <a href="#top" className={clsx("flex items-center gap-3 rounded-lg", FOCUS_RING)}>
             <img src="/hyundai-logo.jpg" alt="Hyundai" className="h-9 w-auto rounded-md object-contain" />
             <span
               className={`text-lg font-semibold tracking-wide transition-colors ${
-                scrolled ? "text-slate-900 dark:text-white" : "text-white"
+                navSolid ? "text-slate-900 dark:text-white" : "text-white"
               }`}
             >
               Lotus CRM
@@ -242,35 +331,89 @@ export function LandingPage() {
           </a>
           <nav
             className={`hidden items-center gap-8 text-sm font-medium transition-colors md:flex ${
-              scrolled ? "text-slate-600 dark:text-slate-300" : "text-slate-200"
+              navSolid ? "text-slate-600 dark:text-slate-300" : "text-slate-200"
             }`}
           >
-            <a href="#features" className="transition-colors hover:text-blue-600 dark:hover:text-white">Features</a>
-            <a href="#pipeline" className="transition-colors hover:text-blue-600 dark:hover:text-white">Pipeline</a>
-            <a href="#impact" className="transition-colors hover:text-blue-600 dark:hover:text-white">Impact</a>
+            <a href="#features" className={clsx("rounded-lg transition-colors hover:text-blue-600 dark:hover:text-white", FOCUS_RING)}>Features</a>
+            <a href="#pipeline" className={clsx("rounded-lg transition-colors hover:text-blue-600 dark:hover:text-white", FOCUS_RING)}>Pipeline</a>
+            <a href="#impact" className={clsx("rounded-lg transition-colors hover:text-blue-600 dark:hover:text-white", FOCUS_RING)}>Impact</a>
           </nav>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={toggle}
               aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
-              className={`flex h-10 w-10 items-center justify-center rounded-xl border transition-all hover:-translate-y-0.5 ${
-                scrolled
+              className={clsx(
+                "flex h-10 w-10 items-center justify-center rounded-xl border transition-all hover:-translate-y-0.5",
+                navSolid
                   ? "border-slate-200 bg-white text-slate-600 hover:text-blue-600 dark:border-white/15 dark:bg-white/5 dark:text-slate-300 dark:hover:text-white"
-                  : "border-white/20 bg-white/10 text-white backdrop-blur-md hover:bg-white/20"
-              }`}
+                  : "border-white/20 bg-white/10 text-white backdrop-blur-md hover:bg-white/20",
+                FOCUS_RING
+              )}
             >
               {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
             </button>
             <Link
               to="/login"
-              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-600/25 transition-all hover:-translate-y-0.5 hover:bg-blue-500"
+              className={clsx(
+                "inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-600/25 transition-all hover:-translate-y-0.5 hover:bg-blue-500",
+                FOCUS_RING
+              )}
             >
               <LogIn size={16} />
               Sign In
             </Link>
+            <button
+              type="button"
+              onClick={() => setMobileOpen((o) => !o)}
+              aria-label={mobileOpen ? "Close menu" : "Open menu"}
+              aria-expanded={mobileOpen}
+              className={clsx(
+                "flex h-10 w-10 items-center justify-center rounded-xl border transition-all md:hidden",
+                navSolid
+                  ? "border-slate-200 bg-white text-slate-600 dark:border-white/15 dark:bg-white/5 dark:text-slate-300"
+                  : "border-white/20 bg-white/10 text-white backdrop-blur-md",
+                FOCUS_RING
+              )}
+            >
+              {mobileOpen ? <X size={18} /> : <Menu size={18} />}
+            </button>
           </div>
         </div>
+
+        {/* Mobile nav panel — the desktop links above are hidden below md, so this
+            is the only way small-screen visitors can reach Features/Pipeline/Impact. */}
+        <AnimatePresence>
+          {mobileOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.25, ease: EASE }}
+              className="overflow-hidden border-b border-slate-200/80 bg-white/95 backdrop-blur-xl md:hidden dark:border-white/10 dark:bg-slate-950/95"
+            >
+              <nav className="flex flex-col gap-1 px-6 py-4 text-sm font-medium text-slate-600 dark:text-slate-300">
+                {[
+                  { href: "#features", label: "Features" },
+                  { href: "#pipeline", label: "Pipeline" },
+                  { href: "#impact", label: "Impact" },
+                ].map((item) => (
+                  <a
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMobileOpen(false)}
+                    className={clsx(
+                      "rounded-lg px-3 py-2.5 transition-colors hover:bg-slate-100 hover:text-blue-600 dark:hover:bg-white/5 dark:hover:text-white",
+                      FOCUS_RING
+                    )}
+                  >
+                    {item.label}
+                  </a>
+                ))}
+              </nav>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </header>
 
       {/* ============================== HERO ============================== */}
@@ -299,7 +442,10 @@ export function LandingPage() {
           type="button"
           onClick={prevSlide}
           aria-label="Previous slide"
-          className="absolute left-3 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white backdrop-blur-md transition-colors hover:bg-white/15 sm:flex md:left-6"
+          className={clsx(
+            "absolute left-3 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white backdrop-blur-md transition-colors hover:bg-white/15 sm:flex md:left-6",
+            FOCUS_RING
+          )}
         >
           <ChevronLeft size={20} />
         </button>
@@ -307,7 +453,10 @@ export function LandingPage() {
           type="button"
           onClick={nextSlide}
           aria-label="Next slide"
-          className="absolute right-3 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white backdrop-blur-md transition-colors hover:bg-white/15 sm:flex md:right-6"
+          className={clsx(
+            "absolute right-3 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white backdrop-blur-md transition-colors hover:bg-white/15 sm:flex md:right-6",
+            FOCUS_RING
+          )}
         >
           <ChevronRight size={20} />
         </button>
@@ -357,7 +506,10 @@ export function LandingPage() {
           >
             <Link
               to="/login"
-              className="group inline-flex items-center gap-2 rounded-xl bg-blue-600 px-7 py-3.5 text-base font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-blue-500"
+              className={clsx(
+                "group inline-flex items-center gap-2 rounded-xl bg-blue-600 px-7 py-3.5 text-base font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-blue-500",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-0"
+              )}
             >
               <LogIn size={18} />
               Sign In to Dashboard
@@ -365,7 +517,10 @@ export function LandingPage() {
             </Link>
             <a
               href="#features"
-              className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-7 py-3.5 text-base font-semibold text-white backdrop-blur-md transition-all hover:-translate-y-0.5 hover:border-white/40 hover:bg-white/20"
+              className={clsx(
+                "inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-7 py-3.5 text-base font-semibold text-white backdrop-blur-md transition-all hover:-translate-y-0.5 hover:border-white/40 hover:bg-white/20",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-0"
+              )}
             >
               Explore features
             </a>
@@ -381,7 +536,7 @@ export function LandingPage() {
                 aria-label={`Go to slide ${i + 1}: ${slide.badge}`}
                 aria-current={i === activeSlide}
                 className={clsx(
-                  "h-1.5 rounded-full transition-all duration-300",
+                  "h-1.5 rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80",
                   i === activeSlide ? "w-7 bg-white" : "w-1.5 bg-white/35 hover:bg-white/60"
                 )}
               />
@@ -390,12 +545,61 @@ export function LandingPage() {
         </div>
 
         <a
-          href="#channels"
+          href="#preview"
           aria-label="Scroll to content"
           className="absolute bottom-8 left-1/2 z-10 -translate-x-1/2 text-white/70 transition-colors hover:text-white"
         >
           <ChevronDown size={26} className="animate-bounce" />
         </a>
+      </section>
+
+      {/* ======================= PRODUCT PREVIEW ======================= */}
+      <section id="preview" className="relative z-10 -mt-24 scroll-mt-24 px-6 pb-10 sm:-mt-28 sm:pb-16">
+        <Reveal className="mx-auto max-w-5xl">
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/10 dark:border-white/10 dark:bg-slate-900 dark:shadow-black/40">
+            {/* browser chrome */}
+            <div className="flex items-center gap-2 border-b border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/10 dark:bg-slate-950/60">
+              <span className="h-3 w-3 rounded-full bg-red-400" />
+              <span className="h-3 w-3 rounded-full bg-amber-400" />
+              <span className="h-3 w-3 rounded-full bg-emerald-400" />
+              <span className="ml-3 flex-1 truncate rounded-md bg-white px-3 py-1 text-center text-xs text-slate-400 dark:bg-white/5 dark:text-slate-500">
+                lotuscrm.app/pipeline
+              </span>
+            </div>
+            {/* abstract dashboard illustration — a stylized mock, not a real screenshot */}
+            <div className="grid grid-cols-1 gap-4 bg-slate-50/50 p-4 dark:bg-slate-950/40 sm:p-6 lg:grid-cols-[220px_1fr]">
+              <div className="hidden flex-col gap-1 lg:flex">
+                {["Dashboard", "Leads", "Pipeline", "Inbox", "Analytics"].map((item, i) => (
+                  <div
+                    key={item}
+                    className={clsx(
+                      "flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium",
+                      i === 2 ? "bg-blue-600 text-white" : "text-slate-500 dark:text-slate-400"
+                    )}
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                    {item}
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                {STEPS.slice(0, 4).map((s) => (
+                  <div key={s.title} className="rounded-xl border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-white/[0.03]">
+                    <p className="truncate text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">{s.title}</p>
+                    <div className="mt-2 space-y-2">
+                      {[1, 2].map((n) => (
+                        <div key={n} className="rounded-lg bg-slate-100 p-2 dark:bg-white/5">
+                          <div className="h-2 w-3/4 rounded-full bg-slate-300 dark:bg-white/15" />
+                          <div className="mt-1.5 h-2 w-1/2 rounded-full bg-slate-200 dark:bg-white/10" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </Reveal>
       </section>
 
       {/* =========================== CHANNEL BAND =========================== */}
@@ -407,16 +611,18 @@ export function LandingPage() {
             </p>
           </Reveal>
           <Reveal delay={0.1}>
-            <div className="mt-7 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
-              {CHANNELS.map((c) => (
-                <span
-                  key={c.label}
-                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-blue-300 hover:text-blue-700 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300 dark:hover:border-white/20 dark:hover:text-white"
-                >
-                  <span className="text-blue-500 dark:text-blue-400">{c.icon}</span>
-                  {c.label}
-                </span>
-              ))}
+            <div className="mt-7 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]">
+              <div className="flex w-max animate-marquee gap-3 sm:gap-4">
+                {[...CHANNELS, ...CHANNELS].map((c, i) => (
+                  <span
+                    key={`${c.label}-${i}`}
+                    className="inline-flex shrink-0 items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-blue-300 hover:text-blue-700 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300 dark:hover:border-white/20 dark:hover:text-white"
+                  >
+                    <span className="text-blue-500 dark:text-blue-400">{c.icon}</span>
+                    {c.label}
+                  </span>
+                ))}
+              </div>
             </div>
           </Reveal>
         </div>
@@ -440,7 +646,10 @@ export function LandingPage() {
           <div className="mt-14 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
             {FEATURES.map((f, i) => (
               <Reveal key={f.title} delay={(i % 3) * 0.08} className={f.span}>
-                <div className="group relative h-full overflow-hidden rounded-3xl border border-slate-200 bg-white p-7 transition-all duration-300 hover:-translate-y-1 hover:border-blue-300 hover:bg-slate-50/50 dark:border-white/10 dark:bg-white/[0.03] dark:hover:border-white/20 dark:hover:bg-white/[0.05]">
+                <div
+                  onMouseMove={handleSpotlight}
+                  className="spotlight-card group relative h-full overflow-hidden rounded-3xl border border-slate-200 bg-white p-7 transition-all duration-300 hover:-translate-y-1 hover:border-blue-300 hover:bg-slate-50/50 dark:border-white/10 dark:bg-white/[0.03] dark:hover:border-white/20 dark:hover:bg-white/[0.05]"
+                >
                   <div
                     className={`pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-gradient-to-br ${f.glow} to-transparent opacity-0 blur-2xl transition-opacity duration-300 group-hover:opacity-100`}
                   />
@@ -529,6 +738,24 @@ export function LandingPage() {
         </div>
       </section>
 
+      {/* ============================== FAQ ============================== */}
+      <section className="relative bg-white py-24 dark:bg-slate-950">
+        <div className="mx-auto max-w-3xl px-6">
+          <Reveal className="text-center">
+            <span className="text-sm font-semibold uppercase tracking-widest text-blue-600 dark:text-blue-400">FAQ</span>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl dark:text-white">
+              Answers before you sign in
+            </h2>
+          </Reveal>
+
+          <Reveal delay={0.1} className="mt-10 space-y-3">
+            {FAQS.map((f) => (
+              <FaqItem key={f.q} q={f.q} a={f.a} />
+            ))}
+          </Reveal>
+        </div>
+      </section>
+
       {/* ============================== CTA ============================== */}
       <section className="relative bg-white pb-24 dark:bg-slate-950">
         <div className="mx-auto max-w-7xl px-6">
@@ -545,7 +772,7 @@ export function LandingPage() {
                 </p>
                 <Link
                   to="/login"
-                  className="group mt-9 inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-base font-semibold text-blue-700 shadow-xl transition-all hover:-translate-y-0.5 hover:bg-blue-50"
+                  className="group mt-9 inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-base font-semibold text-blue-700 shadow-xl transition-all hover:-translate-y-0.5 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-blue-700"
                 >
                   <LogIn size={18} />
                   Sign In to Dashboard

@@ -34,11 +34,16 @@ export async function updateVehicleModel(modelId: string, input: UpdateVehicleMo
   return prisma.vehicleModel.update({ where: { id: modelId }, data: input });
 }
 
-// No FK dependents to guard against — Enquiry.carModel/variant are plain-string snapshots,
-// so deleting a catalog entry never orphans historical records (see schema.prisma comment).
+// Enquiry.carModel/variant are plain-string snapshots (see schema.prisma comment), so
+// deleting a catalog entry never orphans historical records there. VehicleVariant *is* a
+// real FK dependent though (RESTRICT), so its rows must go first — the confirm dialog on
+// the frontend explicitly promises "removes the model and all its variants".
 export async function deleteVehicleModel(modelId: string) {
   await getVehicleModel(modelId);
-  await prisma.vehicleModel.delete({ where: { id: modelId } });
+  await prisma.$transaction([
+    prisma.vehicleVariant.deleteMany({ where: { modelId } }),
+    prisma.vehicleModel.delete({ where: { id: modelId } }),
+  ]);
 }
 
 export async function createVehicleVariant(modelId: string, input: CreateVehicleVariantInput) {

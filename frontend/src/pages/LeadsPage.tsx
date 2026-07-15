@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Car, ChevronLeft, ChevronRight, FileSpreadsheet, Users, Loader2, LayoutGrid, List, Plus, Upload } from "lucide-react";
+import { Car, ChevronLeft, ChevronRight, FileSpreadsheet, Users, Loader2, LayoutGrid, Table2, Kanban, Plus, Upload } from "lucide-react";
 import { motion } from "framer-motion";
 import clsx from "clsx";
 import { useLeads } from "../hooks/useLeads";
 import type { LeadFilters as LeadFiltersType } from "../api/leads.api";
 import { LeadFilters } from "../components/leads/LeadFilters";
 import { LeadTable } from "../components/leads/LeadTable";
+import { LeadCardGrid } from "../components/leads/LeadCardGrid";
 import { LeadKanbanBoard } from "../components/leads/LeadKanbanBoard";
 import { AddLeadWizard } from "../components/leads/AddLeadWizard";
 import { LeadDraftsButton } from "../components/leads/LeadDraftsButton";
@@ -15,8 +16,15 @@ import { Card } from "../components/common/Card";
 import { Modal } from "../components/common/Modal";
 import { GoogleSheetsSyncForm } from "../components/integrations/GoogleSheetsSyncForm";
 import { useIntegrations } from "../hooks/useIntegrations";
+import { useLeadsViewMode, type LeadsViewMode } from "../hooks/useLeadsViewMode";
 import type { AddLeadFormValues } from "../schemas/lead.schema";
 import type { LeadDraft } from "../types";
+
+const VIEW_OPTIONS: { mode: LeadsViewMode; label: string; icon: typeof Table2 }[] = [
+  { mode: "table", label: "Table", icon: Table2 },
+  { mode: "card", label: "Card", icon: LayoutGrid },
+  { mode: "kanban", label: "Kanban", icon: Kanban },
+];
 
 const PAGE_SIZE = 20;
 
@@ -44,7 +52,7 @@ export function LeadsPage() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [showSheetsSyncModal, setShowSheetsSyncModal] = useState(false);
   const [resumeDraft, setResumeDraft] = useState<LeadDraft | undefined>(undefined);
-  const [view, setView] = useState<"list" | "kanban">("list");
+  const [view, setView] = useLeadsViewMode();
 
   const { data, isLoading, isFetching } = useLeads(filters);
   const { data: integrations } = useIntegrations();
@@ -58,21 +66,26 @@ export function LeadsPage() {
 
   const goToPage = (p: number) => setFilters((f) => ({ ...f, page: Math.min(Math.max(1, p), totalPages) }));
 
+  const openAddLeadForm = () => {
+    setResumeDraft(undefined);
+    setShowAddLeadForm(true);
+  };
+
   const ViewToggle = (
     <div className="flex items-center rounded-xl bg-white/5 p-1 ring-1 ring-white/10 backdrop-blur-md">
-      {(["list", "kanban"] as const).map((v) => (
+      {VIEW_OPTIONS.map(({ mode, label, icon: Icon }) => (
         <button
-          key={v}
+          key={mode}
           type="button"
-          onClick={() => setView(v)}
-          aria-pressed={view === v}
+          onClick={() => setView(mode)}
+          aria-pressed={view === mode}
           className={clsx(
             "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50",
-            view === v ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-white hover:bg-white/5"
+            view === mode ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-white hover:bg-white/5"
           )}
         >
-          {v === "list" ? <List size={16} /> : <LayoutGrid size={16} />}
-          {v === "list" ? "List" : "Kanban"}
+          <Icon size={16} />
+          {label}
         </button>
       ))}
     </div>
@@ -127,13 +140,7 @@ export function LeadsPage() {
                 setShowAddLeadForm(true);
               }}
             />
-            <Button
-              icon={<Plus size={16} />}
-              onClick={() => {
-                setResumeDraft(undefined);
-                setShowAddLeadForm(true);
-              }}
-            >
+            <Button icon={<Plus size={16} />} onClick={openAddLeadForm}>
               Add Lead
             </Button>
           </div>
@@ -187,7 +194,11 @@ export function LeadsPage() {
             <LeadKanbanBoard enquiries={data.items} />
           ) : (
             <Card padded={false} className="overflow-hidden">
-              <LeadTable enquiries={data.items} />
+              {view === "card" ? (
+                <LeadCardGrid enquiries={data.items} onAddLead={openAddLeadForm} />
+              ) : (
+                <LeadTable enquiries={data.items} onAddLead={openAddLeadForm} />
+              )}
 
               {/* Numbered pagination */}
               {total > 0 && (
