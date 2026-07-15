@@ -386,6 +386,7 @@ export async function lookupLeadByPhone(phone: string) {
   if (!lead) return null;
 
   return {
+    leadId: lead.id,
     name: lead.name,
     email: lead.email,
     alternateMobile: lead.alternateMobile,
@@ -394,7 +395,8 @@ export async function lookupLeadByPhone(phone: string) {
     pincode: lead.pincode,
     address: lead.address,
     hasActiveEnquiry: lead.enquiries.length > 0,
-    activeEnquiryStatus: lead.enquiries[0]?.status,
+    activeEnquiryId: lead.enquiries[0]?.id ?? null,
+    activeEnquiryStatus: lead.enquiries[0]?.status ?? null,
   };
 }
 

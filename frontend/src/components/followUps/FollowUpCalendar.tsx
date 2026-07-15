@@ -9,9 +9,10 @@ interface FollowUpCalendarProps {
   onSelectDate: (date: string) => void;
   selectedDateStr?: string;
   onRangeChange: (start: string, end: string) => void;
+  className?: string;
 }
 
-export function FollowUpCalendar({ currentDate, counts, onSelectDate, selectedDateStr, onRangeChange }: FollowUpCalendarProps) {
+export function FollowUpCalendar({ currentDate, counts, onSelectDate, selectedDateStr, onRangeChange, className }: FollowUpCalendarProps) {
   const [view, setView] = useState<"week" | "month">("week");
   const [baseDate, setBaseDate] = useState(currentDate);
 
@@ -75,7 +76,7 @@ export function FollowUpCalendar({ currentDate, counts, onSelectDate, selectedDa
   const todayIso = new Date().toISOString().split("T")[0];
 
   return (
-    <Card className="mb-4">
+    <Card className={clsx("flex h-full flex-col", className)}>
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
         <div className="flex items-center gap-3">
           <button type="button" onClick={prev} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md">
@@ -112,12 +113,15 @@ export function FollowUpCalendar({ currentDate, counts, onSelectDate, selectedDa
         </div>
       </div>
 
-      <div className="grid grid-cols-7 gap-px bg-slate-200 dark:bg-slate-700/50 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700/50">
-        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-          <div key={day} className="bg-slate-50 py-2 text-center text-xs font-medium text-slate-500 dark:bg-slate-800/80 dark:text-slate-400">
-            {day}
-          </div>
-        ))}
+      <div className="flex flex-1 flex-col gap-px overflow-hidden rounded-lg border border-slate-200 bg-slate-200 dark:border-slate-700/50 dark:bg-slate-700/50">
+        <div className="grid grid-cols-7 gap-px">
+          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+            <div key={day} className="bg-slate-50 py-1.5 text-center text-[11px] font-medium text-slate-500 dark:bg-slate-800/80 dark:text-slate-400">
+              {day}
+            </div>
+          ))}
+        </div>
+        <div className="grid flex-1 auto-rows-fr grid-cols-7 gap-px">
         {days.map((d, i) => {
           const isToday = d.iso === todayIso;
           const isSelected = d.iso === selectedDateStr;
@@ -128,7 +132,7 @@ export function FollowUpCalendar({ currentDate, counts, onSelectDate, selectedDa
               type="button"
               onClick={() => onSelectDate(d.iso)}
               className={clsx(
-                "relative min-h-[4rem] bg-white p-2 text-left hover:bg-blue-50 focus:outline-none dark:bg-slate-900 dark:hover:bg-blue-900/20 transition-colors",
+                "relative min-h-[2.75rem] bg-white p-1.5 text-left hover:bg-blue-50 focus:outline-none dark:bg-slate-900 dark:hover:bg-blue-900/20 transition-colors",
                 !d.isCurrentMonth && "text-slate-400 dark:text-slate-600 bg-slate-50/50 dark:bg-slate-900/50",
                 isSelected && "bg-blue-50/50 ring-1 ring-inset ring-blue-500 dark:bg-blue-500/10 dark:ring-blue-500/50 z-10"
               )}
@@ -136,7 +140,7 @@ export function FollowUpCalendar({ currentDate, counts, onSelectDate, selectedDa
               <div className="flex items-center justify-between">
                 <span
                   className={clsx(
-                    "flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium",
+                    "flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-medium",
                     isToday ? "bg-blue-600 text-white" : d.isCurrentMonth ? "text-slate-900 dark:text-slate-200" : "text-slate-400 dark:text-slate-600"
                   )}
                 >
@@ -153,6 +157,7 @@ export function FollowUpCalendar({ currentDate, counts, onSelectDate, selectedDa
             </button>
           );
         })}
+        </div>
       </div>
     </Card>
   );

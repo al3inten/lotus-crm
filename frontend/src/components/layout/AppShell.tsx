@@ -4,11 +4,13 @@ import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { BottomNav } from "./BottomNav";
 import { ReminderModal } from "./ReminderModal";
+import { useHeartbeat } from "../../hooks/useHeartbeat";
 
 export function AppShell() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
   const mainRef = useRef<HTMLElement>(null);
+  useHeartbeat();
 
   // Automatically scroll to the top of the main content area when navigating between pages
   useEffect(() => {

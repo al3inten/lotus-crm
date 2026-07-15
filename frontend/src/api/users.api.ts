@@ -1,5 +1,5 @@
 import { axiosClient } from "./axiosClient";
-import type { User, Role } from "../types";
+import type { User, Role, TeamActivityMember } from "../types";
 
 export interface CreateBranchStaffPayload {
   name: string;
@@ -40,4 +40,29 @@ export async function updateUser(userId: string, payload: UpdateUserPayload): Pr
 
 export async function deleteUser(userId: string): Promise<void> {
   await axiosClient.delete(`/users/${userId}`);
+}
+
+// ---------- Profile photo, presence & break ----------
+
+export async function uploadAvatar(userId: string, file: File): Promise<User> {
+  const form = new FormData();
+  form.append("file", file);
+  const { data } = await axiosClient.post<User>(`/users/${userId}/avatar`, form, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return data;
+}
+
+export async function sendHeartbeat(): Promise<void> {
+  await axiosClient.post("/users/me/heartbeat");
+}
+
+export async function setBreak(onBreak: boolean): Promise<User> {
+  const { data } = await axiosClient.patch<User>("/users/me/break", { onBreak });
+  return data;
+}
+
+export async function fetchTeamActivity(): Promise<TeamActivityMember[]> {
+  const { data } = await axiosClient.get<TeamActivityMember[]>("/users/activity");
+  return data;
 }

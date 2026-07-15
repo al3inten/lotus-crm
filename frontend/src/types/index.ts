@@ -169,6 +169,23 @@ export interface User {
   branch?: { id: string; name: string } | null;
   isActive: boolean;
   isAvailableForRouting: boolean;
+  avatarUrl?: string | null;
+  lastActiveAt?: string | null;
+  onBreak?: boolean;
+  breakStartedAt?: string | null;
+}
+
+/** A floor-staff member's live working state, for the dashboard activity monitor. */
+export interface TeamActivityMember {
+  id: string;
+  name: string;
+  role: Role;
+  avatarUrl?: string | null;
+  lastActiveAt?: string | null;
+  onBreak: boolean;
+  breakStartedAt?: string | null;
+  isAvailableForRouting: boolean;
+  branch?: { id: string; name: string } | null;
 }
 
 export interface Branch {

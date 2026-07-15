@@ -27,3 +27,14 @@ export const followUpListQuerySchema = z.object({
 });
 
 export type FollowUpListQuery = z.infer<typeof followUpListQuerySchema>;
+
+// Calendar aggregation: per-day follow-up counts over a date range, plus a
+// per-CR breakdown for roles that can see beyond their own queue.
+export const followUpCalendarQuerySchema = z.object({
+  start: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "start must be YYYY-MM-DD"),
+  end: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "end must be YYYY-MM-DD"),
+  branchId: z.string().optional(),
+  assignedCrId: z.string().optional(),
+});
+
+export type FollowUpCalendarQuery = z.infer<typeof followUpCalendarQuerySchema>;

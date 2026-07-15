@@ -1,6 +1,6 @@
 import { Prisma, Role, EnquiryStatus, EnquiryCategory, LeadSource } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
-import { FollowUpListQuery } from "./follow-ups.schema";
+import { FollowUpListQuery, FollowUpCalendarQuery } from "./follow-ups.schema";
 
 // Follow-ups on won/lost enquiries are done — never surface them in the queue.
 const TERMINAL_STATUSES: EnquiryStatus[] = ["RETAIL_DONE", "CLOSED"];
@@ -180,6 +180,79 @@ export async function getUpcomingFollowUps(query: FollowUpListQuery, ctx: Follow
     pageSize: query.pageSize,
     stats: { overdue, today, thisWeek, later, total },
     crs,
+    canSeeOthers,
+    crossBranch,
+  };
+}
+
+/** Local-day ISO key (YYYY-MM-DD) for a date, in server local time. */
+function dayKey(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * Per-day follow-up counts over a date range for the calendar heat view, plus a
+ * per-CR breakdown (own row for restricted roles, everyone in scope otherwise).
+ */
+export async function getFollowUpCalendar(query: FollowUpCalendarQuery, ctx: FollowUpContext) {
+  const canSeeOthers = !OWN_ONLY_ROLES.includes(ctx.role);
+  const crossBranch = ctx.role === "SUPER_ADMIN" || ctx.role === "ADMIN";
+
+  const [ys, ms, ds] = query.start.split("-").map(Number);
+  const [ye, me, de] = query.end.split("-").map(Number);
+  const rangeStart = new Date(ys, ms - 1, ds, 0, 0, 0, 0);
+  const rangeEnd = new Date(ye, me - 1, de, 23, 59, 59, 999);
+
+  const where: Prisma.EnquiryWhereInput = {
+    status: { notIn: TERMINAL_STATUSES },
+    followUpDueAt: { gte: rangeStart, lte: rangeEnd },
+  };
+
+  if (canSeeOthers) {
+    if (ctx.branchFilter) where.branchId = ctx.branchFilter.branchId;
+    if (crossBranch && query.branchId) where.branchId = query.branchId;
+    if (query.assignedCrId) where.assignedCrId = query.assignedCrId;
+  } else {
+    where.assignedCrId = ctx.userId;
+  }
+
+  const rows = await prisma.enquiry.findMany({
+    where,
+    select: {
+      followUpDueAt: true,
+      assignedCrId: true,
+      assignedCr: { select: { id: true, name: true } },
+    },
+  });
+
+  // Total per day + per-CR totals (with their own per-day breakdown).
+  const counts: Record<string, number> = {};
+  const crMap = new Map<string, { id: string; name: string; count: number; countsByDate: Record<string, number> }>();
+
+  for (const row of rows) {
+    if (!row.followUpDueAt) continue;
+    const key = dayKey(row.followUpDueAt);
+    counts[key] = (counts[key] ?? 0) + 1;
+
+    if (canSeeOthers) {
+      const id = row.assignedCr?.id ?? "unassigned";
+      const name = row.assignedCr?.name ?? "Unassigned";
+      let entry = crMap.get(id);
+      if (!entry) {
+        entry = { id, name, count: 0, countsByDate: {} };
+        crMap.set(id, entry);
+      }
+      entry.count += 1;
+      entry.countsByDate[key] = (entry.countsByDate[key] ?? 0) + 1;
+    }
+  }
+
+  const byCr = Array.from(crMap.values()).sort((a, b) => b.count - a.count);
+
+  return {
+    counts,
+    byCr,
+    total: rows.length,
     canSeeOthers,
     crossBranch,
   };

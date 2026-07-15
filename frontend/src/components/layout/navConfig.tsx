@@ -14,7 +14,6 @@ import {
   Megaphone,
   Plug,
   CarFront,
-  Settings,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import type { Role, ModuleKey } from "../../types";
@@ -81,7 +80,6 @@ export const NAV_ITEMS: NavItem[] = [
 
   { to: "/departments", label: "Departments", short: "Teams", icon: Building2, module: "departments", group: "ADMIN", roles: ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"] },
   { to: "/integrations", label: "Integrations", short: "Apps", icon: Plug, module: "integrations", group: "ADMIN", roles: ["SUPER_ADMIN", "ADMIN"] },
-  { to: "/settings", label: "Settings", short: "Settings", icon: Settings, module: "settings", group: "ADMIN", roles: ["SUPER_ADMIN", "ADMIN"] },
 ];
 
 /** Visible nav items grouped into ordered sections (empty sections dropped). */

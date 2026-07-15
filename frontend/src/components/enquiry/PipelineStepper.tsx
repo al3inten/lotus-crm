@@ -15,10 +15,10 @@ const MAIN_PATH: { status: EnquiryStatus; label: string; Icon: LucideIcon }[] = 
 type NodeTone = "blue" | "green" | "red" | "muted";
 
 const CIRCLE: Record<NodeTone, string> = {
-  blue: "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/40",
-  green: "bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/40",
-  red: "bg-gradient-to-br from-red-500 to-rose-600 text-white shadow-lg shadow-red-500/40",
-  muted: "border-2 border-slate-200 bg-slate-50 text-slate-400 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-500",
+  blue: "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md shadow-blue-500/25",
+  green: "bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/25",
+  red: "bg-gradient-to-br from-red-500 to-rose-600 text-white shadow-md shadow-red-500/25",
+  muted: "border-2 border-slate-200 bg-white text-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-600",
 };
 const RING: Record<NodeTone, string> = {
   blue: "ring-4 ring-blue-600/20 dark:ring-blue-500/25",
@@ -49,7 +49,7 @@ const PILL: Record<NodeTone, string> = {
   blue: "bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-200",
   green: "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-200",
   red: "bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-200",
-  muted: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
+  muted: "bg-slate-100/70 text-slate-400 dark:bg-slate-800/50 dark:text-slate-500",
 };
 const CONNECTOR: Record<NodeTone, string> = {
   blue: "bg-blue-500 shadow-sm shadow-blue-500/20",
@@ -88,12 +88,16 @@ function StageNode({
       <span className={clsx("flex h-4 items-center text-[11px] font-bold leading-none", NUMBER_COLOR[tone])}>{number}</span>
       <span className="relative flex h-9 w-9 items-center justify-center">
         {glow && (
-          <span
-            className={clsx("pointer-events-none absolute -inset-1 -z-10 animate-pulse rounded-full blur-md", GLOW[tone])}
-            style={{ animationDuration: "3s" }}
-          />
+          <span className={clsx("pointer-events-none absolute -inset-1.5 -z-10 rounded-full blur-md", GLOW[tone])} />
         )}
-        <span className={clsx("flex h-9 w-9 items-center justify-center rounded-full transition-all", CIRCLE[tone], glow && RING[tone])}>
+        <span
+          className={clsx(
+            "flex h-9 w-9 items-center justify-center rounded-full transition-all duration-200",
+            CIRCLE[tone],
+            glow && RING[tone],
+            glow && "scale-110"
+          )}
+        >
           <Icon size={16} strokeWidth={2.2} />
         </span>
         {showCheck && (
@@ -117,7 +121,7 @@ function StageNode({
 }
 
 function Connector({ tone }: { tone: NodeTone }) {
-  return <div className={clsx("mt-[36px] h-1 w-4 shrink-0 rounded-full sm:w-8", CONNECTOR[tone])} />;
+  return <div className={clsx("mt-[38px] h-[3px] w-8 shrink-0 rounded-full sm:w-12", CONNECTOR[tone])} />;
 }
 
 /**
@@ -125,7 +129,13 @@ function Connector({ tone }: { tone: NodeTone }) {
  * forks off a branch to Cancelled/Won → Closed from whichever stage it actually
  * last reached, so it's obvious where in the funnel it dropped off.
  */
-export function PipelineStepper({ status, lossReason, statusHistory }: PipelineStepperProps) {
+export function PipelineStepper({
+  status,
+  lossReason,
+  statusHistory,
+  appointmentScheduled,
+  testDriveBooked,
+}: PipelineStepperProps) {
   const isClosed = status === "CLOSED";
   const isLost = isClosed && !!lossReason;
 
@@ -134,6 +144,13 @@ export function PipelineStepper({ status, lossReason, statusHistory }: PipelineS
     .filter((i) => i >= 0);
   const forkIndex = reachedIndexes.length ? Math.max(...reachedIndexes) : 0;
   const currentIndex = isClosed ? forkIndex : MAIN_PATH.findIndex((s) => s.status === status);
+
+  // Milestones booked at intake (appointment / test drive) light up their stage with a
+  // "Booked" marker even if the status pointer hasn't advanced there yet.
+  const bookedLabel: Partial<Record<EnquiryStatus, string>> = {
+    ...(appointmentScheduled ? { APPOINTMENT_FIXED: "Booked" } : {}),
+    ...(testDriveBooked ? { TEST_DRIVE: "Booked" } : {}),
+  };
 
   const forkTone: NodeTone = isLost ? "red" : "green";
 
@@ -147,11 +164,13 @@ export function PipelineStepper({ status, lossReason, statusHistory }: PipelineS
               const done = index < currentIndex;
               const current = index === currentIndex;
               const upcoming = index > currentIndex;
+              const booked = bookedLabel[step.status];
               const { Icon } = step;
 
               // The stage that a won deal ends on turns green; a dropped/active stage stays blue.
-              const tone: NodeTone = upcoming ? "muted" : isClosed && current && !isLost ? "green" : "blue";
-              const showCheck = done || (isClosed && current);
+              // An upcoming stage with a booked milestone lights up blue instead of muted.
+              const tone: NodeTone = upcoming ? (booked ? "blue" : "muted") : isClosed && current && !isLost ? "green" : "blue";
+              const showCheck = done || (isClosed && current) || (!!booked && upcoming);
               const glow = current;
 
               const pill: StagePill = done
@@ -162,11 +181,16 @@ export function PipelineStepper({ status, lossReason, statusHistory }: PipelineS
                       ? { tone: "blue", text: "Last stage" }
                       : { tone: "green", text: "Completed", check: true }
                     : { tone: "blue", text: "In progress" }
-                  : { tone: "muted", text: "Pending" };
+                  : booked
+                    ? { tone: "blue", text: booked, check: true }
+                    : { tone: "muted", text: "Pending" };
+
+              // Colour the connector into a booked upcoming stage so the line reaches it.
+              const connectorTone: NodeTone = index <= currentIndex ? tone : booked ? "blue" : "muted";
 
               return (
                 <div key={step.status} className="flex items-start">
-                  {index > 0 && <Connector tone={index <= currentIndex ? tone : "muted"} />}
+                  {index > 0 && <Connector tone={connectorTone} />}
                   <StageNode number={index + 1} label={step.label} Icon={Icon} tone={tone} glow={glow} showCheck={showCheck} pill={pill} />
                 </div>
               );
@@ -179,7 +203,7 @@ export function PipelineStepper({ status, lossReason, statusHistory }: PipelineS
                   if (index < currentIndex) {
                     return (
                       <div key={step.status} className="flex shrink-0">
-                        {index > 0 && <div className="w-4 shrink-0 sm:w-8" />}
+                        {index > 0 && <div className="w-8 shrink-0 sm:w-12" />}
                         <div className="w-[76px] shrink-0 sm:w-24" />
                       </div>
                     );
@@ -187,18 +211,17 @@ export function PipelineStepper({ status, lossReason, statusHistory }: PipelineS
                   if (index === currentIndex) {
                     return (
                       <div key={step.status} className="flex shrink-0">
-                        {index > 0 && <div className="w-4 shrink-0 sm:w-8" />}
-                        <div className="w-[38px] shrink-0 sm:w-12" />
+                        {index > 0 && <div className="w-8 shrink-0 sm:w-12" />}
                         <div className="relative">
-                          {/* Curved drop from the main line down into the closing branch */}
-                          <svg className="absolute left-0 top-0 -translate-x-1/2" width="56" height="30" viewBox="0 0 56 30" fill="none" aria-hidden>
-                            <path
-                              d="M4 0 C 4 18, 28 12, 28 30"
-                              className={clsx("fill-none drop-shadow-sm", isLost ? "stroke-red-500 dark:stroke-red-500/60" : "stroke-emerald-500 dark:stroke-emerald-500/60")}
-                              strokeWidth="4"
-                              strokeLinecap="round"
-                            />
-                          </svg>
+                          {/* Vertical drop centered under the stage the enquiry was closed from,
+                              so the branch clearly forks out of that exact stage. */}
+                          <span
+                            className={clsx(
+                              "absolute left-[38px] top-0 h-6 w-1 -translate-x-1/2 rounded-full sm:left-12",
+                              isLost ? "bg-red-500 dark:bg-red-500/70" : "bg-emerald-500 dark:bg-emerald-500/70"
+                            )}
+                            aria-hidden
+                          />
                           <div className="flex items-start pt-[26px]">
                             <StageNode
                               number={MAIN_PATH.length + 1}
@@ -241,4 +264,8 @@ interface PipelineStepperProps {
   status: EnquiryStatus;
   lossReason?: string | null;
   statusHistory?: EnquiryStatusHistoryEntry[];
+  /** Appointment booked at intake — marks the Appointment stage even before the status moves there. */
+  appointmentScheduled?: boolean;
+  /** Test drive booked/interested — marks the Test Drive stage similarly. */
+  testDriveBooked?: boolean;
 }
