@@ -57,7 +57,7 @@ Write a clear, well-structured system prompt for the agent described below. The 
 - What the agent should try to accomplish in the conversation
 - Explicit dos and don'ts (never invent pricing/discounts, never make promises about availability, always confirm the customer's name and car of interest)
 - When to hand off to a human CR team member
-- Dealership context: this is Lotus CRM for a Hyundai dealer group.
+- Dealership context: this is Lotus D-CRM for a Hyundai dealer group.
 
 Output only the system prompt text itself, no preamble or explanation.`;
 

@@ -66,3 +66,19 @@ export async function fetchUpcomingFollowUps(filters: FollowUpFilters): Promise<
   const { data } = await axiosClient.get<UpcomingFollowUpsResponse>("/follow-ups/upcoming", { params: filters });
   return data;
 }
+
+export interface FollowUpCalendarCountsParams {
+  start: string;
+  end: string;
+  search?: string;
+  status?: EnquiryStatus;
+  enquiryCategory?: EnquiryCategory;
+  source?: LeadSource;
+  branchId?: string;
+  assignedCrId?: string;
+}
+
+export async function fetchFollowUpCalendarCounts(params: FollowUpCalendarCountsParams): Promise<Record<string, number>> {
+  const { data } = await axiosClient.get<Record<string, number>>("/follow-ups/calendar-counts", { params });
+  return data;
+}

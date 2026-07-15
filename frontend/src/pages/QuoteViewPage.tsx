@@ -171,13 +171,13 @@ export function QuoteViewPage() {
               <div className="sm:text-right">
                 <p className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">Your Sales Consultant</p>
                 <p className="font-bold text-slate-900">{quotedBy.name}</p>
-                <p className="text-sm font-medium text-slate-500">{quotedBy.phone || quotedBy.email || "Lotus CRM Team"}</p>
+                <p className="text-sm font-medium text-slate-500">{quotedBy.phone || quotedBy.email || "Lotus D-CRM Team"}</p>
               </div>
             </div>
             
             <div className="mt-12 flex items-center justify-center gap-2 text-xs font-medium text-slate-400">
               <CheckCircle2 size={14} className="text-emerald-500" />
-              Generated securely via Lotus CRM
+              Generated securely via Lotus D-CRM
             </div>
           </div>
           

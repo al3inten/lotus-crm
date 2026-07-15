@@ -11,6 +11,6 @@ async function tick() {
   }
 }
 
-logger.info("Lotus CRM voice-worker started", { pollIntervalMs: POLL_INTERVAL_MS });
+logger.info("Lotus D-CRM voice-worker started", { pollIntervalMs: POLL_INTERVAL_MS });
 setInterval(tick, POLL_INTERVAL_MS);
 void tick();

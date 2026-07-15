@@ -94,7 +94,7 @@ export function LoginPage() {
             <span className="flex items-center rounded-2xl bg-white px-4 py-2.5 shadow-lg shadow-blue-950/40">
               <img
                 src="/logo.png"
-                alt="Lotus CRM · Hyundai"
+                alt="Lotus D-CRM · Hyundai"
                 className="h-10 w-auto object-contain lg:h-12"
               />
             </span>
@@ -152,7 +152,7 @@ export function LoginPage() {
         </motion.div>
 
         <p className="relative z-10 mt-4 text-[11px] text-slate-500 lg:mt-6">
-          © {new Date().getFullYear()} Lotus CRM · Hyundai
+          © {new Date().getFullYear()} Lotus D-CRM · Hyundai
         </p>
       </div>
 
@@ -184,12 +184,12 @@ export function LoginPage() {
                   <span className="pointer-events-none absolute inset-0 -z-10 rounded-3xl bg-blue-400/30 blur-xl" />
                   <img
                     src="/logo.png"
-                    alt="Lotus CRM · Hyundai"
+                    alt="Lotus D-CRM · Hyundai"
                     className="h-16 w-auto max-w-[300px] object-contain sm:h-20"
                   />
                 </span>
                 <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-white sm:text-2xl">Welcome back</h1>
-                <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">Sign in to your Lotus CRM account</p>
+                <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">Sign in to your Lotus D-CRM account</p>
               </div>
 
               <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3.5">
@@ -272,7 +272,7 @@ export function LoginPage() {
           </div>
 
           <p className="mt-4 text-center text-[11px] text-slate-400 dark:text-slate-500 sm:text-xs lg:mt-6">
-            © {new Date().getFullYear()} Lotus CRM · Hyundai Dealership Suite
+            © {new Date().getFullYear()} Lotus D-CRM · Hyundai Dealership Suite
           </p>
         </motion.div>
       </div>

@@ -8,3 +8,12 @@ export function useUpcomingFollowUps(filters: followUpsApi.FollowUpFilters) {
     placeholderData: keepPreviousData,
   });
 }
+
+export function useFollowUpCalendarCounts(params: followUpsApi.FollowUpCalendarCountsParams | null) {
+  return useQuery({
+    queryKey: ["follow-ups", "calendar-counts", params],
+    queryFn: () => followUpsApi.fetchFollowUpCalendarCounts(params as followUpsApi.FollowUpCalendarCountsParams),
+    enabled: !!params,
+    placeholderData: keepPreviousData,
+  });
+}

@@ -4,7 +4,7 @@ import { logger } from "./lib/logger";
 import { pollPendingCalls } from "./modules/voice/voice.service";
 
 app.listen(env.PORT, () => {
-  logger.info(`Lotus CRM backend listening on port ${env.PORT}`);
+  logger.info(`Lotus D-CRM backend listening on port ${env.PORT}`);
 });
 
 // Fallback for Callmatic's webhook being unreliable/unconfigured on their side — poll for

@@ -27,3 +27,18 @@ export const followUpListQuerySchema = z.object({
 });
 
 export type FollowUpListQuery = z.infer<typeof followUpListQuerySchema>;
+
+// Per-day counts for the calendar view, scoped by the same non-timeframe filters
+// as the list query so a date's count matches what selecting it would show.
+export const followUpCalendarQuerySchema = z.object({
+  start: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "start must be YYYY-MM-DD"),
+  end: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "end must be YYYY-MM-DD"),
+  search: z.string().optional(),
+  status: z.string().optional(),
+  enquiryCategory: z.enum(["HOT", "WARM", "COLD"]).optional(),
+  source: z.string().optional(),
+  branchId: z.string().optional(),
+  assignedCrId: z.string().optional(),
+});
+
+export type FollowUpCalendarQuery = z.infer<typeof followUpCalendarQuerySchema>;

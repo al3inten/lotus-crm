@@ -5,7 +5,7 @@
 ---
 
 ## 1. Overview
-**LotusCRM** — a CRM for **Hyundai dealership teams** ("Lotus CRM · Hyundai Dealership Suite").
+**LotusCRM** — a CRM for **Hyundai dealership teams** ("Lotus D-CRM · Hyundai Dealership Suite").
 Manages the full enquiry lifecycle: lead capture (walk-in, Meta Ads, WhatsApp, Instagram,
 Google Sheets, Voice AI) → smart round-robin routing to Customer Reps (CRs) → follow-ups,
 test drives, quotation/exchange/finance/delivery pipeline → conversion reporting. Includes

@@ -243,7 +243,7 @@ export function DashboardPage() {
               <div className="bg-gradient-to-br from-rose-400 to-fuchsia-600 p-1.5 rounded-[10px] shadow-sm">
                 <Flower2 size={18} className="text-white" strokeWidth={2.5} />
               </div>
-              <span className="font-black tracking-tight text-slate-800 text-[15px] uppercase tracking-wider">Lotus CRM</span>
+              <span className="font-black tracking-tight text-slate-800 text-[15px] uppercase tracking-wider">Lotus D-CRM</span>
             </div>
             <h1 className="text-3xl font-black tracking-tight text-slate-900 mt-1">
               Welcome back{user?.name ? `, ${user.name.split(" ")[0]}` : ""}

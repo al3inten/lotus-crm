@@ -24,6 +24,7 @@ import vehiclesRoutes from "./modules/vehicles/vehicles.routes";
 import notificationsRoutes from "./modules/notifications/notifications.routes";
 import quotesRoutes from "./modules/quotes/quotes.routes";
 import settingsRoutes from "./modules/settings/settings.routes";
+import searchRoutes from "./modules/search/search.routes";
 
 export const app = express();
 
@@ -66,6 +67,7 @@ app.use("/api/roles", rolesRoutes);
 app.use("/api/vehicle-models", vehiclesRoutes);
 app.use("/api/notifications", notificationsRoutes);
 app.use("/api/settings", settingsRoutes);
+app.use("/api/search", searchRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

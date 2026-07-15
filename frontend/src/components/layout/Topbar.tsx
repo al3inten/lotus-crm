@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Search, Bell, HelpCircle, Menu, ChevronDown, Sun, Moon } from "lucide-react";
+import { LogOut, Search, Bell, HelpCircle, Menu, ChevronDown, Sun, Moon, User, Car } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../hooks/useTheme";
 import { useNavItems } from "./navConfig";
 import { useReminders } from "../../hooks/useLeads";
+import { useGlobalSearch } from "../../hooks/useGlobalSearch";
 import { Avatar } from "../common/Avatar";
 import { LogoutConfirmModal } from "../common/LogoutConfirmModal";
 
@@ -34,9 +35,14 @@ export function Topbar({ onMenuToggle }: { onMenuToggle: () => void }) {
   }) ?? [];
   const reminderCount = overdueReminders.length + todayReminders.length;
 
-  const results = query.trim()
-    ? navItems.filter((item) => item.label.toLowerCase().includes(query.trim().toLowerCase()))
+  const trimmedQuery = query.trim();
+  const results = trimmedQuery
+    ? navItems.filter((item) => item.label.toLowerCase().includes(trimmedQuery.toLowerCase()))
     : [];
+  const { data: searchData, isFetching: isSearching } = useGlobalSearch(trimmedQuery);
+  const leadResults = searchData?.leads ?? [];
+  const vehicleResults = searchData?.vehicles ?? [];
+  const hasAnyResults = results.length > 0 || leadResults.length > 0 || vehicleResults.length > 0;
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -103,23 +109,64 @@ export function Topbar({ onMenuToggle }: { onMenuToggle: () => void }) {
             </div>
 
             {/* Quick Search Dropdown */}
-            {showResults && query.trim() && (
+            {showResults && trimmedQuery && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowResults(false)} />
-                <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-xl border border-slate-200/80 bg-white py-1.5 shadow-xl ring-1 ring-black/5 dark:border-slate-800/80 dark:bg-slate-900 dark:ring-white/10">
-                  {results.length > 0 ? (
-                    results.map((item) => (
-                      <button
-                        key={item.to}
-                        onClick={() => goToResult(item.to)}
-                        className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm text-slate-700 transition-colors hover:bg-blue-50 hover:text-blue-700 dark:text-slate-300 dark:hover:bg-blue-500/10 dark:hover:text-blue-400"
-                      >
-                        <item.icon size={15} className="shrink-0 text-slate-400" />
-                        {item.label}
-                      </button>
-                    ))
-                  ) : (
-                    <p className="px-3.5 py-2 text-sm text-slate-400 dark:text-slate-500">No pages match "{query}"</p>
+                <div className="absolute left-0 right-0 top-full z-50 mt-2 max-h-96 overflow-y-auto rounded-xl border border-slate-200/80 bg-white py-1.5 shadow-xl ring-1 ring-black/5 dark:border-slate-800/80 dark:bg-slate-900 dark:ring-white/10">
+                  {results.length > 0 && (
+                    <div className="pb-1.5">
+                      {results.map((item) => (
+                        <button
+                          key={item.to}
+                          onClick={() => goToResult(item.to)}
+                          className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm text-slate-700 transition-colors hover:bg-blue-50 hover:text-blue-700 dark:text-slate-300 dark:hover:bg-blue-500/10 dark:hover:text-blue-400"
+                        >
+                          <item.icon size={15} className="shrink-0 text-slate-400" />
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {leadResults.length > 0 && (
+                    <div className="border-t border-slate-100 py-1.5 dark:border-slate-800">
+                      <p className="px-3.5 pb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Leads</p>
+                      {leadResults.map((lead) => (
+                        <button
+                          key={lead.enquiryId}
+                          onClick={() => goToResult(`/leads/${lead.leadId}/enquiries/${lead.enquiryId}`)}
+                          className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm text-slate-700 transition-colors hover:bg-blue-50 hover:text-blue-700 dark:text-slate-300 dark:hover:bg-blue-500/10 dark:hover:text-blue-400"
+                        >
+                          <User size={15} className="shrink-0 text-slate-400" />
+                          <span className="min-w-0 flex-1 truncate">
+                            {lead.name} <span className="text-slate-400">· {lead.phone}</span>
+                          </span>
+                          <span className="shrink-0 truncate text-xs text-slate-400">{lead.carModel}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {vehicleResults.length > 0 && (
+                    <div className="border-t border-slate-100 py-1.5 dark:border-slate-800">
+                      <p className="px-3.5 pb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Vehicles</p>
+                      {vehicleResults.map((vehicle) => (
+                        <button
+                          key={vehicle.id}
+                          onClick={() => goToResult(`/vehicles?q=${encodeURIComponent(vehicle.name)}`)}
+                          className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm text-slate-700 transition-colors hover:bg-blue-50 hover:text-blue-700 dark:text-slate-300 dark:hover:bg-blue-500/10 dark:hover:text-blue-400"
+                        >
+                          <Car size={15} className="shrink-0 text-slate-400" />
+                          {vehicle.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {!hasAnyResults && (
+                    <p className="px-3.5 py-2 text-sm text-slate-400 dark:text-slate-500">
+                      {isSearching ? "Searching..." : `No results for "${query}"`}
+                    </p>
                   )}
                 </div>
               </>

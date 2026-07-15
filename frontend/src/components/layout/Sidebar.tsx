@@ -72,7 +72,7 @@ export function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }: SidebarProps)
             {!isCollapsed && (
               <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
                 <span className="truncate text-[15px] font-bold tracking-tight text-white leading-tight">
-                  Lotus CRM
+                  Lotus D-CRM
                 </span>
               </div>
             )}

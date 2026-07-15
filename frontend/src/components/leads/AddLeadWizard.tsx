@@ -8,6 +8,7 @@ import { Check, Save, Plus, Building2, UserCircle2, Car, CalendarClock, RefreshC
 import { Modal } from "../common/Modal";
 import { Input, Select, Textarea } from "../common/Input";
 import { SearchableSelect } from "../common/SearchableSelect";
+import { YearPicker } from "../common/YearPicker";
 import { DateTimePicker } from "../common/DateTimePicker";
 import { Switch } from "../common/Switch";
 import { Button } from "../common/Button";
@@ -697,7 +698,19 @@ export function AddLeadWizard({
                         <motion.div key="exchange-fields" {...collapseProps}>
                           <div className="grid grid-cols-1 gap-4 pt-1 sm:grid-cols-2">
                             <Input label="Model name" error={fieldError("exchangeCarModel")} {...register("exchangeCarModel")} />
-                            <Input label="Year" type="number" error={fieldError("exchangeCarYear")} {...register("exchangeCarYear")} />
+                            <Controller
+                              control={control}
+                              name="exchangeCarYear"
+                              render={({ field }) => (
+                                <YearPicker
+                                  label="Year"
+                                  value={field.value}
+                                  onChange={field.onChange}
+                                  onBlur={field.onBlur}
+                                  error={fieldError("exchangeCarYear")}
+                                />
+                              )}
+                            />
                             <Input label="KMs driven" type="number" min={0} error={fieldError("exchangeCarKms")} {...register("exchangeCarKms")} />
                             <Input label="No. of owners" type="number" min={0} error={fieldError("exchangeCarOwners")} {...register("exchangeCarOwners")} />
                           </div>

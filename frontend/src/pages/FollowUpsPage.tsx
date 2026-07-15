@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -21,7 +21,7 @@ import {
   User as UserIcon,
   Car,
 } from "lucide-react";
-import { useUpcomingFollowUps } from "../hooks/useFollowUps";
+import { useUpcomingFollowUps, useFollowUpCalendarCounts } from "../hooks/useFollowUps";
 import { useBranches } from "../hooks/useBranches";
 import type { FollowUpFilters, FollowUpTimeframe, FollowUpSortBy, UpcomingFollowUp } from "../api/followUps.api";
 import { ENQUIRY_STATUSES, ENQUIRY_CATEGORIES } from "../types";
@@ -30,6 +30,7 @@ import { Card } from "../components/common/Card";
 import { Avatar } from "../components/common/Avatar";
 import { Select } from "../components/common/Input";
 import { StatusBadge } from "../components/common/StatusBadge";
+import { FollowUpCalendar } from "../components/followUps/FollowUpCalendar";
 import { fadeUp, staggerContainer } from "../lib/motion";
 
 const PAGE_SIZE = 20;
@@ -134,9 +135,26 @@ export function FollowUpsPage() {
   const navigate = useNavigate();
   const [filters, setFilters] = useState<FollowUpFilters>({ timeframe: "all", sortBy: "dueDate", order: "asc", page: 1, pageSize: PAGE_SIZE });
   const [searchInput, setSearchInput] = useState("");
+  const [initialCalendarDate] = useState(() => new Date());
+  const [calendarRange, setCalendarRange] = useState<{ start: string; end: string } | null>(null);
 
   const { data: branches } = useBranches();
   const { data, isLoading, isFetching } = useUpcomingFollowUps(filters);
+  const { data: calendarCounts } = useFollowUpCalendarCounts(
+    calendarRange && {
+      ...calendarRange,
+      search: filters.search,
+      status: filters.status,
+      enquiryCategory: filters.enquiryCategory,
+      source: filters.source,
+      branchId: filters.branchId,
+      assignedCrId: filters.assignedCrId,
+    }
+  );
+
+  const handleCalendarRangeChange = useCallback((start: string, end: string) => {
+    setCalendarRange((prev) => (prev && prev.start === start && prev.end === end ? prev : { start, end }));
+  }, []);
 
   useEffect(() => {
     const next = searchInput || undefined;
@@ -221,7 +239,7 @@ export function FollowUpsPage() {
         <Card>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {/* Search — everyone */}
-            <div className="sm:col-span-2 lg:col-span-2">
+            <div className="sm:col-span-2 lg:col-span-4">
               <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">Search</label>
               <div className="relative">
                 <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -231,31 +249,6 @@ export function FollowUpsPage() {
                   placeholder="Search by customer name or phone"
                   className="block w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-900 transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500"
                 />
-              </div>
-            </div>
-
-            {/* Select date — everyone. Narrows to a single day; overrides the timeframe tiles. */}
-            <div className="sm:col-span-2 lg:col-span-2">
-              <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">Select date</label>
-              <div className="flex items-center gap-2">
-                <div className="relative flex-1">
-                  <CalendarClock size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="date"
-                    value={filters.dueDate ?? ""}
-                    onChange={(e) => patch({ dueDate: e.target.value || undefined, timeframe: "all" })}
-                    className="block w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-900 transition-colors focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:[color-scheme:dark]"
-                  />
-                </div>
-                {filters.dueDate && (
-                  <button
-                    type="button"
-                    onClick={() => patch({ dueDate: undefined })}
-                    className="shrink-0 rounded-xl border border-slate-200 px-3 py-2.5 text-xs font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
-                  >
-                    Clear
-                  </button>
-                )}
               </div>
             </div>
 
@@ -341,6 +334,17 @@ export function FollowUpsPage() {
             </div>
           )}
         </Card>
+      </motion.div>
+
+      {/* ---------- CALENDAR ---------- */}
+      <motion.div variants={fadeUp}>
+        <FollowUpCalendar
+          currentDate={initialCalendarDate}
+          counts={calendarCounts ?? {}}
+          selectedDateStr={filters.dueDate}
+          onSelectDate={(date) => patch({ dueDate: filters.dueDate === date ? undefined : date, timeframe: "all" })}
+          onRangeChange={handleCalendarRangeChange}
+        />
       </motion.div>
 
       {/* ---------- RESULT SUMMARY ---------- */}

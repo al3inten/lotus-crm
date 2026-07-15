@@ -23,7 +23,7 @@ export async function getSystemUserId(): Promise<string> {
   const passwordHash = await hashPassword(crypto.randomBytes(32).toString("hex"));
   const created = await prisma.user.create({
     data: {
-      name: "Lotus CRM Integrations",
+      name: "Lotus D-CRM Integrations",
       email: SYSTEM_USER_EMAIL,
       passwordHash,
       role: "SUPER_ADMIN",

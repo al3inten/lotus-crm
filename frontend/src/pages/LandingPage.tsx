@@ -207,7 +207,7 @@ const STEPS = [
 
 const FAQS = [
   {
-    q: "Which lead channels does Lotus CRM capture from?",
+    q: "Which lead channels does Lotus D-CRM capture from?",
     a: "Meta Ads, WhatsApp, Instagram DMs, Google Sheets imports, walk-in registrations and the built-in Voice AI agent — all deduplicated into a single inbox.",
   },
   {
@@ -326,7 +326,7 @@ export function LandingPage() {
                 navSolid ? "text-slate-900 dark:text-white" : "text-white"
               }`}
             >
-              Lotus CRM
+              Lotus D-CRM
             </span>
           </a>
           <nav
@@ -638,7 +638,7 @@ export function LandingPage() {
               One platform for the whole sales floor
             </h2>
             <p className="mt-4 text-slate-600 dark:text-slate-400">
-              From the first ad click to the delivery bay — Lotus CRM runs the entire dealership
+              From the first ad click to the delivery bay — Lotus D-CRM runs the entire dealership
               enquiry lifecycle so your team can focus on selling.
             </p>
           </Reveal>
@@ -789,11 +789,11 @@ export function LandingPage() {
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 sm:flex-row">
           <div className="flex items-center gap-3">
             <img src="/hyundai-logo.jpg" alt="Hyundai" className="h-8 w-auto rounded-md object-contain" />
-            <span className="text-sm font-semibold text-slate-900 dark:text-white">Lotus CRM</span>
+            <span className="text-sm font-semibold text-slate-900 dark:text-white">Lotus D-CRM</span>
             <span className="text-sm text-slate-400 dark:text-slate-500">· Hyundai Dealership Suite</span>
           </div>
           <p className="text-xs text-slate-400 dark:text-slate-500">
-            © {new Date().getFullYear()} Lotus CRM. Every lead, every call, one drive to close.
+            © {new Date().getFullYear()} Lotus D-CRM. Every lead, every call, one drive to close.
           </p>
         </div>
       </footer>

@@ -3,8 +3,8 @@ import { asyncHandler } from "../../lib/asyncHandler";
 import { verifyJwt } from "../../middleware/auth";
 import { applyBranchScope } from "../../middleware/branchScope";
 import { validateQuery } from "../../middleware/validate";
-import { followUpListQuerySchema } from "./follow-ups.schema";
-import { listUpcomingFollowUpsHandler } from "./follow-ups.controller";
+import { followUpListQuerySchema, followUpCalendarQuerySchema } from "./follow-ups.schema";
+import { listUpcomingFollowUpsHandler, getFollowUpCalendarCountsHandler } from "./follow-ups.controller";
 
 const router = Router();
 
@@ -13,5 +13,6 @@ const router = Router();
 router.use(verifyJwt, applyBranchScope);
 
 router.get("/upcoming", validateQuery(followUpListQuerySchema), asyncHandler(listUpcomingFollowUpsHandler));
+router.get("/calendar-counts", validateQuery(followUpCalendarQuerySchema), asyncHandler(getFollowUpCalendarCountsHandler));
 
 export default router;

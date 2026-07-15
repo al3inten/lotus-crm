@@ -1,6 +1,6 @@
 import { Prisma, Role, EnquiryStatus, EnquiryCategory, LeadSource } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
-import { FollowUpListQuery } from "./follow-ups.schema";
+import { FollowUpListQuery, FollowUpCalendarQuery } from "./follow-ups.schema";
 
 // Follow-ups on won/lost enquiries are done — never surface them in the queue.
 const TERMINAL_STATUSES: EnquiryStatus[] = ["RETAIL_DONE", "CLOSED"];
@@ -44,11 +44,23 @@ function timeframeFilter(timeframe: FollowUpListQuery["timeframe"]): Prisma.Date
   }
 }
 
-export async function getUpcomingFollowUps(query: FollowUpListQuery, ctx: FollowUpContext) {
+interface ScopedFilters {
+  status?: string;
+  enquiryCategory?: string;
+  source?: string;
+  branchId?: string;
+  assignedCrId?: string;
+  search?: string;
+}
+
+// Shared scoping: restricts to active enquiries with a scheduled follow-up, applies
+// role-based visibility (own / branch / all), and layers on the common facet filters.
+// Used by both the paginated list and the calendar per-day counts so they agree on
+// what counts as "in scope."
+function buildScopedWhere(filters: ScopedFilters, ctx: FollowUpContext) {
   const canSeeOthers = !OWN_ONLY_ROLES.includes(ctx.role);
   const crossBranch = ctx.role === "SUPER_ADMIN" || ctx.role === "ADMIN";
 
-  // Base scope: active enquiries that actually have a next-follow-up scheduled.
   const where: Prisma.EnquiryWhereInput = {
     status: { notIn: TERMINAL_STATUSES },
     followUpDueAt: { not: null },
@@ -58,26 +70,32 @@ export async function getUpcomingFollowUps(query: FollowUpListQuery, ctx: Follow
     // Branch managers are pinned to their branch via branchFilter; admins are unscoped
     // but may narrow to a branch. CR / consultant filters apply to anyone who can see others.
     if (ctx.branchFilter) where.branchId = ctx.branchFilter.branchId;
-    if (crossBranch && query.branchId) where.branchId = query.branchId;
-    if (query.assignedCrId) where.assignedCrId = query.assignedCrId;
+    if (crossBranch && filters.branchId) where.branchId = filters.branchId;
+    if (filters.assignedCrId) where.assignedCrId = filters.assignedCrId;
   } else {
     // CR / consultant: hard-locked to their own follow-ups, ignoring any cr/branch filters.
     where.assignedCrId = ctx.userId;
   }
 
-  if (query.status) where.status = query.status as EnquiryStatus;
-  if (query.enquiryCategory) where.enquiryCategory = query.enquiryCategory as EnquiryCategory;
-  if (query.source) where.source = query.source as LeadSource;
-  if (query.search) {
+  if (filters.status) where.status = filters.status as EnquiryStatus;
+  if (filters.enquiryCategory) where.enquiryCategory = filters.enquiryCategory as EnquiryCategory;
+  if (filters.source) where.source = filters.source as LeadSource;
+  if (filters.search) {
     where.lead = {
       is: {
         OR: [
-          { name: { contains: query.search, mode: "insensitive" } },
-          { phoneNormalized: { contains: query.search } },
+          { name: { contains: filters.search, mode: "insensitive" } },
+          { phoneNormalized: { contains: filters.search } },
         ],
       },
     };
   }
+
+  return { where, canSeeOthers, crossBranch };
+}
+
+export async function getUpcomingFollowUps(query: FollowUpListQuery, ctx: FollowUpContext) {
+  const { where, canSeeOthers, crossBranch } = buildScopedWhere(query, ctx);
 
   // Bucket stats are computed over the scoped set BEFORE the timeframe filter so the
   // category tiles always show the full picture regardless of which tab is active.
@@ -183,4 +201,30 @@ export async function getUpcomingFollowUps(query: FollowUpListQuery, ctx: Follow
     canSeeOthers,
     crossBranch,
   };
+}
+
+// Per-day counts for the calendar view. Fetches just the due dates in range and buckets
+// them in JS (rather than a DB-level date_trunc) so the query stays portable and simple —
+// the range is at most a few weeks/a month, so the row count is small.
+export async function getFollowUpCalendarCounts(query: FollowUpCalendarQuery, ctx: FollowUpContext) {
+  const { where } = buildScopedWhere(query, ctx);
+
+  const [ys, ms, ds] = query.start.split("-").map(Number);
+  const [ye, me, de] = query.end.split("-").map(Number);
+  const rangeStart = new Date(ys, ms - 1, ds, 0, 0, 0, 0);
+  const rangeEnd = new Date(ye, me - 1, de, 23, 59, 59, 999);
+
+  const rows = await prisma.enquiry.findMany({
+    where: { ...where, followUpDueAt: { gte: rangeStart, lte: rangeEnd } },
+    select: { followUpDueAt: true },
+  });
+
+  const counts: Record<string, number> = {};
+  for (const row of rows) {
+    if (!row.followUpDueAt) continue;
+    const d = row.followUpDueAt;
+    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    counts[iso] = (counts[iso] ?? 0) + 1;
+  }
+  return counts;
 }
