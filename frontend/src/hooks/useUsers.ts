@@ -46,3 +46,27 @@ export function useDeleteUser() {
     },
   });
 }
+
+/** Live team presence + break state for the dashboard monitor (admins/managers). */
+export function useTeamActivity(enabled = true) {
+  return useQuery({
+    queryKey: ["team-activity"],
+    queryFn: usersApi.fetchTeamActivity,
+    enabled,
+    refetchInterval: 30000,
+  });
+}
+
+export function useUploadAvatar() {
+  return useMutation({
+    mutationFn: ({ userId, file }: { userId: string; file: File }) => usersApi.uploadAvatar(userId, file),
+  });
+}
+
+export function useSetBreak() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (onBreak: boolean) => usersApi.setBreak(onBreak),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["team-activity"] }),
+  });
+}

@@ -30,6 +30,7 @@ import { Avatar } from "../components/common/Avatar";
 import { StatusBadge } from "../components/common/StatusBadge";
 import { CountUp } from "../components/common/CountUp";
 import { Sparkline } from "../components/common/Sparkline";
+import { TeamActivityCard } from "../components/dashboard/TeamActivityCard";
 import { Skeleton } from "@/components/ui/skeleton";
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -506,6 +507,10 @@ export function DashboardPage() {
 
             {/* Rail */}
             <div className="flex flex-col gap-6 lg:col-span-4">
+              <motion.div variants={variants.item}>
+                <TeamActivityCard className={SURFACE} />
+              </motion.div>
+
               <motion.div variants={variants.item}>
                 <Card className={clsx(SURFACE, "p-6")}>
                   <div className="flex items-center justify-between">

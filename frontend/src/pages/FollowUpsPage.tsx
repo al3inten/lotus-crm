@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -21,16 +21,17 @@ import {
   User as UserIcon,
   Car,
 } from "lucide-react";
-import { useUpcomingFollowUps, useFollowUpCalendarCounts } from "../hooks/useFollowUps";
+import { useUpcomingFollowUps, useFollowUpCalendar } from "../hooks/useFollowUps";
 import { useBranches } from "../hooks/useBranches";
 import type { FollowUpFilters, FollowUpTimeframe, FollowUpSortBy, UpcomingFollowUp } from "../api/followUps.api";
+import { FollowUpCalendar } from "../components/followUps/FollowUpCalendar";
 import { ENQUIRY_STATUSES, ENQUIRY_CATEGORIES } from "../types";
 import type { FollowUpType } from "../types";
 import { Card } from "../components/common/Card";
+import { Modal } from "../components/common/Modal";
 import { Avatar } from "../components/common/Avatar";
 import { Select } from "../components/common/Input";
 import { StatusBadge } from "../components/common/StatusBadge";
-import { FollowUpCalendar } from "../components/followUps/FollowUpCalendar";
 import { fadeUp, staggerContainer } from "../lib/motion";
 
 const PAGE_SIZE = 20;
@@ -133,28 +134,45 @@ function TimeframeTile({
 
 export function FollowUpsPage() {
   const navigate = useNavigate();
+  const listRef = useRef<HTMLDivElement>(null);
   const [filters, setFilters] = useState<FollowUpFilters>({ timeframe: "all", sortBy: "dueDate", order: "asc", page: 1, pageSize: PAGE_SIZE });
   const [searchInput, setSearchInput] = useState("");
-  const [initialCalendarDate] = useState(() => new Date());
-  const [calendarRange, setCalendarRange] = useState<{ start: string; end: string } | null>(null);
 
   const { data: branches } = useBranches();
   const { data, isLoading, isFetching } = useUpcomingFollowUps(filters);
-  const { data: calendarCounts } = useFollowUpCalendarCounts(
-    calendarRange && {
-      ...calendarRange,
-      search: filters.search,
-      status: filters.status,
-      enquiryCategory: filters.enquiryCategory,
-      source: filters.source,
-      branchId: filters.branchId,
-      assignedCrId: filters.assignedCrId,
-    }
+
+  // Calendar heat view. The range is driven by the calendar's own week/month nav;
+  // an optional CR selection narrows both the day counts and the detail list.
+  const [calRange, setCalRange] = useState<{ start: string; end: string } | null>(null);
+  const [calCrId, setCalCrId] = useState<string | undefined>(undefined);
+  const onRangeChange = useCallback((start: string, end: string) => setCalRange({ start, end }), []);
+  const { data: calendar } = useFollowUpCalendar(
+    calRange
+      ? { start: calRange.start, end: calRange.end, branchId: filters.branchId, assignedCrId: calCrId }
+      : null
   );
 
-  const handleCalendarRangeChange = useCallback((start: string, end: string) => {
-    setCalendarRange((prev) => (prev && prev.start === start && prev.end === end ? prev : { start, end }));
-  }, []);
+  // Day counts shown on the calendar: total across the team, or a single CR's when one
+  // is picked from the breakdown.
+  const calCounts = useMemo(() => {
+    if (!calendar) return {};
+    if (calCrId) {
+      return calendar.byCr.find((c) => c.id === calCrId)?.countsByDate ?? {};
+    }
+    return calendar.counts;
+  }, [calendar, calCrId]);
+
+  // Day the "who has follow-ups" popup is showing. Populated when a calendar cell is
+  // clicked; the per-person rows are derived from the already-loaded calendar data.
+  const [popupDate, setPopupDate] = useState<string | null>(null);
+  const popupCrs = useMemo(() => {
+    if (!popupDate || !calendar) return [];
+    return calendar.byCr
+      .map((cr) => ({ id: cr.id, name: cr.name, count: cr.countsByDate[popupDate] ?? 0 }))
+      .filter((cr) => cr.count > 0)
+      .sort((a, b) => b.count - a.count);
+  }, [popupDate, calendar]);
+  const popupTotal = popupDate ? calendar?.counts[popupDate] ?? 0 : 0;
 
   useEffect(() => {
     const next = searchInput || undefined;
@@ -234,12 +252,85 @@ export function FollowUpsPage() {
         ))}
       </motion.div>
 
+      {/* ---------- CALENDAR HEAT VIEW ---------- */}
+      <motion.div variants={fadeUp} className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3">
+        <div className={clsx(canSeeOthers ? "lg:col-span-2" : "lg:col-span-3")}>
+          <FollowUpCalendar
+            currentDate={new Date()}
+            counts={calCounts}
+            selectedDateStr={filters.dueDate ?? popupDate ?? undefined}
+            onRangeChange={onRangeChange}
+            onSelectDate={(date) => setPopupDate(date)}
+          />
+        </div>
+
+        {/* Per-CR breakdown — admins & managers. Click a rep to focus the calendar + list. */}
+        {canSeeOthers && (
+          <Card className="flex h-full flex-col">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
+                <UserIcon size={15} className="text-blue-500" /> By rep
+              </h2>
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold tabular-nums text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                {(calendar?.total ?? 0).toLocaleString()}
+              </span>
+            </div>
+            <p className="mb-2 text-xs text-slate-500 dark:text-slate-400">
+              Follow-ups in the shown range
+            </p>
+            <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto pr-1">
+              {!calendar || calendar.byCr.length === 0 ? (
+                <p className="py-6 text-center text-xs italic text-slate-400 dark:text-slate-500">
+                  No follow-ups in this range.
+                </p>
+              ) : (
+                calendar.byCr.map((cr) => {
+                  const active = calCrId === cr.id;
+                  return (
+                    <button
+                      key={cr.id}
+                      type="button"
+                      onClick={() => {
+                        const nextCr = active ? undefined : cr.id;
+                        setCalCrId(nextCr);
+                        patch({ assignedCrId: nextCr === "unassigned" ? undefined : nextCr });
+                      }}
+                      className={clsx(
+                        "flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left transition-colors",
+                        active
+                          ? "border-blue-400 bg-blue-50 dark:border-blue-500/50 dark:bg-blue-500/10"
+                          : "border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                      )}
+                    >
+                      <span className="flex min-w-0 items-center gap-2">
+                        <Avatar name={cr.name} size="sm" />
+                        <span className="truncate text-sm font-medium text-slate-700 dark:text-slate-200">{cr.name}</span>
+                      </span>
+                      <span
+                        className={clsx(
+                          "shrink-0 rounded-full px-2 py-0.5 text-xs font-bold tabular-nums",
+                          active
+                            ? "bg-blue-600 text-white"
+                            : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                        )}
+                      >
+                        {cr.count.toLocaleString()}
+                      </span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </Card>
+        )}
+      </motion.div>
+
       {/* ---------- TOOLBAR ---------- */}
       <motion.div variants={fadeUp}>
         <Card>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {/* Search — everyone */}
-            <div className="sm:col-span-2 lg:col-span-4">
+            <div className="sm:col-span-2 lg:col-span-2">
               <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">Search</label>
               <div className="relative">
                 <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -249,6 +340,31 @@ export function FollowUpsPage() {
                   placeholder="Search by customer name or phone"
                   className="block w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-900 transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500"
                 />
+              </div>
+            </div>
+
+            {/* Select date — everyone. Narrows to a single day; overrides the timeframe tiles. */}
+            <div className="sm:col-span-2 lg:col-span-2">
+              <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">Select date</label>
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <CalendarClock size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="date"
+                    value={filters.dueDate ?? ""}
+                    onChange={(e) => patch({ dueDate: e.target.value || undefined, timeframe: "all" })}
+                    className="block w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-900 transition-colors focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:[color-scheme:dark]"
+                  />
+                </div>
+                {filters.dueDate && (
+                  <button
+                    type="button"
+                    onClick={() => patch({ dueDate: undefined })}
+                    className="shrink-0 rounded-xl border border-slate-200 px-3 py-2.5 text-xs font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
+                  >
+                    Clear
+                  </button>
+                )}
               </div>
             </div>
 
@@ -336,18 +452,8 @@ export function FollowUpsPage() {
         </Card>
       </motion.div>
 
-      {/* ---------- CALENDAR ---------- */}
-      <motion.div variants={fadeUp}>
-        <FollowUpCalendar
-          currentDate={initialCalendarDate}
-          counts={calendarCounts ?? {}}
-          selectedDateStr={filters.dueDate}
-          onSelectDate={(date) => patch({ dueDate: filters.dueDate === date ? undefined : date, timeframe: "all" })}
-          onRangeChange={handleCalendarRangeChange}
-        />
-      </motion.div>
-
       {/* ---------- RESULT SUMMARY ---------- */}
+      <div ref={listRef} className="scroll-mt-4" />
       {!isLoading && data && (
         <div className="flex items-center justify-between gap-3 px-1 text-sm">
           <p className="text-slate-500 dark:text-slate-400">
@@ -496,6 +602,85 @@ export function FollowUpsPage() {
           )}
         </div>
       )}
+
+      {/* ---------- DATE DETAIL POPUP ---------- */}
+      <Modal
+        isOpen={!!popupDate}
+        onClose={() => setPopupDate(null)}
+        title={
+          popupDate
+            ? new Date(`${popupDate}T00:00:00`).toLocaleDateString(undefined, {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })
+            : undefined
+        }
+        maxWidth="max-w-md"
+        footer={
+          <button
+            type="button"
+            disabled={popupTotal === 0}
+            onClick={() => {
+              if (popupDate) patch({ dueDate: popupDate, timeframe: "all", assignedCrId: undefined });
+              setCalCrId(undefined);
+              setPopupDate(null);
+              requestAnimationFrame(() => listRef.current?.scrollIntoView({ behavior: "smooth" }));
+            }}
+            className="w-full rounded-xl bg-blue-600 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:pointer-events-none disabled:opacity-40"
+          >
+            View all {popupTotal} follow-up{popupTotal === 1 ? "" : "s"}
+          </button>
+        }
+      >
+        <div className="mb-4 flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+          <CalendarClock size={15} className="text-blue-500" />
+          <span className="font-semibold text-slate-900 tabular-nums dark:text-white">{popupTotal}</span>
+          follow-up{popupTotal === 1 ? "" : "s"} scheduled
+        </div>
+
+        {popupTotal === 0 ? (
+          <p className="py-8 text-center text-sm italic text-slate-400 dark:text-slate-500">
+            No follow-ups on this day.
+          </p>
+        ) : !canSeeOthers ? (
+          <p className="py-4 text-center text-sm text-slate-600 dark:text-slate-300">
+            You have <span className="font-bold tabular-nums">{popupTotal}</span> follow-up
+            {popupTotal === 1 ? "" : "s"} due on this day.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-1.5">
+            <p className="mb-1 text-xs font-medium text-slate-400 dark:text-slate-500">By customer rep</p>
+            {popupCrs.map((cr) => (
+              <button
+                key={cr.id}
+                type="button"
+                onClick={() => {
+                  if (popupDate)
+                    patch({
+                      dueDate: popupDate,
+                      timeframe: "all",
+                      assignedCrId: cr.id === "unassigned" ? undefined : cr.id,
+                    });
+                  setCalCrId(cr.id === "unassigned" ? undefined : cr.id);
+                  setPopupDate(null);
+                  requestAnimationFrame(() => listRef.current?.scrollIntoView({ behavior: "smooth" }));
+                }}
+                className="flex items-center justify-between gap-2 rounded-xl border border-transparent px-3 py-2.5 text-left transition-colors hover:border-blue-300 hover:bg-blue-50 dark:hover:border-blue-500/40 dark:hover:bg-blue-500/10"
+              >
+                <span className="flex min-w-0 items-center gap-2.5">
+                  <Avatar name={cr.name} size="sm" />
+                  <span className="truncate text-sm font-medium text-slate-700 dark:text-slate-200">{cr.name}</span>
+                </span>
+                <span className="shrink-0 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-bold tabular-nums text-blue-700 dark:bg-blue-500/20 dark:text-blue-300">
+                  {cr.count}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </Modal>
     </motion.div>
   );
 }

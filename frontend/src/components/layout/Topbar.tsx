@@ -1,19 +1,51 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Search, Bell, HelpCircle, Menu, ChevronDown, Sun, Moon, User, Car } from "lucide-react";
+import clsx from "clsx";
+import { LogOut, Search, Bell, HelpCircle, Menu, ChevronDown, Sun, Moon, BellOff, CheckCheck, Camera, Coffee, Loader2, User, Car } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../hooks/useTheme";
 import { useNavItems } from "./navConfig";
-import { useReminders } from "../../hooks/useLeads";
 import { useGlobalSearch } from "../../hooks/useGlobalSearch";
+import { useNotifications, useMarkNotificationAsRead } from "../../hooks/useNotifications";
+import { useUploadAvatar, useSetBreak } from "../../hooks/useUsers";
+import type { AppNotification } from "../../types";
 import { Avatar } from "../common/Avatar";
 import { LogoutConfirmModal } from "../common/LogoutConfirmModal";
 
+/** Compact relative time, e.g. "just now", "5m", "3h", "2d". */
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h`;
+  return `${Math.floor(hrs / 24)}d`;
+}
+
 export function Topbar({ onMenuToggle }: { onMenuToggle: () => void }) {
-  const { user, logout } = useAuth();
+  const { user, logout, patchUser } = useAuth();
   const navigate = useNavigate();
   const navItems = useNavItems();
   const { toggle: toggleTheme } = useTheme();
+
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const uploadAvatar = useUploadAvatar();
+  const setBreak = useSetBreak();
+
+  const onPickAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !user) return;
+    const updated = await uploadAvatar.mutateAsync({ userId: user.id, file });
+    patchUser({ avatarUrl: updated.avatarUrl });
+  };
+
+  const toggleBreak = async () => {
+    if (!user) return;
+    const updated = await setBreak.mutateAsync(!user.onBreak);
+    patchUser({ onBreak: updated.onBreak, isAvailableForRouting: updated.isAvailableForRouting });
+  };
 
   const [query, setQuery] = useState("");
   const [showResults, setShowResults] = useState(false);
@@ -22,18 +54,15 @@ export function Topbar({ onMenuToggle }: { onMenuToggle: () => void }) {
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: reminders } = useReminders();
-  const overdueReminders = reminders?.filter(r => {
-    if (!r.followUpDueAt) return false;
-    const due = new Date(r.followUpDueAt);
-    const now = new Date();
-    return due < now && due.toDateString() !== now.toDateString();
-  }) ?? [];
-  const todayReminders = reminders?.filter(r => {
-    if (!r.followUpDueAt) return false;
-    return new Date(r.followUpDueAt).toDateString() === new Date().toDateString();
-  }) ?? [];
-  const reminderCount = overdueReminders.length + todayReminders.length;
+  const { data: notifications } = useNotifications();
+  const markRead = useMarkNotificationAsRead();
+  const unreadCount = notifications?.length ?? 0;
+
+  const openNotification = (n: AppNotification) => {
+    markRead.mutate(n.id);
+    setIsNotificationsOpen(false);
+    if (n.linkUrl) navigate(n.linkUrl);
+  };
 
   const trimmedQuery = query.trim();
   const results = trimmedQuery
@@ -194,15 +223,61 @@ export function Topbar({ onMenuToggle }: { onMenuToggle: () => void }) {
             <div className="relative">
               <button
                 onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ""}`}
                 className="relative flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:text-slate-500 dark:hover:bg-white/5 dark:hover:text-slate-300"
               >
                 <Bell size={15} />
-                {reminderCount > 0 && (
-                  <span className="absolute right-2 top-2 flex h-1.5 w-1.5 rounded-full bg-blue-500 ring-2 ring-white dark:ring-[#0a0a0a]"></span>
+                {unreadCount > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-bold leading-none text-white ring-2 ring-white dark:ring-[#0a0a0a]">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
                 )}
               </button>
-              
-              {/* Notification Dropdown omitted for brevity but keeping state intact */}
+
+              {/* Notification inbox */}
+              {isNotificationsOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setIsNotificationsOpen(false)} />
+                  <div className="absolute right-0 top-full z-50 mt-2 w-80 origin-top-right overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-xl ring-1 ring-black/5 dark:border-slate-800/70 dark:bg-slate-900 dark:ring-white/10 sm:w-96">
+                    <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+                      <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Notifications</h3>
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={() => notifications?.forEach((n) => markRead.mutate(n.id))}
+                          className="flex items-center gap-1 text-xs font-medium text-blue-600 transition-colors hover:text-blue-700 dark:text-blue-400"
+                        >
+                          <CheckCheck size={13} /> Mark all read
+                        </button>
+                      )}
+                    </div>
+                    <div className="max-h-[22rem] overflow-y-auto">
+                      {unreadCount === 0 ? (
+                        <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
+                          <BellOff size={22} className="text-slate-300 dark:text-slate-600" />
+                          <p className="text-sm text-slate-400 dark:text-slate-500">You're all caught up.</p>
+                        </div>
+                      ) : (
+                        notifications!.map((n) => (
+                          <button
+                            key={n.id}
+                            onClick={() => openNotification(n)}
+                            className="flex w-full gap-3 border-b border-slate-50 px-4 py-3 text-left transition-colors last:border-0 hover:bg-slate-50 dark:border-slate-800/60 dark:hover:bg-slate-800/50"
+                          >
+                            <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-blue-500" />
+                            <span className="min-w-0 flex-1">
+                              <span className="flex items-center justify-between gap-2">
+                                <span className="truncate text-sm font-semibold text-slate-900 dark:text-white">{n.title}</span>
+                                <span className="shrink-0 text-[11px] text-slate-400 dark:text-slate-500">{timeAgo(n.createdAt)}</span>
+                              </span>
+                              <span className="mt-0.5 block text-xs leading-snug text-slate-500 dark:text-slate-400">{n.body}</span>
+                            </span>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="h-4 w-px bg-slate-200 dark:bg-white/10 mx-2 hidden sm:block"></div>
@@ -212,7 +287,17 @@ export function Topbar({ onMenuToggle }: { onMenuToggle: () => void }) {
                 onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
                 className="flex items-center gap-2 rounded-md p-1 transition-colors hover:bg-slate-100 dark:hover:bg-white/5"
               >
-                <Avatar name={user?.name ?? "?"} size="sm" />
+                <span className="relative">
+                  <Avatar name={user?.name ?? "?"} size="sm" src={user?.avatarUrl} />
+                  {user?.onBreak && (
+                    <span
+                      title="On break"
+                      className="absolute -bottom-0.5 -right-0.5 flex h-3 w-3 items-center justify-center rounded-full bg-amber-500 ring-2 ring-white dark:ring-[#0a0a0a]"
+                    >
+                      <Coffee size={7} className="text-white" />
+                    </span>
+                  )}
+                </span>
                 <ChevronDown
                   size={15}
                   className={`hidden text-slate-400 transition-transform sm:block ${isProfileMenuOpen ? "rotate-180" : ""}`}
@@ -223,9 +308,20 @@ export function Topbar({ onMenuToggle }: { onMenuToggle: () => void }) {
               {isProfileMenuOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setIsProfileMenuOpen(false)} />
-                  <div className="absolute right-0 top-full z-50 mt-2 w-64 origin-top-right rounded-2xl border border-slate-200/70 bg-white p-2 shadow-xl ring-1 ring-black/5 dark:border-slate-800/70 dark:bg-slate-900 dark:ring-white/10">
+                  <div className="absolute right-0 top-full z-50 mt-2 w-72 origin-top-right rounded-2xl border border-slate-200/70 bg-white p-2 shadow-xl ring-1 ring-black/5 dark:border-slate-800/70 dark:bg-slate-900 dark:ring-white/10">
                     <div className="flex items-center gap-3 rounded-xl px-2.5 py-2.5">
-                      <Avatar name={user?.name ?? "?"} size="md" />
+                      <span className="relative">
+                        <Avatar name={user?.name ?? "?"} size="md" src={user?.avatarUrl} />
+                        <button
+                          type="button"
+                          onClick={() => avatarInputRef.current?.click()}
+                          disabled={uploadAvatar.isPending}
+                          title="Change photo"
+                          className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-slate-900 text-white transition-colors hover:bg-slate-700 disabled:opacity-60 dark:border-slate-900 dark:bg-white dark:text-slate-900"
+                        >
+                          {uploadAvatar.isPending ? <Loader2 size={11} className="animate-spin" /> : <Camera size={11} />}
+                        </button>
+                      </span>
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">{user?.name}</p>
                         <p className="truncate text-xs text-slate-500 dark:text-slate-400">
@@ -234,6 +330,38 @@ export function Topbar({ onMenuToggle }: { onMenuToggle: () => void }) {
                         </p>
                       </div>
                     </div>
+
+                    <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={onPickAvatar} />
+
+                    <div className="my-1.5 h-px bg-slate-100 dark:bg-slate-800" />
+
+                    {/* Break toggle — going on break pauses new lead assignment. */}
+                    <button
+                      onClick={toggleBreak}
+                      disabled={setBreak.isPending}
+                      className={clsx(
+                        "flex w-full items-center justify-between gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors disabled:opacity-60",
+                        user?.onBreak
+                          ? "text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-500/10"
+                          : "text-amber-700 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-500/10"
+                      )}
+                    >
+                      <span className="flex items-center gap-2.5">
+                        {setBreak.isPending ? <Loader2 size={16} className="animate-spin" /> : <Coffee size={16} />}
+                        {user?.onBreak ? "End break — I'm back" : "Go on break"}
+                      </span>
+                      <span
+                        className={clsx(
+                          "rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+                          user?.onBreak
+                            ? "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300"
+                            : "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
+                        )}
+                      >
+                        {user?.onBreak ? "On break" : "Working"}
+                      </span>
+                    </button>
+
                     <div className="my-1.5 h-px bg-slate-100 dark:bg-slate-800" />
                     <button
                       onClick={() => setIsLogoutModalOpen(true)}

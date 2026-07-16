@@ -91,46 +91,144 @@ body {
   }
 }
 
-/* Theme react-datepicker to match the app's Tailwind blue accent. */
+/* Theme react-datepicker to match the app's Tailwind blue accent (light + dark). */
 .react-datepicker {
   font-family: var(--font-sans);
-  border-color: #e5e7eb;
-  border-radius: 0.5rem;
-  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  border: 1px solid #e5e7eb;
+  border-radius: 0.85rem;
+  box-shadow: 0 16px 40px -12px rgb(0 0 0 / 0.22), 0 4px 10px -4px rgb(0 0 0 / 0.1);
   overflow: hidden;
+  padding: 4px;
 }
 .react-datepicker__header {
   background-color: #fff;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #eef2f7;
+  padding-top: 10px;
+}
+.react-datepicker__current-month,
+.react-datepicker-time__header,
+.react-datepicker-year-header {
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 0.85rem;
+}
+.react-datepicker__day-name {
+  color: #94a3b8;
+  font-weight: 600;
 }
 .react-datepicker__triangle {
   display: none;
 }
+.react-datepicker__day,
+.react-datepicker__time-list-item,
+.react-datepicker__year-text {
+  border-radius: 0.55rem !important;
+  transition: background-color 0.12s, color 0.12s;
+}
 .react-datepicker__day--selected,
 .react-datepicker__day--keyboard-selected,
-.react-datepicker__time-list-item--selected {
+.react-datepicker__time-list-item--selected,
+.react-datepicker__year-text--selected,
+.react-datepicker__year-text--keyboard-selected {
   background-color: #2563eb !important;
   color: #fff !important;
+  font-weight: 600;
 }
 .react-datepicker__day:hover,
-.react-datepicker__time-list-item:hover {
+.react-datepicker__time-list-item:hover,
+.react-datepicker__year-text:hover {
   background-color: #eff6ff !important;
+  color: #1d4ed8 !important;
 }
-.react-datepicker__day--today {
-  font-weight: 600;
+.react-datepicker__day--today,
+.react-datepicker__year-text--today {
+  font-weight: 700;
   color: #2563eb;
+}
+.react-datepicker__navigation-icon::before {
+  border-color: #64748b;
 }
 .react-datepicker__input-container .react-datepicker__calendar-icon {
   top: 50%;
+  left: 10px;
   transform: translateY(-50%);
   padding: 0;
-  color: #6b7280;
+  color: #94a3b8;
+}
+.react-datepicker__close-icon::after {
+  background-color: #cbd5e1;
+  font-size: 13px;
 }
 .react-datepicker-wrapper {
   width: 100%;
 }
 .react-datepicker-popper {
-  z-index: 40;
+  z-index: 60;
+}
+
+/* Year-only picker: lay the years out as a tidy 3-column grid with room to breathe
+   (react-datepicker's default year view is a cramped single wrap). */
+.react-datepicker__year {
+  margin: 0;
+  padding: 6px;
+}
+.react-datepicker__year .react-datepicker__year-wrapper {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  max-width: 232px;
+}
+.react-datepicker__year .react-datepicker__year-text {
+  width: auto !important;
+  margin: 0 !important;
+  padding: 8px 0 !important;
+  font-size: 0.82rem;
+}
+
+/* Dark mode */
+.dark .react-datepicker {
+  background-color: #0f172a;
+  border-color: #1e293b;
+  box-shadow: 0 16px 40px -12px rgb(0 0 0 / 0.6);
+}
+.dark .react-datepicker__header {
+  background-color: #0f172a;
+  border-bottom-color: #1e293b;
+}
+.dark .react-datepicker__current-month,
+.dark .react-datepicker-time__header,
+.dark .react-datepicker-year-header,
+.dark .react-datepicker__day,
+.dark .react-datepicker__year-text,
+.dark .react-datepicker__day-name {
+  color: #e2e8f0;
+}
+.dark .react-datepicker__day-name {
+  color: #64748b;
+}
+.dark .react-datepicker__day:hover,
+.dark .react-datepicker__time-list-item:hover,
+.dark .react-datepicker__year-text:hover {
+  background-color: #1e3a8a !important;
+  color: #fff !important;
+}
+.dark .react-datepicker__day--disabled,
+.dark .react-datepicker__day--outside-month {
+  color: #475569;
+}
+.dark .react-datepicker__time-container,
+.dark .react-datepicker__time,
+.dark .react-datepicker__time-box {
+  background-color: #0f172a;
+}
+.dark .react-datepicker__time-list-item {
+  color: #e2e8f0;
+}
+.dark .react-datepicker__navigation-icon::before {
+  border-color: #94a3b8;
+}
+.dark .react-datepicker-time__header {
+  color: #e2e8f0;
 }
 
 /* Thin, subtle scrollbar for scrollable panels (modals, drawers) — cheap to paint,

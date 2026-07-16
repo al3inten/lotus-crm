@@ -1,21 +1,21 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import type { FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
-import { Check, Save, Plus, Building2, UserCircle2, Car, CalendarClock, RefreshCw, ClipboardEdit } from "lucide-react";
+import { Check, Save, Building2, UserCircle2, Car, CalendarClock, RefreshCw, ChevronLeft, ChevronRight, ExternalLink, BellRing } from "lucide-react";
 import { Modal } from "../common/Modal";
 import { Input, Select, Textarea } from "../common/Input";
 import { SearchableSelect } from "../common/SearchableSelect";
-import { YearPicker } from "../common/YearPicker";
-import { DateTimePicker } from "../common/DateTimePicker";
+import { DateTimePicker, YearPicker } from "../common/DateTimePicker";
 import { Switch } from "../common/Switch";
 import { Button } from "../common/Button";
 import { Card, CardHeader } from "../common/Card";
 import { addLeadFormSchema } from "../../schemas/lead.schema";
 import type { AddLeadFormValues, AddLeadFormInput } from "../../schemas/lead.schema";
 import { useCreateWalkInLead, useSaveDraft, useUpdateDraft, useDeleteDraft, useLeadLookup } from "../../hooks/useLeads";
+import { usePushRepeatEnquiryAlert } from "../../hooks/useNotifications";
 import { useUpdateEnquiryDetails } from "../../hooks/useEnquiry";
 import { useBranches } from "../../hooks/useBranches";
 import { useBranchStaff } from "../../hooks/useUsers";
@@ -30,7 +30,7 @@ import {
   ENQUIRY_CATEGORIES,
 } from "../../types";
 import type { LeadEnrichmentPayload, WalkInLeadPayload } from "../../api/leads.api";
-import { fadeUp, staggerContainer, EASE } from "../../lib/motion";
+import { EASE } from "../../lib/motion";
 
 /** Section order for the flattened, single-scroll form — Exchange Car sits before
  * Appointment & Test Drive per the dealership's intake flow. */
@@ -40,7 +40,6 @@ const SECTIONS = [
   { title: "Vehicle Interest", icon: Car, iconClassName: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400" },
   { title: "Exchange Car", icon: RefreshCw, iconClassName: "bg-cyan-50 text-cyan-600 dark:bg-cyan-500/20 dark:text-cyan-400" },
   { title: "Appointment & Test Drive", icon: CalendarClock, iconClassName: "bg-amber-50 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400" },
-  { title: "Assignment & Follow-up", icon: ClipboardEdit, iconClassName: "bg-rose-50 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400" },
 ] as const;
 
 /** Visual top-to-bottom field order, used to focus the first invalid field on save
@@ -76,6 +75,16 @@ const FIELD_ORDER: (keyof AddLeadFormInput)[] = [
   "testDriveCount",
   "calledDate",
   "remarks",
+];
+
+/** Fields owned by each wizard step (index-aligned to SECTIONS) — used to validate
+ * a step before advancing and to jump to the offending step on a failed save. */
+const STEP_FIELDS: (keyof AddLeadFormInput)[][] = [
+  ["branchId", "assignedCrId", "department", "sourceCategory", "subsource"],
+  ["name", "phone", "alternateMobile", "email", "dob", "profession", "pincode", "location", "address"],
+  ["carModel", "variant", "enquiryType", "enquiryCategory", "financeRequired", "financeRemarks"],
+  ["exchangeCarModel", "exchangeCarYear", "exchangeCarKms", "exchangeCarOwners"],
+  ["appointmentScheduled", "appointmentAt", "testDriveInterested", "testDriveCount"],
 ];
 
 const collapseTransition = { duration: 0.25, ease: EASE };
@@ -118,6 +127,8 @@ export function AddLeadWizard({
   const saveDraft = useSaveDraft();
   const updateDraft = useUpdateDraft();
   const deleteDraft = useDeleteDraft();
+  const pushAlert = usePushRepeatEnquiryAlert();
+  const [alertResult, setAlertResult] = useState<string | null>(null);
 
   const [resultMessage, setResultMessage] = useState<string | null>(null);
   const [draftMessage, setDraftMessage] = useState<string | null>(null);
@@ -127,35 +138,19 @@ export function AddLeadWizard({
   const [hasExchangeVehicle, setHasExchangeVehicle] = useState(false);
   const [pendingAction, setPendingAction] = useState<"save" | "saveAndNew" | null>(null);
   const autoCloseTimer = useRef<ReturnType<typeof setTimeout>>();
-  const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const [activeSection, setActiveSection] = useState(0);
+  const [step, setStep] = useState(0);
+  const totalSteps = SECTIONS.length;
+  const isLastStep = step === totalSteps - 1;
+  // From the Vehicle Interest step (index 2) onward every required field has been
+  // captured, so the enquiry can be saved without walking through the optional
+  // Exchange / Appointment steps.
+  const REQUIRED_UP_TO_STEP = 2;
+  const canSave = step >= REQUIRED_UP_TO_STEP;
+  // Complete-details mode reviews an existing enquiry, so it drops the step-by-step
+  // flow and shows every section on one scrollable page for quick top-to-bottom edits.
+  const singlePage = mode === "complete";
 
   useEffect(() => () => clearTimeout(autoCloseTimer.current), []);
-
-  // Drives the sticky section-nav's active highlight as the form scrolls, and
-  // powers its click-to-jump behaviour — scoped to the Modal's own scroll container.
-  useEffect(() => {
-    if (!isOpen) return;
-    const root = sectionRefs.current[0]?.closest(".overflow-y-auto") as HTMLElement | null;
-    if (!root) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const topMost = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
-        if (!topMost) return;
-        const idx = sectionRefs.current.findIndex((el) => el === topMost.target);
-        if (idx !== -1) setActiveSection(idx);
-      },
-      { root, rootMargin: "-8% 0px -75% 0px", threshold: 0 }
-    );
-    sectionRefs.current.forEach((el) => el && observer.observe(el));
-    return () => observer.disconnect();
-  }, [isOpen]);
-
-  const scrollToSection = (index: number) => {
-    sectionRefs.current[index]?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
 
   const {
     register,
@@ -165,6 +160,7 @@ export function AddLeadWizard({
     getValues,
     setValue,
     setFocus,
+    trigger,
     reset,
     formState: { errors },
   } = useForm<AddLeadFormInput, unknown, AddLeadFormValues>({
@@ -236,6 +232,8 @@ export function AddLeadWizard({
       setDraftMessage(null);
       setDraftId(initialDraftId);
       setPendingAction(null);
+      setAlertResult(null);
+      setStep(0);
       setHasExchangeVehicle(
         !!(initialValues?.exchangeCarModel || initialValues?.exchangeCarYear || initialValues?.exchangeCarKms || initialValues?.exchangeCarOwners)
       );
@@ -316,6 +314,7 @@ export function AddLeadWizard({
       reset({ branchId: values.branchId, assignedCrId: values.assignedCrId });
 
       if (andAddAnother) {
+        setStep(0);
         setFocus("name");
       } else {
         autoCloseTimer.current = setTimeout(onClose, 1500);
@@ -327,8 +326,28 @@ export function AddLeadWizard({
 
   const onInvalid = (formErrors: FieldErrors<AddLeadFormInput>) => {
     const first = FIELD_ORDER.find((name) => formErrors[name]);
-    if (first) setFocus(first);
+    if (!first) return;
+    // Jump to whichever step owns the first invalid field, then focus it.
+    const stepIdx = STEP_FIELDS.findIndex((fields) => fields.includes(first));
+    if (stepIdx !== -1) setStep(stepIdx);
+    setTimeout(() => setFocus(first), 0);
   };
+
+  // Advance a step. In create mode we validate the current step's fields first so the
+  // user can't skip past required inputs; complete mode advances freely (final save
+  // still validates and jumps back to any offending step).
+  const goNext = async () => {
+    if (!isComplete) {
+      const valid = await trigger(STEP_FIELDS[step]);
+      if (!valid) {
+        const firstBad = STEP_FIELDS[step].find((name) => errors[name]);
+        if (firstBad) setFocus(firstBad);
+        return;
+      }
+    }
+    setStep((s) => Math.min(totalSteps - 1, s + 1));
+  };
+  const goBack = () => setStep((s) => Math.max(0, s - 1));
 
   const onSaveDraft = async () => {
     const values = getValues() as unknown as Record<string, unknown>;
@@ -339,6 +358,16 @@ export function AddLeadWizard({
       setDraftId(saved.id);
     }
     setDraftMessage("Draft saved — resume it any time from Drafts.");
+  };
+
+  const notifyRepeatEnquiry = async () => {
+    if (!lookupResult?.activeEnquiryId) return;
+    const { notified } = await pushAlert.mutateAsync(lookupResult.activeEnquiryId);
+    setAlertResult(
+      notified > 0
+        ? `Notified ${notified} ${notified === 1 ? "person" : "people"} (CR & branch manager).`
+        : "No one to notify — the CR/manager may be you, or none is assigned."
+    );
   };
 
   const handleClose = () => setShowConfirmClose(true);
@@ -356,9 +385,9 @@ export function AddLeadWizard({
         isOpen={isOpen}
         onClose={handleClose}
         title={isComplete ? "Complete Customer Details" : "Add Lead"}
-        maxWidth="max-w-6xl"
+        maxWidth="max-w-3xl"
         footer={
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
             <div>
               {!isComplete && (
                 <Button
@@ -373,31 +402,31 @@ export function AddLeadWizard({
                 </Button>
               )}
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center justify-end gap-2">
               <Button type="button" variant="secondary" size="lg" onClick={handleClose}>
                 Cancel
               </Button>
-              {!isComplete && (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="lg"
-                  icon={<Plus size={16} />}
-                  isLoading={pendingAction === "saveAndNew"}
-                  onClick={() => handleSubmit((values) => onSubmit(values, true), onInvalid)()}
-                >
-                  Save & Add Another
+              {!singlePage && step > 0 && (
+                <Button type="button" variant="secondary" size="lg" icon={<ChevronLeft size={16} />} onClick={goBack}>
+                  Back
                 </Button>
               )}
-              <Button
-                type="button"
-                size="lg"
-                icon={<Check size={16} />}
-                isLoading={pendingAction === "save"}
-                onClick={() => handleSubmit((values) => onSubmit(values, false), onInvalid)()}
-              >
-                {isComplete ? "Save Details" : "Save Lead"}
-              </Button>
+              {!singlePage && !isLastStep && (
+                <Button type="button" size="lg" icon={<ChevronRight size={16} />} onClick={goNext}>
+                  Next
+                </Button>
+              )}
+              {(canSave || isComplete) && (
+                <Button
+                  type="button"
+                  size="lg"
+                  icon={<Check size={16} />}
+                  isLoading={pendingAction === "save"}
+                  onClick={() => handleSubmit((values) => onSubmit(values, false), onInvalid)()}
+                >
+                  {isComplete ? "Save Details" : "Save Enquiry"}
+                </Button>
+              )}
             </div>
           </div>
         }
@@ -413,10 +442,6 @@ export function AddLeadWizard({
             </p>
           )}
 
-          <p className="mb-5 text-xs font-medium text-slate-400 dark:text-slate-500">
-            Fields marked with <span className="font-bold text-red-500">*</span> are required.
-          </p>
-
           {lookupResult && !isComplete && (
             <div className="mb-5 flex flex-col gap-2">
               <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-500/20 dark:bg-emerald-500/10">
@@ -431,58 +456,105 @@ export function AddLeadWizard({
                     enquiry in the{" "}
                     <span className="font-semibold">{lookupResult.activeEnquiryStatus?.replaceAll("_", " ")}</span>{" "}
                     stage. Saving this form will attach this contact to their existing enquiry unless you check
-                    "Force new enquiry" below.
+                    "Force new enquiry" in step 1.
                   </p>
+                  <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                    {lookupResult.activeEnquiryId && (
+                      <a
+                        href={`/leads/${lookupResult.leadId}/enquiries/${lookupResult.activeEnquiryId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-100 dark:border-amber-500/30 dark:bg-transparent dark:text-amber-200 dark:hover:bg-amber-500/10"
+                      >
+                        <ExternalLink size={13} /> View previous enquiry
+                      </a>
+                    )}
+                    <button
+                      type="button"
+                      onClick={notifyRepeatEnquiry}
+                      disabled={pushAlert.isPending || !!alertResult}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-2.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <BellRing size={13} /> {pushAlert.isPending ? "Notifying…" : "Notify CR & manager"}
+                    </button>
+                    {alertResult && (
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                        <Check size={13} /> {alertResult}
+                      </span>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
           )}
 
-          <form onSubmit={handleSubmit((values) => onSubmit(values, false), onInvalid)} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-              <nav aria-label="Form sections" className="hidden shrink-0 flex-col gap-1 lg:sticky lg:top-0 lg:flex lg:w-56">
-                {SECTIONS.map((section, i) => {
-                  const Icon = section.icon;
-                  const isActive = activeSection === i;
-                  return (
-                    <button
-                      key={section.title}
-                      type="button"
-                      onClick={() => scrollToSection(i)}
-                      aria-current={isActive ? "true" : undefined}
+          {/* Progress rail — connectors fill blue as the enquiry advances. */}
+          {!singlePage && (
+          <div className="mb-4 flex items-center">
+            {SECTIONS.map((section, i) => {
+              const Icon = section.icon;
+              const active = i === step;
+              const done = i < step;
+              return (
+                <Fragment key={section.title}>
+                  {i > 0 && (
+                    <div
                       className={clsx(
-                        "group flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-left text-sm font-medium transition-colors",
-                        isActive
-                          ? "bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300"
-                          : "text-slate-500 hover:bg-slate-50 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-slate-200"
+                        "mx-1.5 h-[3px] flex-1 rounded-full transition-colors duration-300",
+                        i <= step ? "bg-blue-500" : "bg-slate-200 dark:bg-slate-700"
                       )}
-                    >
-                      <span
-                        className={clsx(
-                          "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-transform duration-200 ease-out group-hover:scale-110",
-                          isActive
-                            ? "scale-105 bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300"
-                            : "bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500"
-                        )}
-                      >
-                        <Icon size={15} />
-                      </span>
-                      {section.title}
-                    </button>
-                  );
-                })}
-              </nav>
+                    />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setStep(i)}
+                    aria-current={active ? "step" : undefined}
+                    aria-label={`Step ${i + 1}: ${section.title}`}
+                    title={section.title}
+                    className={clsx(
+                      "relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-200",
+                      done && "bg-blue-500 text-white",
+                      active && "bg-blue-600 text-white shadow-lg shadow-blue-600/30 ring-4 ring-blue-100 dark:ring-blue-500/25",
+                      !done && !active &&
+                        "border-2 border-slate-200 bg-white text-slate-400 hover:border-blue-300 hover:text-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-blue-500/50"
+                    )}
+                  >
+                    {done ? <Check size={15} strokeWidth={3} /> : <Icon size={16} />}
+                  </button>
+                </Fragment>
+              );
+            })}
+          </div>
+          )}
 
+          <form onSubmit={handleSubmit((values) => onSubmit(values, false), onInvalid)} className="flex flex-col gap-4">
+            <div className="flex items-baseline justify-between gap-3">
+              {singlePage ? (
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-blue-600 dark:text-blue-400">
+                  All details
+                </p>
+              ) : (
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-blue-600 dark:text-blue-400">
+                  Step {step + 1} <span className="text-slate-300 dark:text-slate-600">/ {totalSteps}</span>
+                </p>
+              )}
+              <p className="text-xs font-medium text-slate-400 dark:text-slate-500">
+                <span className="font-bold text-red-500">*</span> required
+              </p>
+            </div>
+            <AnimatePresence mode="wait">
             <motion.div
-              variants={staggerContainer}
-              initial="hidden"
-              animate="show"
+              key={step}
+              initial={{ opacity: 0, x: 24 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -24 }}
+              transition={{ duration: 0.2, ease: EASE }}
               className="flex min-w-0 flex-1 flex-col gap-6 [&_input:not([type=checkbox])]:py-3 [&_input:not([type=checkbox])]:text-[15px] [&_select]:py-3 [&_select]:text-[15px] [&_textarea]:py-3 [&_textarea]:text-[15px]"
             >
               {/* 1. Enquiry & Source */}
-              <motion.div ref={(el) => { sectionRefs.current[0] = el; }} variants={fadeUp}>
+              {(singlePage || step === 0) && (
                 <Card>
-                  <CardHeader icon={<Building2 size={18} />} title={SECTIONS[0].title} iconClassName={SECTIONS[0].iconClassName} />
+                  <CardHeader icon={<Building2 size={18} />} title={SECTIONS[0].title} subtitle="Where this enquiry came from and who's handling it." iconClassName={SECTIONS[0].iconClassName} />
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     {isComplete ? (
                       <p className="sm:col-span-2 text-sm text-slate-500 dark:text-slate-400">
@@ -569,12 +641,12 @@ export function AddLeadWizard({
                     )}
                   </div>
                 </Card>
-              </motion.div>
+              )}
 
               {/* 2. Customer Details */}
-              <motion.div ref={(el) => { sectionRefs.current[1] = el; }} variants={fadeUp}>
+              {(singlePage || step === 1) && (
                 <Card>
-                  <CardHeader icon={<UserCircle2 size={18} />} title={SECTIONS[1].title} iconClassName={SECTIONS[1].iconClassName} />
+                  <CardHeader icon={<UserCircle2 size={18} />} title={SECTIONS[1].title} subtitle="Who the customer is and how to reach them." iconClassName={SECTIONS[1].iconClassName} />
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <Input label="Customer Name" required disabled={isComplete} error={fieldError("name")} {...register("name")} />
                     <div className="relative">
@@ -596,12 +668,12 @@ export function AddLeadWizard({
                     </div>
                   </div>
                 </Card>
-              </motion.div>
+              )}
 
               {/* 3. Vehicle Interest */}
-              <motion.div ref={(el) => { sectionRefs.current[2] = el; }} variants={fadeUp}>
+              {(singlePage || step === 2) && (
                 <Card>
-                  <CardHeader icon={<Car size={18} />} title={SECTIONS[2].title} iconClassName={SECTIONS[2].iconClassName} />
+                  <CardHeader icon={<Car size={18} />} title={SECTIONS[2].title} subtitle="The car they're after and how they'll pay for it." iconClassName={SECTIONS[2].iconClassName} />
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <Controller
                       control={control}
@@ -673,10 +745,10 @@ export function AddLeadWizard({
                     </AnimatePresence>
                   </div>
                 </Card>
-              </motion.div>
+              )}
 
               {/* 4. Exchange Car — optional, hidden unless the customer has one */}
-              <motion.div ref={(el) => { sectionRefs.current[3] = el; }} variants={fadeUp}>
+              {(singlePage || step === 3) && (
                 <Card>
                   <CardHeader
                     icon={<RefreshCw size={18} />}
@@ -704,9 +776,8 @@ export function AddLeadWizard({
                               render={({ field }) => (
                                 <YearPicker
                                   label="Year"
-                                  value={field.value}
+                                  value={field.value as number | string | undefined}
                                   onChange={field.onChange}
-                                  onBlur={field.onBlur}
                                   error={fieldError("exchangeCarYear")}
                                 />
                               )}
@@ -719,12 +790,12 @@ export function AddLeadWizard({
                     </AnimatePresence>
                   </div>
                 </Card>
-              </motion.div>
+              )}
 
               {/* 5. Appointment & Test Drive */}
-              <motion.div ref={(el) => { sectionRefs.current[4] = el; }} variants={fadeUp}>
+              {(singlePage || step === 4) && (
                 <Card>
-                  <CardHeader icon={<CalendarClock size={18} />} title={SECTIONS[4].title} iconClassName={SECTIONS[4].iconClassName} />
+                  <CardHeader icon={<CalendarClock size={18} />} title={SECTIONS[4].title} subtitle="Any scheduled visit or test drive — optional." iconClassName={SECTIONS[4].iconClassName} />
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="sm:col-span-2">
                       <Switch checked={!!appointmentScheduled} onChange={(v) => setValue("appointmentScheduled", v)} label="Appointment scheduled" />
@@ -760,22 +831,9 @@ export function AddLeadWizard({
                     </AnimatePresence>
                   </div>
                 </Card>
-              </motion.div>
-
-              {/* 6. Assignment & Follow-up */}
-              <motion.div ref={(el) => { sectionRefs.current[5] = el; }} variants={fadeUp}>
-                <Card>
-                  <CardHeader icon={<ClipboardEdit size={18} />} title={SECTIONS[5].title} iconClassName={SECTIONS[5].iconClassName} />
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <Input label="Called date" type="date" error={fieldError("calledDate")} {...register("calledDate")} />
-                    <div className="sm:col-span-2">
-                      <Textarea label="Remarks (others)" rows={2} error={fieldError("remarks")} {...register("remarks")} />
-                    </div>
-                  </div>
-                </Card>
-              </motion.div>
+              )}
             </motion.div>
-            </div>
+            </AnimatePresence>
 
             {resultMessage && <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">{resultMessage}</p>}
             {draftMessage && <p className="text-sm font-medium text-blue-600 dark:text-blue-400">{draftMessage}</p>}

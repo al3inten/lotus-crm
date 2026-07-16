@@ -26,6 +26,7 @@ import {
   Snowflake,
   CalendarClock,
   ChevronDown,
+  RefreshCw,
 } from "lucide-react";
 
 import { Avatar } from "../../../components/common/Avatar";
@@ -325,6 +326,15 @@ export function LeadHeroHeader({
                 }
               />
               <InfoField icon={<Car size={14} />} label="Vehicle" value={enquiry.carModel} />
+              <InfoField
+                icon={<RefreshCw size={14} />}
+                label="Exchange"
+                value={
+                  enquiry.exchangeCarModel
+                    ? `${enquiry.exchangeCarModel}${enquiry.exchangeCarYear ? ` · ${enquiry.exchangeCarYear}` : ""}`
+                    : "No exchange vehicle"
+                }
+              />
               <InfoField icon={<UserCircle2 size={14} />} label="Sales CR" value={enquiry.assignedCr?.name ?? "Unassigned"} />
               <div>
                 <p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400">

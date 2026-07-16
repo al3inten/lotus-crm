@@ -67,18 +67,32 @@ export async function fetchUpcomingFollowUps(filters: FollowUpFilters): Promise<
   return data;
 }
 
-export interface FollowUpCalendarCountsParams {
+export interface FollowUpCalendarFilters {
   start: string;
   end: string;
-  search?: string;
-  status?: EnquiryStatus;
-  enquiryCategory?: EnquiryCategory;
-  source?: LeadSource;
   branchId?: string;
   assignedCrId?: string;
 }
 
-export async function fetchFollowUpCalendarCounts(params: FollowUpCalendarCountsParams): Promise<Record<string, number>> {
-  const { data } = await axiosClient.get<Record<string, number>>("/follow-ups/calendar-counts", { params });
+export interface FollowUpCalendarCr {
+  id: string;
+  name: string;
+  count: number;
+  /** Per-day breakdown for this CR, keyed by YYYY-MM-DD. */
+  countsByDate: Record<string, number>;
+}
+
+export interface FollowUpCalendarResponse {
+  /** Total follow-ups due per day, keyed by YYYY-MM-DD. */
+  counts: Record<string, number>;
+  /** Per-CR totals over the range (populated for managers/admins). */
+  byCr: FollowUpCalendarCr[];
+  total: number;
+  canSeeOthers: boolean;
+  crossBranch: boolean;
+}
+
+export async function fetchFollowUpCalendar(filters: FollowUpCalendarFilters): Promise<FollowUpCalendarResponse> {
+  const { data } = await axiosClient.get<FollowUpCalendarResponse>("/follow-ups/calendar", { params: filters });
   return data;
 }

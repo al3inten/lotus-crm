@@ -363,6 +363,8 @@ export function LeadDetailPage() {
                   status={enquiry.status}
                   lossReason={enquiry.lossReason}
                   statusHistory={enquiry.statusHistory}
+                  appointmentScheduled={enquiry.appointmentScheduled}
+                  testDriveBooked={enquiry.testDriveInterested || (enquiry.testDriveFeedbacks?.length ?? 0) > 0}
                 />
               </div>
 

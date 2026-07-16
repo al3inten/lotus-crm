@@ -1,6 +1,7 @@
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Input, Select, Textarea } from "../common/Input";
+import { Select, Textarea } from "../common/Input";
+import { DatePickerField, TimePicker } from "../common/DateTimePicker";
 import { Button } from "../common/Button";
 import { followUpFormSchema } from "../../schemas/enquiry.schema";
 import type { FollowUpFormValues } from "../../schemas/enquiry.schema";
@@ -22,6 +23,7 @@ export function FollowUpForm({ enquiryId, initialType = "CALL", onSuccess, onCan
 
   const {
     register,
+    control,
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
@@ -49,8 +51,20 @@ export function FollowUpForm({ enquiryId, initialType = "CALL", onSuccess, onCan
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Input label="Date" type="date" error={errors.followUpDate?.message} {...register("followUpDate")} />
-        <Input label="Time (optional)" type="time" error={errors.followUpTime?.message} {...register("followUpTime")} />
+        <Controller
+          control={control}
+          name="followUpDate"
+          render={({ field }) => (
+            <DatePickerField label="Date" value={field.value} onChange={field.onChange} error={errors.followUpDate?.message} />
+          )}
+        />
+        <Controller
+          control={control}
+          name="followUpTime"
+          render={({ field }) => (
+            <TimePicker label="Time (optional)" value={field.value} onChange={field.onChange} error={errors.followUpTime?.message} />
+          )}
+        />
         
         <Select label="Type" error={errors.type?.message} {...register("type")}>
           {FOLLOW_UP_TYPES.map((type) => (
@@ -65,8 +79,20 @@ export function FollowUpForm({ enquiryId, initialType = "CALL", onSuccess, onCan
 
       <h4 className="font-medium text-sm text-gray-700 mt-2">Schedule Next Follow-up</h4>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Input label="Next Date" type="date" error={errors.nextFollowUpDate?.message} {...register("nextFollowUpDate")} />
-        <Input label="Next Time" type="time" error={errors.nextFollowUpTime?.message} {...register("nextFollowUpTime")} />
+        <Controller
+          control={control}
+          name="nextFollowUpDate"
+          render={({ field }) => (
+            <DatePickerField label="Next Date" value={field.value} onChange={field.onChange} error={errors.nextFollowUpDate?.message} />
+          )}
+        />
+        <Controller
+          control={control}
+          name="nextFollowUpTime"
+          render={({ field }) => (
+            <TimePicker label="Next Time" value={field.value} onChange={field.onChange} error={errors.nextFollowUpTime?.message} />
+          )}
+        />
       </div>
 
       <div className="flex justify-end gap-2 mt-2">

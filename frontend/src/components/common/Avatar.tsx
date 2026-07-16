@@ -35,7 +35,25 @@ const SIZE_CLASSES = {
   xxl: "h-28 w-28 text-4xl",
 };
 
-export function Avatar({ name, size = "sm" }: { name: string; size?: keyof typeof SIZE_CLASSES }) {
+export function Avatar({
+  name,
+  size = "sm",
+  src,
+}: {
+  name: string;
+  size?: keyof typeof SIZE_CLASSES;
+  /** Profile photo URL — falls back to coloured initials when absent. */
+  src?: string | null;
+}) {
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt={name}
+        className={clsx("shrink-0 rounded-full object-cover", SIZE_CLASSES[size])}
+      />
+    );
+  }
   return (
     <span
       className={clsx(

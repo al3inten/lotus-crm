@@ -9,11 +9,11 @@ export function useUpcomingFollowUps(filters: followUpsApi.FollowUpFilters) {
   });
 }
 
-export function useFollowUpCalendarCounts(params: followUpsApi.FollowUpCalendarCountsParams | null) {
+export function useFollowUpCalendar(filters: followUpsApi.FollowUpCalendarFilters | null) {
   return useQuery({
-    queryKey: ["follow-ups", "calendar-counts", params],
-    queryFn: () => followUpsApi.fetchFollowUpCalendarCounts(params as followUpsApi.FollowUpCalendarCountsParams),
-    enabled: !!params,
+    queryKey: ["follow-ups", "calendar", filters],
+    queryFn: () => followUpsApi.fetchFollowUpCalendar(filters!),
+    enabled: !!filters,
     placeholderData: keepPreviousData,
   });
 }

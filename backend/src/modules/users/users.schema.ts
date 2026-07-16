@@ -38,6 +38,12 @@ export const updateUserSchema = z.object({
   isAvailableForRouting: z.boolean().optional(),
 });
 
+// A CR toggling their working state — going on/off break pauses lead routing.
+export const setBreakSchema = z.object({
+  onBreak: z.boolean(),
+});
+
 export type CreateBranchStaffInput = z.infer<typeof createBranchStaffSchema>;
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;
+export type SetBreakInput = z.infer<typeof setBreakSchema>;

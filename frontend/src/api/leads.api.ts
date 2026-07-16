@@ -26,6 +26,7 @@ export interface LeadFilters {
 }
 
 export interface LeadLookupResult {
+  leadId: string;
   name: string;
   email?: string | null;
   alternateMobile?: string | null;
@@ -34,6 +35,7 @@ export interface LeadLookupResult {
   pincode?: string | null;
   address?: string | null;
   hasActiveEnquiry: boolean;
+  activeEnquiryId?: string | null;
   activeEnquiryStatus?: string | null;
 }
 

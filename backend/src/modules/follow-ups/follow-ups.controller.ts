@@ -13,9 +13,9 @@ export async function listUpcomingFollowUpsHandler(req: Request, res: Response) 
   res.json(result);
 }
 
-export async function getFollowUpCalendarCountsHandler(req: Request, res: Response) {
+export async function followUpCalendarHandler(req: Request, res: Response) {
   if (!req.user) throw new UnauthorizedError();
-  const result = await followUpsService.getFollowUpCalendarCounts(req.query as unknown as FollowUpCalendarQuery, {
+  const result = await followUpsService.getFollowUpCalendar(req.query as unknown as FollowUpCalendarQuery, {
     userId: req.user.id,
     role: req.user.role,
     branchFilter: req.branchFilter,

@@ -44,23 +44,11 @@ function timeframeFilter(timeframe: FollowUpListQuery["timeframe"]): Prisma.Date
   }
 }
 
-interface ScopedFilters {
-  status?: string;
-  enquiryCategory?: string;
-  source?: string;
-  branchId?: string;
-  assignedCrId?: string;
-  search?: string;
-}
-
-// Shared scoping: restricts to active enquiries with a scheduled follow-up, applies
-// role-based visibility (own / branch / all), and layers on the common facet filters.
-// Used by both the paginated list and the calendar per-day counts so they agree on
-// what counts as "in scope."
-function buildScopedWhere(filters: ScopedFilters, ctx: FollowUpContext) {
+export async function getUpcomingFollowUps(query: FollowUpListQuery, ctx: FollowUpContext) {
   const canSeeOthers = !OWN_ONLY_ROLES.includes(ctx.role);
   const crossBranch = ctx.role === "SUPER_ADMIN" || ctx.role === "ADMIN";
 
+  // Base scope: active enquiries that actually have a next-follow-up scheduled.
   const where: Prisma.EnquiryWhereInput = {
     status: { notIn: TERMINAL_STATUSES },
     followUpDueAt: { not: null },
@@ -70,32 +58,26 @@ function buildScopedWhere(filters: ScopedFilters, ctx: FollowUpContext) {
     // Branch managers are pinned to their branch via branchFilter; admins are unscoped
     // but may narrow to a branch. CR / consultant filters apply to anyone who can see others.
     if (ctx.branchFilter) where.branchId = ctx.branchFilter.branchId;
-    if (crossBranch && filters.branchId) where.branchId = filters.branchId;
-    if (filters.assignedCrId) where.assignedCrId = filters.assignedCrId;
+    if (crossBranch && query.branchId) where.branchId = query.branchId;
+    if (query.assignedCrId) where.assignedCrId = query.assignedCrId;
   } else {
     // CR / consultant: hard-locked to their own follow-ups, ignoring any cr/branch filters.
     where.assignedCrId = ctx.userId;
   }
 
-  if (filters.status) where.status = filters.status as EnquiryStatus;
-  if (filters.enquiryCategory) where.enquiryCategory = filters.enquiryCategory as EnquiryCategory;
-  if (filters.source) where.source = filters.source as LeadSource;
-  if (filters.search) {
+  if (query.status) where.status = query.status as EnquiryStatus;
+  if (query.enquiryCategory) where.enquiryCategory = query.enquiryCategory as EnquiryCategory;
+  if (query.source) where.source = query.source as LeadSource;
+  if (query.search) {
     where.lead = {
       is: {
         OR: [
-          { name: { contains: filters.search, mode: "insensitive" } },
-          { phoneNormalized: { contains: filters.search } },
+          { name: { contains: query.search, mode: "insensitive" } },
+          { phoneNormalized: { contains: query.search } },
         ],
       },
     };
   }
-
-  return { where, canSeeOthers, crossBranch };
-}
-
-export async function getUpcomingFollowUps(query: FollowUpListQuery, ctx: FollowUpContext) {
-  const { where, canSeeOthers, crossBranch } = buildScopedWhere(query, ctx);
 
   // Bucket stats are computed over the scoped set BEFORE the timeframe filter so the
   // category tiles always show the full picture regardless of which tab is active.
@@ -203,28 +185,75 @@ export async function getUpcomingFollowUps(query: FollowUpListQuery, ctx: Follow
   };
 }
 
-// Per-day counts for the calendar view. Fetches just the due dates in range and buckets
-// them in JS (rather than a DB-level date_trunc) so the query stays portable and simple —
-// the range is at most a few weeks/a month, so the row count is small.
-export async function getFollowUpCalendarCounts(query: FollowUpCalendarQuery, ctx: FollowUpContext) {
-  const { where } = buildScopedWhere(query, ctx);
+/** Local-day ISO key (YYYY-MM-DD) for a date, in server local time. */
+function dayKey(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * Per-day follow-up counts over a date range for the calendar heat view, plus a
+ * per-CR breakdown (own row for restricted roles, everyone in scope otherwise).
+ */
+export async function getFollowUpCalendar(query: FollowUpCalendarQuery, ctx: FollowUpContext) {
+  const canSeeOthers = !OWN_ONLY_ROLES.includes(ctx.role);
+  const crossBranch = ctx.role === "SUPER_ADMIN" || ctx.role === "ADMIN";
 
   const [ys, ms, ds] = query.start.split("-").map(Number);
   const [ye, me, de] = query.end.split("-").map(Number);
   const rangeStart = new Date(ys, ms - 1, ds, 0, 0, 0, 0);
   const rangeEnd = new Date(ye, me - 1, de, 23, 59, 59, 999);
 
+  const where: Prisma.EnquiryWhereInput = {
+    status: { notIn: TERMINAL_STATUSES },
+    followUpDueAt: { gte: rangeStart, lte: rangeEnd },
+  };
+
+  if (canSeeOthers) {
+    if (ctx.branchFilter) where.branchId = ctx.branchFilter.branchId;
+    if (crossBranch && query.branchId) where.branchId = query.branchId;
+    if (query.assignedCrId) where.assignedCrId = query.assignedCrId;
+  } else {
+    where.assignedCrId = ctx.userId;
+  }
+
   const rows = await prisma.enquiry.findMany({
-    where: { ...where, followUpDueAt: { gte: rangeStart, lte: rangeEnd } },
-    select: { followUpDueAt: true },
+    where,
+    select: {
+      followUpDueAt: true,
+      assignedCrId: true,
+      assignedCr: { select: { id: true, name: true } },
+    },
   });
 
+  // Total per day + per-CR totals (with their own per-day breakdown).
   const counts: Record<string, number> = {};
+  const crMap = new Map<string, { id: string; name: string; count: number; countsByDate: Record<string, number> }>();
+
   for (const row of rows) {
     if (!row.followUpDueAt) continue;
-    const d = row.followUpDueAt;
-    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    counts[iso] = (counts[iso] ?? 0) + 1;
+    const key = dayKey(row.followUpDueAt);
+    counts[key] = (counts[key] ?? 0) + 1;
+
+    if (canSeeOthers) {
+      const id = row.assignedCr?.id ?? "unassigned";
+      const name = row.assignedCr?.name ?? "Unassigned";
+      let entry = crMap.get(id);
+      if (!entry) {
+        entry = { id, name, count: 0, countsByDate: {} };
+        crMap.set(id, entry);
+      }
+      entry.count += 1;
+      entry.countsByDate[key] = (entry.countsByDate[key] ?? 0) + 1;
+    }
   }
-  return counts;
+
+  const byCr = Array.from(crMap.values()).sort((a, b) => b.count - a.count);
+
+  return {
+    counts,
+    byCr,
+    total: rows.length,
+    canSeeOthers,
+    crossBranch,
+  };
 }

@@ -22,3 +22,9 @@ export function useMarkNotificationAsRead() {
     },
   });
 }
+
+export function usePushRepeatEnquiryAlert() {
+  return useMutation({
+    mutationFn: notificationsApi.pushRepeatEnquiryAlert,
+  });
+}

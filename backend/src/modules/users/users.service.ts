@@ -1,7 +1,9 @@
+import { Readable } from "stream";
 import { Role } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { hashPassword } from "../auth/auth.service";
-import { ConflictError, NotFoundError } from "../../lib/errors";
+import { ConflictError, NotFoundError, ValidationError } from "../../lib/errors";
+import { configureCloudinary } from "../integrations/integrations.service";
 import { CreateBranchStaffInput, CreateUserInput, UpdateUserInput } from "./users.schema";
 
 function sanitize<T extends { passwordHash: string }>(user: T) {
@@ -176,4 +178,91 @@ export async function deleteUser(userId: string) {
   }
 
   await prisma.user.delete({ where: { id: userId } });
+}
+
+// ---------- PROFILE PHOTO ----------
+
+function uploadImageBuffer(cloudinary: Awaited<ReturnType<typeof configureCloudinary>>, buffer: Buffer) {
+  return new Promise<{ secure_url: string; public_id: string }>((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { resource_type: "image", folder: "lotus-crm/avatars" },
+      (error, result) => {
+        if (error || !result) return reject(error ?? new Error("Cloudinary upload failed"));
+        resolve({ secure_url: result.secure_url, public_id: result.public_id });
+      }
+    );
+    Readable.from(buffer).pipe(stream);
+  });
+}
+
+/** Upload/replace a user's profile photo. Removes the previous Cloudinary asset. */
+export async function updateAvatar(userId: string, fileBuffer: Buffer) {
+  if (!fileBuffer?.length) throw new ValidationError("No image uploaded");
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw new NotFoundError("User not found");
+
+  const cloudinary = await configureCloudinary();
+  const uploaded = await uploadImageBuffer(cloudinary, fileBuffer);
+
+  if (user.avatarPublicId) {
+    await cloudinary.uploader.destroy(user.avatarPublicId, { resource_type: "image" }).catch(() => {
+      // Best-effort cleanup of the old photo.
+    });
+  }
+
+  const updated = await prisma.user.update({
+    where: { id: userId },
+    data: { avatarUrl: uploaded.secure_url, avatarPublicId: uploaded.public_id },
+  });
+  return sanitize(updated);
+}
+
+// ---------- PRESENCE & BREAK ----------
+
+/** Lightweight "I'm still here" ping — drives the online/away indicator. */
+export async function recordHeartbeat(userId: string) {
+  await prisma.user.update({ where: { id: userId }, data: { lastActiveAt: new Date() } });
+}
+
+/** Toggle a user's break. On break => not available for lead routing. */
+export async function setBreak(userId: string, onBreak: boolean) {
+  const updated = await prisma.user.update({
+    where: { id: userId },
+    data: {
+      onBreak,
+      breakStartedAt: onBreak ? new Date() : null,
+      // Going on break pauses auto-assignment; coming back resumes it.
+      isAvailableForRouting: !onBreak,
+      lastActiveAt: new Date(),
+    },
+  });
+  return sanitize(updated);
+}
+
+/**
+ * Team activity for the dashboard monitor — floor staff the requester oversees,
+ * with presence + break state. Managers see their branch; admins see everyone.
+ */
+export async function getTeamActivity(ctx: { role: Role; branchId?: string | null }) {
+  const isAdmin = ctx.role === "SUPER_ADMIN" || ctx.role === "ADMIN";
+  const users = await prisma.user.findMany({
+    where: {
+      isActive: true,
+      role: { in: ["CR_TEAM", "CONSULTANT", "BRANCH_MANAGER"] },
+      ...(isAdmin ? {} : { branchId: ctx.branchId ?? "__none__" }),
+    },
+    select: {
+      id: true,
+      name: true,
+      role: true,
+      avatarUrl: true,
+      lastActiveAt: true,
+      onBreak: true,
+      breakStartedAt: true,
+      isAvailableForRouting: true,
+      branch: { select: { id: true, name: true } },
+    },
+    orderBy: [{ onBreak: "asc" }, { lastActiveAt: "desc" }, { name: "asc" }],
+  });
+  return users;
 }
