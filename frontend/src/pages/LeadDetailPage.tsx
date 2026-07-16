@@ -54,7 +54,8 @@ import {
   MOOD_STYLES,
 } from "../components/leads/detail/leadUtils";
 import { fadeUp, staggerContainer } from "../lib/motion";
-import { DIGITAL_SOURCES, type EnquiryStatus, type AddLeadFormValues } from "../types";
+import { DIGITAL_SOURCES, type EnquiryStatus } from "../types";
+import type { AddLeadFormValues } from "../schemas/lead.schema";
 
 /* ────────────────────────────────────────────────────────────────────────────
    "Quiet Precision" — same tokens as the dashboard.

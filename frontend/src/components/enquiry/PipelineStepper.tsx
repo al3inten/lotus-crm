@@ -1,4 +1,4 @@
-import { Check, XCircle, Inbox, PhoneCall, CalendarCheck, Car, BadgeCheck, Trophy, Ban, Flag } from "lucide-react";
+import { Check, Inbox, PhoneCall, CalendarCheck, Car, BadgeCheck, Trophy, Ban, Flag } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import clsx from "clsx";
 import type { EnquiryStatus, EnquiryStatusHistoryEntry } from "../../types";

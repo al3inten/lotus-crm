@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Zap, ArrowRightLeft } from "lucide-react";
+import { Zap, ArrowRightLeft, CalendarPlus } from "lucide-react";
 import { QuickActions } from "../../../components/enquiry/QuickActions";
 import { fadeUp } from "../../../lib/motion";
 import type { Enquiry, EnquiryStatus } from "../../../types";
@@ -37,7 +37,15 @@ export function SmartFollowUpBanner({ enquiry, followUpUrgency, openFollowUp, ha
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <QuickActions status={enquiry.status} onAddFollowUp={openFollowUp} onChangeStatus={handleQuickActionStatus} />
+        <QuickActions status={enquiry.status} onChangeStatus={handleQuickActionStatus} />
+        <button
+          type="button"
+          onClick={openFollowUp}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white/70 px-3 py-1.5 text-sm font-semibold text-blue-700 transition-colors hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300 dark:hover:bg-blue-500/20"
+        >
+          <CalendarPlus size={14} />
+          Add follow-up
+        </button>
         <button
           type="button"
           onClick={() => handleQuickActionStatus(undefined)}

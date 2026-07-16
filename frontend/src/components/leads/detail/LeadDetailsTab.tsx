@@ -5,7 +5,7 @@ import { CalendarDays, MessagesSquare, Eye, PhoneCall } from "lucide-react";
 import { Card, CardHeader } from "../../../components/common/Card";
 import { fadeUp } from "../../../lib/motion";
 import type { LeadWithHistory, Enquiry } from "../../../types";
-import type { CallLog } from "../../../hooks/useVoice";
+import type { CallLog } from "../../../api/voice.api";
 
 interface LeadDetailsTabProps {
   lead: LeadWithHistory;

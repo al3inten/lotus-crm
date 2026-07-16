@@ -7,7 +7,7 @@ import { Layers, Plus } from "lucide-react";
 import { Card } from "../../../components/common/Card";
 import { StatusBadge } from "../../../components/common/StatusBadge";
 import { fadeUp } from "../../../lib/motion";
-import type { Enquiry, LeadWithHistory } from "../../../types";
+import type { Enquiry } from "../../../types";
 
 interface LeadEnquiriesSwitcherProps {
   leadId: string;

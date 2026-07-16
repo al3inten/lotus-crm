@@ -39,7 +39,7 @@ import { InfoField } from "./InfoField";
 import { ActionButton } from "./ActionButton";
 
 import { fadeUp } from "../../../lib/motion";
-import type { LeadWithHistory, Enquiry, BranchStaff } from "../../../types";
+import type { LeadWithHistory, Enquiry, User } from "../../../types";
 import { daysBetween } from "./leadUtils";
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -82,8 +82,8 @@ function Tag({ icon, children, className }: { icon?: ReactNode; children: ReactN
 interface LeadHeroHeaderProps {
   lead: LeadWithHistory;
   enquiry?: Enquiry;
-  crTeam?: BranchStaff[];
-  consultants?: BranchStaff[];
+  crTeam?: User[];
+  consultants?: User[];
   canReassign: boolean;
   completeDetailsNeeded: boolean;
   setShowCustomerView: (v: boolean) => void;

@@ -7,7 +7,7 @@ import { CopyButton } from "../../../components/common/CopyButton";
 import { UserCircle2, Phone, Mail, CalendarDays, Briefcase, MapPin, Car, Tag, Building2, Radio, ClipboardEdit } from "lucide-react";
 
 import type { LeadWithHistory, Enquiry } from "../../../types";
-import type { CallLog } from "../../../hooks/useVoice";
+import type { CallLog } from "../../../api/voice.api";
 
 interface LeadModalsProps {
   lead: LeadWithHistory;

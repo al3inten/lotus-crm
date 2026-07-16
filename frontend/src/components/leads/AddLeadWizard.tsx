@@ -137,7 +137,7 @@ export function AddLeadWizard({
   const [autofilledPhone, setAutofilledPhone] = useState<string | null>(null);
   const [hasExchangeVehicle, setHasExchangeVehicle] = useState(false);
   const [pendingAction, setPendingAction] = useState<"save" | "saveAndNew" | null>(null);
-  const autoCloseTimer = useRef<ReturnType<typeof setTimeout>>();
+  const autoCloseTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [step, setStep] = useState(0);
   const totalSteps = SECTIONS.length;
   const isLastStep = step === totalSteps - 1;
