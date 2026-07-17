@@ -173,7 +173,13 @@ analytics, integrations (Meta OAuth, Google Sheets, Callmatic), webhooks (Meta/W
 Instagram/Callmatic), social inbox, media (Cloudinary), templates, campaigns, agent-configs,
 voice + a standalone voice worker, vehicles, notifications, settings.
 
-**Known issues:** frontend build warns that the JS chunk is >500 kB (consider code-splitting).
+**Performance:** routes are code-split via `React.lazy` (per-page chunks) with vendor
+`manualChunks` in `vite.config.ts`, so the initial bundle is small (the old >500 kB chunk
+warning is resolved). React Query defaults: `staleTime` 60s, `gcTime` 5m,
+`refetchOnWindowFocus` off. Backend responses are gzipped (`compression` middleware in
+`app.ts`). DB has perf indexes on `Enquiry(leadId, createdAt)`, `Enquiry.source`,
+`Enquiry.enquiryCategory`, plus `pg_trgm` GIN indexes on `Lead.name` / `Lead.phoneNormalized`
+for substring search (migration `20260717000000_add_perf_indexes`).
 
 ---
 

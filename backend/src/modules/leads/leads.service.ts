@@ -195,7 +195,9 @@ export async function listEnquiries(query: LeadListQuery, branchFilter?: { branc
     where: { ...where, leadId: { in: pageLeadIds } },
     include: {
       lead: { include: { _count: { select: { enquiries: true, touches: true } } } },
-      branch: true,
+      // The list UI only renders branch id + name — selecting just those (instead of the
+      // whole row) keeps the payload small across a full page of enquiries.
+      branch: { select: { id: true, name: true } },
       assignedCr: { select: { id: true, name: true } },
       consultant: { select: { id: true, name: true } },
     },

@@ -24,6 +24,7 @@ const PIPELINE: { status: EnquiryStatus; typicalHours: number }[] = [
   { status: "TEST_DRIVE", typicalHours: 72 },
   { status: "BOOKED", typicalHours: 96 },
   { status: "RETAIL_DONE", typicalHours: 120 },
+  
 ];
 
 function pick<T>(arr: readonly T[]): T {

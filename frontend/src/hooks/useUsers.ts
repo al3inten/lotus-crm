@@ -6,11 +6,11 @@ export const userKeys = {
   branchStaff: (branchId: string, role?: Role) => ["branch-staff", branchId, role] as const,
 };
 
-export function useBranchStaff(branchId: string | undefined, role?: Role) {
+export function useBranchStaff(branchId: string | undefined, role?: Role, enabled = true) {
   return useQuery({
     queryKey: userKeys.branchStaff(branchId ?? "", role),
     queryFn: () => usersApi.fetchBranchStaff(branchId!, role),
-    enabled: !!branchId,
+    enabled: enabled && !!branchId,
   });
 }
 

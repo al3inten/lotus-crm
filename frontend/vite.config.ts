@@ -10,6 +10,22 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  build: {
+    // Split large, rarely-changing vendor libraries into their own long-cached chunks so
+    // the browser doesn't re-download them on every app deploy, and so no single JS file
+    // blows past the 500 kB warning. Page code is already split via React.lazy routes.
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return;
+          if (/[\\/]node_modules[\\/](react|react-dom|react-router|react-router-dom)[\\/]/.test(id)) return 'react-vendor';
+          if (id.includes('@tanstack')) return 'query-vendor';
+          if (id.includes('framer-motion')) return 'motion-vendor';
+          if (id.includes('react-hook-form') || id.includes('@hookform') || id.includes('/zod/')) return 'form-vendor';
+        },
+      },
+    },
+  },
   server: {
     port: 5173,
     // Allow the app to be served through an ngrok tunnel (Vite blocks unknown

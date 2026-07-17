@@ -451,6 +451,12 @@ model Enquiry {
   @@index([branchId, status])
   @@index([assignedCrId])
   @@index([createdAt])
+  // The leads/customers lists group + paginate by leadId (and order by createdAt);
+  // without this, Postgres sequential-scans the whole enquiry table on every page.
+  @@index([leadId, createdAt])
+  // Reports Chart Builder / source-performance group enquiries by these dimensions.
+  @@index([source])
+  @@index([enquiryCategory])
   @@map("enquiries")
 }
 

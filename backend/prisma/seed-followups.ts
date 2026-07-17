@@ -1,4 +1,4 @@
-/**
+  /**
  * Follow-ups seed — creates a spread of ACTIVE enquiries with scheduled next-follow-up
  * dates (Enquiry.followUpDueAt) plus a logged FollowUp on each, so the Follow-ups page
  * has data across every condition you'd want to test:

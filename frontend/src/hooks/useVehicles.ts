@@ -5,10 +5,11 @@ export const vehicleKeys = {
   all: ["vehicle-models"] as const,
 };
 
-export function useVehicleModels() {
+export function useVehicleModels(enabled = true) {
   return useQuery({
     queryKey: vehicleKeys.all,
     queryFn: vehiclesApi.fetchVehicleModels,
+    enabled,
   });
 }
 

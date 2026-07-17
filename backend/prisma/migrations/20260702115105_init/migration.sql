@@ -285,6 +285,4 @@ ALTER TABLE "finance_applications" ADD CONSTRAINT "finance_applications_enquiryI
 
 -- AddForeignKey
 ALTER TABLE "delivery_details" ADD CONSTRAINT "delivery_details_enquiryId_fkey" FOREIGN KEY ("enquiryId") REFERENCES "enquiries"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-C R E A T E   T Y P E   \  
- L e a d S u b s o u r c e \   A S   E N U M   ( ' W A L K _ I N ' ,   ' H M I L _ W E B S I T E ' ,   ' H M I L _ S O C I A L _ M E D I A ' ,   ' H M I L _ C H A T B O T ' ,   ' S O C I A L _ M E D I A ' ,   ' H Y P E R L O C A L ' ,   ' C A R P O R T A L ' ,   ' C R M ' ,   ' R E F E R R A L ' ,   ' I N C O M I N G _ C A L L ' ,   ' D E A L E R _ A C T I V I T Y ' ,   ' S C _ O W N _ S O U R C E ' ,   ' H M I L _ E V E N T ' ) ;  
- 
+CREATE TYPE "LeadSubsource" AS ENUM ('WALK_IN', 'HMIL_WEBSITE', 'HMIL_SOCIAL_MEDIA', 'HMIL_CHATBOT', 'SOCIAL_MEDIA', 'HYPERLOCAL', 'CARPORTAL', 'CRM', 'REFERRAL', 'INCOMING_CALL', 'DEALER_ACTIVITY', 'SC_OWN_SOURCE', 'HMIL_EVENT');

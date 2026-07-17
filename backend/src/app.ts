@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import compression from "compression";
 import { env } from "./config/env";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 
@@ -27,6 +28,10 @@ import settingsRoutes from "./modules/settings/settings.routes";
 import searchRoutes from "./modules/search/search.routes";
 
 export const app = express();
+
+// gzip every response above ~1 KB so large JSON payloads (report aggregates, lead
+// lists) transfer 5–10× smaller. Must sit before the routes so it wraps their output.
+app.use(compression());
 
 // CORS_ORIGIN accepts a comma-separated list so production + Vercel preview
 // deployments can both call the API, e.g. "https://app.vercel.app,http://localhost:5173".

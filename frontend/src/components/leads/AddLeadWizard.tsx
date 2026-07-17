@@ -121,7 +121,10 @@ export function AddLeadWizard({
   draftId: initialDraftId,
 }: AddLeadWizardProps) {
   const { user } = useAuth();
-  const { data: branches } = useBranches();
+  // Only fetch the wizard's option lists once it's actually opened. This component sits
+  // permanently mounted (closed) on pages like LeadDetail — fetching on mount fired
+  // branches/vehicle-models/staff requests before the user ever opened it.
+  const { data: branches } = useBranches(isOpen);
   const createWalkIn = useCreateWalkInLead();
   const updateDetails = useUpdateEnquiryDetails(enquiryId ?? "");
   const saveDraft = useSaveDraft();
@@ -176,8 +179,8 @@ export function AddLeadWizard({
     },
   });
 
-  const { data: crStaff } = useBranchStaff(watch("branchId"), "CR_TEAM");
-  const { data: vehicleModels } = useVehicleModels();
+  const { data: crStaff } = useBranchStaff(watch("branchId"), "CR_TEAM", isOpen);
+  const { data: vehicleModels } = useVehicleModels(isOpen);
   const selectedSourceCategory = watch("sourceCategory");
   const subsourceOptions = selectedSourceCategory
     ? SOURCE_CATEGORY_SUBSOURCES[selectedSourceCategory]

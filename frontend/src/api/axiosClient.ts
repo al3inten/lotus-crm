@@ -2,8 +2,10 @@ import axios from "axios";
 
 export const TOKEN_STORAGE_KEY = "lotus_crm_token";
 
-// Trailing slashes in the env var would produce double-slash URLs — normalize them away.
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000/api").replace(/\/+$/, "");
+// Default to the same-origin "/api" path so requests go through the Vite dev proxy (and,
+// in prod, whatever reverse-proxy serves the app) — this avoids a CORS preflight (OPTIONS)
+// on every request. Trailing slashes would produce double-slash URLs — normalize them away.
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "/api").replace(/\/+$/, "");
 
 export const axiosClient = axios.create({
   baseURL: API_BASE_URL,
