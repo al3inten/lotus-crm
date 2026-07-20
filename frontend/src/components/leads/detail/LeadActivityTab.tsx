@@ -49,7 +49,13 @@ export function LeadActivityTab({
 
       {/* ---------- TEST DRIVE ---------- */}
       <motion.div variants={fadeUp}>
-        <Card padded={false} className="flex h-[420px] flex-col overflow-hidden">
+        <Card
+          padded={false}
+          className={clsx(
+            "flex flex-col overflow-hidden",
+            showAddTestDrive || editingDriveId ? "min-h-[420px]" : "h-[420px]"
+          )}
+        >
           <div className="p-4 pb-3">
             <CardHeader
               icon={<Car size={18} />}

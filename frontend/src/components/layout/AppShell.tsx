@@ -31,7 +31,7 @@ export function AppShell() {
         <div className="flex flex-1 flex-col overflow-hidden relative">
           <Topbar onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
           
-          <main ref={mainRef} className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-4 pb-24 md:p-8 lg:px-12 xl:px-16">
+          <main ref={mainRef} className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-4 pb-24 md:p-8 lg:px-8 xl:px-10">
             <Outlet />
           </main>
         </div>

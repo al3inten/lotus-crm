@@ -1,7 +1,9 @@
-import { Check, Inbox, CalendarCheck, Car, BadgeCheck, Trophy, FileCheck2, Truck, Ban, Flag, MousePointerClick } from "lucide-react";
+import { useState } from "react";
+import { Check, Inbox, CalendarCheck, Car, BadgeCheck, Trophy, FileCheck2, Truck, Ban, Flag, MousePointerClick, CalendarDays, User2, MessageSquareText } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import clsx from "clsx";
 import { ALLOWED_TRANSITIONS, type EnquiryStatus, type EnquiryStatusHistoryEntry } from "../../types";
+import { Modal } from "../common/Modal";
 
 // The stepper milestones. UNDER_FOLLOW_UP is deliberately NOT a node — it's a sub-state
 // of the early journey, shown as a status badge on the "New" node instead.
@@ -40,6 +42,13 @@ const GLOW: Record<NodeTone, string> = {
   muted: "bg-transparent",
 };
 const CHECK: Record<NodeTone, string> = { blue: "bg-blue-600", green: "bg-emerald-600", red: "bg-red-600", muted: "bg-slate-400" };
+// Soft "cloud" backdrop behind each node — colour matches the node's tone.
+const CLOUD: Record<NodeTone, string> = {
+  blue: "bg-blue-400/20 dark:bg-blue-500/20",
+  green: "bg-emerald-400/20 dark:bg-emerald-500/20",
+  red: "bg-red-400/20 dark:bg-red-500/20",
+  muted: "",
+};
 const NUMBER_COLOR: Record<NodeTone, string> = {
   blue: "text-blue-700 dark:text-blue-400",
   green: "text-emerald-700 dark:text-emerald-400",
@@ -83,6 +92,7 @@ function StageNode({
   pill,
   onClick,
   clickable,
+  hint,
 }: {
   number: number;
   label: string;
@@ -93,19 +103,29 @@ function StageNode({
   pill: StagePill;
   onClick?: () => void;
   clickable?: boolean;
+  hint?: string;
 }) {
   return (
     <div
       className={clsx(
-        "flex w-[76px] flex-col items-center gap-1.5 rounded-xl p-1 sm:w-24",
-        clickable &&
-          "cursor-pointer ring-1 ring-blue-300/70 transition-all hover:-translate-y-0.5 hover:bg-blue-50 hover:ring-2 hover:ring-blue-400 dark:ring-blue-500/40 dark:hover:bg-blue-500/10"
+        "relative flex w-20 flex-col items-center gap-1.5 p-1 sm:w-28",
+        clickable && "group cursor-pointer transition-transform hover:-translate-y-0.5"
       )}
       onClick={clickable ? onClick : undefined}
       role={clickable ? "button" : undefined}
       tabIndex={clickable ? 0 : undefined}
       onKeyDown={clickable ? (e) => (e.key === "Enter" || e.key === " ") && onClick?.() : undefined}
-      title={clickable ? "Click to update status" : undefined}>
+      title={clickable ? hint ?? "Click to update status" : undefined}>
+      {tone !== "muted" && (
+        <span
+          aria-hidden
+          className={clsx(
+            "pointer-events-none absolute -inset-3 -z-10 rounded-[999px] opacity-80 blur-xl transition-opacity duration-300",
+            CLOUD[tone],
+            clickable && "group-hover:opacity-100"
+          )}
+        />
+      )}
       <span className={clsx("flex h-4 items-center text-[11px] font-bold leading-none", NUMBER_COLOR[tone])}>{number}</span>
       <span className="relative flex h-9 w-9 items-center justify-center">
         {glow && (
@@ -132,7 +152,7 @@ function StageNode({
           </span>
         )}
       </span>
-      <span className={clsx("text-center text-[11px] font-semibold leading-tight sm:text-xs", LABEL[tone])}>{label}</span>
+      <span className={clsx("flex min-h-[28px] items-center text-center text-[11px] font-semibold leading-tight sm:min-h-[32px] sm:text-xs", LABEL[tone])}>{label}</span>
       <span className={clsx("inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[9px] font-semibold sm:text-[10px]", PILL[pill.tone])}>
         {pill.check && <Check size={8} strokeWidth={4} />}
         {pill.text}
@@ -184,6 +204,10 @@ export function PipelineStepper({
   const forkTone: NodeTone = isLost ? "red" : "green";
   // Show the "click a stage" hint only when there's actually somewhere to move to.
   const canChangeFromPipeline = !!onStageClick && !isClosed && !isDelivered && nextStatuses.length > 0;
+
+  // A completed stage is clicked to view when/who/why it happened, not to change status.
+  const [detailsStage, setDetailsStage] = useState<(typeof MAIN_PATH)[number] | null>(null);
+  const detailsEntry = detailsStage ? (statusHistory ?? []).find((h) => h.toStatus === detailsStage.status) : undefined;
 
   return (
     <div className="flex flex-col">
@@ -244,8 +268,13 @@ export function PipelineStepper({
               //    (incl. Closed/Lost or Under Follow-up)
               const canInteract = !!onStageClick && !isClosed && !isDelivered && nextStatuses.length > 0;
               const isNextStage = nextStatuses.includes(step.status);
-              const clickable = canInteract && (current || isNextStage);
-              const handleClick = () => onStageClick?.(isNextStage ? step.status : undefined);
+              const canChangeStatus = canInteract && (current || isNextStage);
+              // Past stages aren't a status-change target anymore — clicking one instead
+              // opens a small "when/who/why" popup sourced from statusHistory.
+              const clickable = canChangeStatus || done;
+              const handleClick = canChangeStatus
+                ? () => onStageClick?.(isNextStage ? step.status : undefined)
+                : () => setDetailsStage(step);
 
               return (
                 <div key={step.status} className="flex items-start">
@@ -259,6 +288,7 @@ export function PipelineStepper({
                     showCheck={showCheck}
                     pill={pill}
                     clickable={clickable}
+                    hint={canChangeStatus ? undefined : "Click for stage details"}
                     onClick={handleClick}
                   />
                 </div>
@@ -273,7 +303,7 @@ export function PipelineStepper({
                     return (
                       <div key={step.status} className="flex shrink-0">
                         {index > 0 && <div className="w-8 shrink-0 sm:w-12" />}
-                        <div className="w-[76px] shrink-0 sm:w-24" />
+                        <div className="w-20 shrink-0 sm:w-28" />
                       </div>
                     );
                   }
@@ -286,7 +316,7 @@ export function PipelineStepper({
                               so the branch clearly forks out of that exact stage. */}
                           <span
                             className={clsx(
-                              "absolute left-[38px] top-0 h-6 w-1 -translate-x-1/2 rounded-full sm:left-12",
+                              "absolute left-10 top-0 h-6 w-1 -translate-x-1/2 rounded-full sm:left-14",
                               isLost ? "bg-red-500 dark:bg-red-500/70" : "bg-emerald-500 dark:bg-emerald-500/70"
                             )}
                             aria-hidden
@@ -325,6 +355,27 @@ export function PipelineStepper({
         <div className="pointer-events-none absolute left-0 top-0 h-full w-6 bg-gradient-to-r from-white to-transparent dark:from-slate-900" />
         <div className="pointer-events-none absolute right-0 top-0 h-full w-6 bg-gradient-to-l from-white to-transparent dark:from-slate-900" />
       </div>
+
+      <Modal isOpen={!!detailsStage} onClose={() => setDetailsStage(null)} title={detailsStage?.label} maxWidth="max-w-sm">
+        {detailsStage && (
+          <div className="flex flex-col gap-3 text-sm">
+            <div className="flex items-center gap-2.5 text-slate-600 dark:text-slate-300">
+              <CalendarDays size={15} strokeWidth={1.75} className="shrink-0 text-slate-400 dark:text-slate-500" />
+              {detailsEntry ? new Date(detailsEntry.createdAt).toLocaleString() : "Date not recorded"}
+            </div>
+            <div className="flex items-center gap-2.5 text-slate-600 dark:text-slate-300">
+              <User2 size={15} strokeWidth={1.75} className="shrink-0 text-slate-400 dark:text-slate-500" />
+              {detailsEntry?.changedBy?.name ?? "Unknown"}
+            </div>
+            {detailsEntry?.note && (
+              <div className="flex items-start gap-2.5 text-slate-600 dark:text-slate-300">
+                <MessageSquareText size={15} strokeWidth={1.75} className="mt-0.5 shrink-0 text-slate-400 dark:text-slate-500" />
+                <p className="leading-relaxed">{detailsEntry.note}</p>
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
