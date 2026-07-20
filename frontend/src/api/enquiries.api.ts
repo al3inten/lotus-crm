@@ -66,6 +66,23 @@ export async function saveTestDrive(enquiryId: string, payload: TestDrivePayload
   return data;
 }
 
+export interface UpdateTestDrivePayload {
+  completedAt?: string;
+  rating?: number;
+  comments?: string;
+}
+export async function updateTestDrive(
+  enquiryId: string,
+  testDriveId: string,
+  payload: UpdateTestDrivePayload
+): Promise<TestDriveFeedback> {
+  const { data } = await axiosClient.patch<TestDriveFeedback>(
+    `/enquiries/${enquiryId}/test-drive/${testDriveId}`,
+    payload
+  );
+  return data;
+}
+
 export interface QuotationPayload {
   quotedById: string;
   variant?: string;

@@ -17,6 +17,8 @@ export function TestDriveForm({
   existing,
   defaultCarModel,
   defaultVariant,
+  hideHistory = false,
+  onSaved,
 }: {
   enquiryId: string;
   branchId: string;
@@ -24,6 +26,9 @@ export function TestDriveForm({
   /** The enquiry's car — each new test drive defaults to it, but the CR can pick another. */
   defaultCarModel: string;
   defaultVariant?: string | null;
+  /** Skip rendering the built-in "previous drives" list — use when the drives are already shown elsewhere. */
+  hideHistory?: boolean;
+  onSaved?: () => void;
 }) {
   const saveTestDrive = useSaveTestDrive(enquiryId);
   const { data: consultants } = useBranchStaff(branchId, "CONSULTANT");
@@ -50,15 +55,18 @@ export function TestDriveForm({
     await saveTestDrive.mutateAsync(values);
     // Reset back to the enquiry's car for the next entry.
     reset({ conductedById: "", carModel: defaultCarModel, variant: defaultVariant ?? "", scheduledAt: "", completedAt: "", rating: undefined, comments: "" });
+    onSaved?.();
   };
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-      <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-        Test Drives {previousDrives.length > 0 && <span className="text-slate-400">({previousDrives.length} so far)</span>}
-      </h3>
+    <div className={hideHistory ? "flex flex-col gap-3" : "flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"}>
+      {!hideHistory && (
+        <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+          Test Drives {previousDrives.length > 0 && <span className="text-slate-400">({previousDrives.length} so far)</span>}
+        </h3>
+      )}
 
-      {previousDrives.length > 0 && (
+      {!hideHistory && previousDrives.length > 0 && (
         <ul className="flex flex-col gap-2">
           {previousDrives.map((drive, index) => (
             <li key={drive.id} className="rounded-md border border-slate-100 bg-slate-50 p-2.5 text-xs text-slate-600 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-300">
@@ -84,10 +92,12 @@ export function TestDriveForm({
         </ul>
       )}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3 border-t border-slate-100 pt-3 dark:border-slate-800">
-        <p className="text-xs font-medium text-slate-500">
-          {previousDrives.length > 0 ? "Record another test drive" : "Record test drive feedback"}
-        </p>
+      <form onSubmit={handleSubmit(onSubmit)} className={hideHistory ? "flex flex-col gap-3" : "flex flex-col gap-3 border-t border-slate-100 pt-3 dark:border-slate-800"}>
+        {!hideHistory && (
+          <p className="text-xs font-medium text-slate-500">
+            {previousDrives.length > 0 ? "Record another test drive" : "Record test drive feedback"}
+          </p>
+        )}
 
         {/* Which car — defaults to the enquiry's car, change it for a different-car test drive. */}
         <Select label="Car model" error={errors.carModel?.message} {...register("carModel")}>

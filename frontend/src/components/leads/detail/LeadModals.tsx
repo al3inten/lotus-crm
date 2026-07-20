@@ -114,7 +114,7 @@ export function LeadModals({
 
       {enquiry && (
         <Modal isOpen={showFollowUpsModal} onClose={() => setShowFollowUpsModal(false)} title="Follow-up History" maxWidth="max-w-4xl">
-          <FollowUpTable followUps={enquiry.followUps || []} onAddClick={openFollowUp} canAdd={false} />
+          <FollowUpTable followUps={enquiry.followUps || []} onAddClick={openFollowUp} canAdd={false} hideHeader />
         </Modal>
       )}
 
