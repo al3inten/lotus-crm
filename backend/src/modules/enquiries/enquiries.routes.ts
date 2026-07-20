@@ -7,6 +7,7 @@ import {
   changeStatusSchema,
   reassignSchema,
   testDriveSchema,
+  updateTestDriveSchema,
   quotationSchema,
   exchangeEvaluationSchema,
   financeApplicationSchema,
@@ -20,6 +21,7 @@ import {
   changeStatusHandler,
   reassignHandler,
   testDriveHandler,
+  updateTestDriveHandler,
   quotationHandler,
   exchangeHandler,
   financeHandler,
@@ -47,6 +49,7 @@ router.patch(
 );
 
 router.post("/:enquiryId/test-drive", validateBody(testDriveSchema), asyncHandler(testDriveHandler));
+router.patch("/:enquiryId/test-drive/:testDriveId", validateBody(updateTestDriveSchema), asyncHandler(updateTestDriveHandler));
 router.post("/:enquiryId/quotation", validateBody(quotationSchema), asyncHandler(quotationHandler));
 router.post("/:enquiryId/exchange-evaluation", validateBody(exchangeEvaluationSchema), asyncHandler(exchangeHandler));
 router.post("/:enquiryId/finance", validateBody(financeApplicationSchema), asyncHandler(financeHandler));

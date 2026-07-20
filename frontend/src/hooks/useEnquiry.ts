@@ -56,6 +56,15 @@ export function useSaveTestDrive(enquiryId: string) {
   });
 }
 
+export function useUpdateTestDrive(enquiryId: string) {
+  const invalidate = useInvalidateEnquiry(enquiryId);
+  return useMutation({
+    mutationFn: ({ testDriveId, payload }: { testDriveId: string; payload: enquiriesApi.UpdateTestDrivePayload }) =>
+      enquiriesApi.updateTestDrive(enquiryId, testDriveId, payload),
+    onSuccess: invalidate,
+  });
+}
+
 export function useSaveQuotation(enquiryId: string) {
   const invalidate = useInvalidateEnquiry(enquiryId);
   return useMutation({

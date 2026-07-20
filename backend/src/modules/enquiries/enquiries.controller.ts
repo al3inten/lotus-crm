@@ -35,6 +35,11 @@ export async function testDriveHandler(req: Request, res: Response) {
   res.status(201).json(result);
 }
 
+export async function updateTestDriveHandler(req: Request, res: Response) {
+  const result = await testDriveService.updateTestDrive(req.params.enquiryId, req.params.testDriveId, req.body);
+  res.json(result);
+}
+
 export async function quotationHandler(req: Request, res: Response) {
   const result = await quotationService.upsertQuotation(req.params.enquiryId, req.body);
   res.json(result);

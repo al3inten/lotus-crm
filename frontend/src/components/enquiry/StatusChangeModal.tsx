@@ -59,9 +59,19 @@ interface StatusChangeModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialTargetStatus?: EnquiryStatus;
+  /** Whether the enquiry has at least one completed test drive — required before Booking. */
+  hasCompletedTestDrive?: boolean;
 }
 
-export function StatusChangeModal({ enquiryId, branchId, currentStatus, isOpen, onClose, initialTargetStatus }: StatusChangeModalProps) {
+export function StatusChangeModal({
+  enquiryId,
+  branchId,
+  currentStatus,
+  isOpen,
+  onClose,
+  initialTargetStatus,
+  hasCompletedTestDrive,
+}: StatusChangeModalProps) {
   const [outcome, setOutcome] = useState<"WON" | "LOST">("WON");
   const changeStatus = useChangeStatus(enquiryId);
   const { data: consultants, isLoading: consultantsLoading } = useBranchStaff(branchId, "CONSULTANT");
@@ -99,6 +109,11 @@ export function StatusChangeModal({ enquiryId, branchId, currentStatus, isOpen, 
     // A consultant must be allocated when the appointment is fixed (server enforces this too).
     if (values.toStatus === "APPOINTMENT_FIXED" && !values.consultantId) {
       setError("consultantId", { message: "Assign a consultant before fixing the appointment" });
+      return;
+    }
+    // A test drive must be completed before the enquiry can be booked (server enforces too).
+    if (values.toStatus === "BOOKED" && !hasCompletedTestDrive) {
+      setError("toStatus", { message: "Mark a test drive as Done before booking." });
       return;
     }
     const toIso = (v?: string) => (v ? new Date(v).toISOString() : undefined);
@@ -171,8 +186,15 @@ export function StatusChangeModal({ enquiryId, branchId, currentStatus, isOpen, 
           />
         )}
 
+        {/* Can't book until a test drive is done */}
+        {toStatus === "BOOKED" && !hasCompletedTestDrive && (
+          <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 dark:border-amber-500/25 dark:bg-amber-500/10 dark:text-amber-300">
+            Mark at least one test drive as <strong>Done</strong> before booking (Test Drives panel above).
+          </p>
+        )}
+
         {/* Booking-phase finance: toggle + three Yes/No checks */}
-        {toStatus === "BOOKED" && (
+        {toStatus === "BOOKED" && hasCompletedTestDrive && (
           <div className="flex flex-col gap-3 rounded-xl border border-emerald-200 bg-emerald-50/60 p-3 dark:border-emerald-500/25 dark:bg-emerald-500/10">
             <Switch
               checked={!!financeRequired}

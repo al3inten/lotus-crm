@@ -65,6 +65,13 @@ export const testDriveSchema = z.object({
   comments: z.string().optional(),
 });
 
+// Marking a scheduled test drive as done / editing its feedback.
+export const updateTestDriveSchema = z.object({
+  completedAt: z.string().datetime().optional(),
+  rating: z.number().int().min(1).max(5).optional(),
+  comments: z.string().optional(),
+});
+
 export const quotationSchema = z.object({
   quotedById: z.string().min(1),
   variant: z.string().optional(),
@@ -120,6 +127,7 @@ export type EnquiryDetailsInput = z.infer<typeof enquiryDetailsSchema>;
 export type ChangeStatusInput = z.infer<typeof changeStatusSchema>;
 export type ReassignInput = z.infer<typeof reassignSchema>;
 export type TestDriveInput = z.infer<typeof testDriveSchema>;
+export type UpdateTestDriveInput = z.infer<typeof updateTestDriveSchema>;
 export type QuotationInput = z.infer<typeof quotationSchema>;
 export type ExchangeEvaluationInput = z.infer<typeof exchangeEvaluationSchema>;
 export type FinanceApplicationInput = z.infer<typeof financeApplicationSchema>;
