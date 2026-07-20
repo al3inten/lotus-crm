@@ -8,6 +8,7 @@ import {
 } from "../hooks/useVoice";
 import { useLeads } from "../hooks/useLeads";
 import { Button } from "../components/common/Button";
+import { DatePickerField } from "../components/common/DateTimePicker";
 import { Input, Select } from "../components/common/Input";
 import { Modal } from "../components/common/Modal";
 import { LeadFilters } from "../components/leads/LeadFilters";
@@ -75,17 +76,15 @@ function CallLogTable() {
             </option>
           ))}
         </Select>
-        <Input
+        <DatePickerField
           label="From"
-          type="date"
-          value={filters.dateFrom ?? ""}
-          onChange={(e) => setFilters((f) => ({ ...f, dateFrom: e.target.value || undefined, page: 1 }))}
+          value={filters.dateFrom ?? undefined}
+          onChange={(value) => setFilters((f) => ({ ...f, dateFrom: value || undefined, page: 1 }))}
         />
-        <Input
+        <DatePickerField
           label="To"
-          type="date"
-          value={filters.dateTo ?? ""}
-          onChange={(e) => setFilters((f) => ({ ...f, dateTo: e.target.value || undefined, page: 1 }))}
+          value={filters.dateTo ?? undefined}
+          onChange={(value) => setFilters((f) => ({ ...f, dateTo: value || undefined, page: 1 }))}
         />
         <Button variant="secondary" onClick={() => setFilters({ page: 1, pageSize: 20 })}>
           Reset

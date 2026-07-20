@@ -93,6 +93,7 @@ export async function updateEnquiryDetails(enquiryId: string, input: EnquiryDeta
         dob: input.dob ? new Date(input.dob) : undefined,
         profession: input.profession,
         pincode: input.pincode,
+        area: input.area,
         address: input.address,
       },
     });
@@ -115,6 +116,7 @@ export async function updateEnquiryDetails(enquiryId: string, input: EnquiryDeta
         exchangeCarYear: input.exchangeCarYear,
         exchangeCarKms: input.exchangeCarKms,
         exchangeCarOwners: input.exchangeCarOwners,
+        exchangeCarRegNumber: input.exchangeCarRegNumber,
         calledDate: input.calledDate ? new Date(input.calledDate) : undefined,
         remarks: input.remarks,
         // Only reassign the consultant when a non-empty id is provided; undefined leaves it unchanged.

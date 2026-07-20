@@ -1,10 +1,11 @@
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { DateTimePicker } from "../common/DateTimePicker";
 import { useState, useEffect } from "react";
 import { ArrowRight, CalendarClock, Trophy, XCircle } from "lucide-react";
 import clsx from "clsx";
 import { Modal } from "../common/Modal";
-import { Select, Textarea, Input } from "../common/Input";
+import { Select, Textarea } from "../common/Input";
 import { Button } from "../common/Button";
 import { StatusBadge } from "../common/StatusBadge";
 import { statusChangeFormSchema } from "../../schemas/enquiry.schema";
@@ -31,6 +32,7 @@ export function StatusChangeModal({ enquiryId, branchId, currentStatus, isOpen, 
 
   const {
     register,
+    control,
     handleSubmit,
     watch,
     reset,
@@ -102,7 +104,18 @@ export function StatusChangeModal({ enquiryId, branchId, currentStatus, isOpen, 
             <p className="flex items-center gap-1.5 text-xs font-semibold text-indigo-700 dark:text-indigo-300">
               <CalendarClock size={13} /> Schedule the appointment
             </p>
-            <Input label="Appointment date & time" type="datetime-local" error={errors.appointmentAt?.message} {...register("appointmentAt")} />
+            <Controller
+              control={control}
+              name="appointmentAt"
+              render={({ field }) => (
+                <DateTimePicker
+                  label="Appointment date & time"
+                  value={field.value}
+                  onChange={field.onChange}
+                  error={errors.appointmentAt?.message}
+                />
+              )}
+            />
             <Select label="Showroom consultant" error={errors.consultantId?.message} {...register("consultantId")}>
               <option value="">Select consultant</option>
               {consultants?.map((c) => (
@@ -116,7 +129,18 @@ export function StatusChangeModal({ enquiryId, branchId, currentStatus, isOpen, 
 
         {/* Next follow-up date */}
         {toStatus === "UNDER_FOLLOW_UP" && (
-          <Input label="Next follow-up due" type="datetime-local" error={errors.followUpDueAt?.message} {...register("followUpDueAt")} />
+          <Controller
+            control={control}
+            name="followUpDueAt"
+            render={({ field }) => (
+              <DateTimePicker
+                label="Next follow-up due"
+                value={field.value}
+                onChange={field.onChange}
+                error={errors.followUpDueAt?.message}
+              />
+            )}
+          />
         )}
 
         {/* Close outcome */}

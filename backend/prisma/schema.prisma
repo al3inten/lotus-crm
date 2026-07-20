@@ -263,10 +263,11 @@ model Branch {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  users           User[]
-  enquiries       Enquiry[]
-  roleDefinitions RoleDefinition[]
-  leadDrafts      LeadDraft[]
+  users            User[]
+  enquiries        Enquiry[]
+  roleDefinitions  RoleDefinition[]
+  staffDepartments StaffDepartment[]
+  leadDrafts       LeadDraft[]
 
   @@map("branches")
 }
@@ -274,6 +275,28 @@ model Branch {
 // A branch-scoped custom role ("Assistant Manager - OMR") built on top of a base Role.
 // baseRole drives backend security (RBAC middleware); permissions drives what modules
 // appear in that person's sidebar/dashboard — toggled per-role by an admin.
+/// An org unit inside a branch (Sales, Service, HR...) that employees belong to.
+/// Deliberately NOT the `Department` enum: that enum categorises enquiries and is a
+/// fixed business taxonomy, whereas these are admin-created per branch. Keeping them
+/// separate means adding a department here can never alter historical enquiry data.
+model StaffDepartment {
+  id        String   @id @default(cuid())
+  name      String
+  branchId  String
+  branch    Branch   @relation(fields: [branchId], references: [id])
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users User[]
+
+  // Department names are unique within a branch, not globally — two branches can
+  // both have a "Sales".
+  @@unique([branchId, name])
+  @@index([branchId])
+  @@map("staff_departments")
+}
+
 model RoleDefinition {
   id          String   @id @default(cuid())
   name        String
@@ -302,6 +325,10 @@ model User {
   roleDefinition        RoleDefinition? @relation(fields: [roleDefinitionId], references: [id])
   branchId              String?
   branch                Branch?         @relation(fields: [branchId], references: [id])
+  // Nullable at the DB level so pre-existing users (and SUPER_ADMINs, who sit above any
+  // single branch) stay valid; the employee create/update API requires it.
+  staffDepartmentId     String?
+  staffDepartment       StaffDepartment? @relation(fields: [staffDepartmentId], references: [id])
   isActive              Boolean         @default(true)
   isAvailableForRouting Boolean         @default(true)
   avatarUrl             String?
@@ -351,6 +378,9 @@ model Lead {
   dob             DateTime?
   profession      String?
   pincode         String?
+  // Locality/area within the city. Nullable at the DB level so pre-existing leads stay
+  // valid; the Add Lead intake form requires it.
+  area            String?
   address         String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
@@ -414,6 +444,7 @@ model Enquiry {
   exchangeCarYear      Int?
   exchangeCarKms       Int?
   exchangeCarOwners    Int?
+  exchangeCarRegNumber String?
   calledDate           DateTime?
   remarks              String?
 

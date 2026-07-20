@@ -10,11 +10,36 @@ const optionalInt = <T extends z.ZodType<number>>(schema: T) =>
 // Complete Customer Details flow (patch on an existing enquiry) — every field here is
 // optional, matching the backend's leadEnrichmentSchema, except sourceCategory (Lead
 // Source), which the Add Lead form now requires up front.
+/** Indian mobile: exactly 10 digits, no spaces or country code. */
+const TEN_DIGITS = /^\d{10}$/;
+
+/**
+ * Email is mandatory, but plenty of walk-in customers simply don't have one — typing
+ * "Nil" (any casing) satisfies the field. It is NOT stored: `normaliseEmail` converts it
+ * to undefined so the database keeps a real address or nothing at all, and campaign/
+ * export features never see a fake "Nil" address.
+ */
+const NIL_EMAIL = /^nil$/i;
+
+export const isNilEmail = (value?: string) => !!value && NIL_EMAIL.test(value.trim());
+
+/** Form value → what the API should store: a real address, or nothing. */
+export const normaliseEmail = (value?: string) =>
+  !value || isNilEmail(value) ? undefined : value.trim();
+/** Indian PIN code: exactly 6 digits. */
+const SIX_DIGITS = /^\d{6}$/;
+
 export const leadEnrichmentFormSchema = z.object({
-  alternateMobile: z.string().optional().or(z.literal("")),
+  alternateMobile: z
+    .string()
+    .regex(TEN_DIGITS, "Alternate mobile must be exactly 10 digits")
+    .optional()
+    .or(z.literal("")),
   dob: z.string().optional().or(z.literal("")),
   profession: z.string().optional().or(z.literal("")),
-  pincode: z.string().optional().or(z.literal("")),
+  // Area + pincode are required on intake so every customer record is locatable.
+  pincode: z.string().regex(SIX_DIGITS, "Pincode must be exactly 6 digits"),
+  area: z.string().min(1, "Area is required"),
   address: z.string().optional().or(z.literal("")),
   department: z.enum(DEPARTMENTS).optional().or(z.literal("")),
   sourceCategory: z.enum(SOURCE_CATEGORIES, { message: "Lead source is required" }),
@@ -31,15 +56,50 @@ export const leadEnrichmentFormSchema = z.object({
   exchangeCarYear: optionalInt(z.coerce.number().int().min(1980)),
   exchangeCarKms: optionalInt(z.coerce.number().int().nonnegative()),
   exchangeCarOwners: optionalInt(z.coerce.number().int().nonnegative()),
+  exchangeCarRegNumber: z.string().optional().or(z.literal("")),
+  // Mirrors the "Do you have a vehicle for exchange?" toggle. Kept in the form (rather
+  // than as local state) so validation can require the exchange fields when it's on.
+  hasExchangeVehicle: z.boolean().optional(),
   calledDate: z.string().optional().or(z.literal("")),
   remarks: z.string().optional().or(z.literal("")),
 });
 
-export const walkInLeadFormSchema = z
+/** Every exchange field is mandatory once the customer declares an exchange vehicle —
+ * a half-filled exchange record can't be valued by the evaluation team. */
+const EXCHANGE_REQUIRED: { field: keyof z.infer<typeof leadEnrichmentFormSchema>; message: string }[] = [
+  { field: "exchangeCarModel", message: "Exchange car model is required" },
+  { field: "exchangeCarYear", message: "Exchange car year is required" },
+  { field: "exchangeCarKms", message: "KMs driven is required" },
+  { field: "exchangeCarOwners", message: "No. of owners is required" },
+  { field: "exchangeCarRegNumber", message: "Car register number is required" },
+];
+
+function requireExchangeFields(
+  values: { hasExchangeVehicle?: boolean } & Record<string, unknown>,
+  ctx: z.RefinementCtx
+) {
+  if (!values.hasExchangeVehicle) return;
+  for (const { field, message } of EXCHANGE_REQUIRED) {
+    const value = values[field];
+    // 0 is a legitimate value for kms/owners, so only null/undefined/"" count as missing.
+    if (value === undefined || value === null || value === "") {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: [field], message });
+    }
+  }
+}
+
+/** Plain object form, kept un-refined so it can still be `.extend()`ed below. */
+const walkInLeadBaseSchema = z
   .object({
     name: z.string().min(1, "Name is required"),
-    phone: z.string().min(10, "Enter a valid phone number"),
-    email: z.string().email("Enter a valid email").optional().or(z.literal("")),
+    phone: z.string().regex(TEN_DIGITS, "Mobile number must be exactly 10 digits"),
+    email: z
+      .string()
+      .min(1, "Email is required — type \"Nil\" if the customer doesn't have one")
+      .refine(
+        (v) => isNilEmail(v) || z.string().email().safeParse(v.trim()).success,
+        "Enter a valid email, or \"Nil\" if the customer doesn't have one"
+      ),
     carModel: z.string().min(1, "Vehicle model is required"),
     enquiryType: z.enum(ENQUIRY_TYPES),
     location: z.string().min(1, "City is required"),
@@ -49,6 +109,8 @@ export const walkInLeadFormSchema = z
   })
   .merge(leadEnrichmentFormSchema);
 
+export const walkInLeadFormSchema = walkInLeadBaseSchema.superRefine(requireExchangeFields);
+
 export type WalkInLeadFormValues = z.infer<typeof walkInLeadFormSchema>;
 
 // Raw values before zod's coercion runs. z.coerce fields type as `unknown` on the input
@@ -57,7 +119,7 @@ export type WalkInLeadFormValues = z.infer<typeof walkInLeadFormSchema>;
 export interface WalkInLeadFormInput {
   name: string;
   phone: string;
-  email?: string;
+  email: string;
   carModel: string;
   enquiryType: WalkInLeadFormValues["enquiryType"];
   location: string;
@@ -67,7 +129,8 @@ export interface WalkInLeadFormInput {
   alternateMobile?: string;
   dob?: string;
   profession?: string;
-  pincode?: string;
+  pincode: string;
+  area: string;
   address?: string;
   department?: WalkInLeadFormValues["department"];
   sourceCategory: WalkInLeadFormValues["sourceCategory"];
@@ -84,6 +147,8 @@ export interface WalkInLeadFormInput {
   exchangeCarYear?: unknown;
   exchangeCarKms?: unknown;
   exchangeCarOwners?: unknown;
+  exchangeCarRegNumber?: string;
+  hasExchangeVehicle?: boolean;
   calledDate?: string;
   remarks?: string;
 }
@@ -94,11 +159,13 @@ export type AddLeadFormValues = WalkInLeadFormValues;
 export type AddLeadFormInput = WalkInLeadFormInput;
 
 /** Fully-optional variant for completing a digital lead's missing details. */
-export const leadDetailsFormSchema = leadEnrichmentFormSchema;
+export const leadDetailsFormSchema = leadEnrichmentFormSchema.superRefine(requireExchangeFields);
 export type LeadDetailsFormValues = z.infer<typeof leadDetailsFormSchema>;
 
-export const manualEnquiryFormSchema = walkInLeadFormSchema.extend({
-  source: z.enum(LEAD_SOURCES),
-});
+// Extends the un-refined base (a refined schema has no `.extend`), then re-applies the
+// exchange rule so manual enquiries validate identically.
+export const manualEnquiryFormSchema = walkInLeadBaseSchema
+  .extend({ source: z.enum(LEAD_SOURCES) })
+  .superRefine(requireExchangeFields);
 
 export type ManualEnquiryFormValues = z.infer<typeof manualEnquiryFormSchema>;

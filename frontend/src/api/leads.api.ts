@@ -33,6 +33,7 @@ export interface LeadLookupResult {
   dob?: string | null;
   profession?: string | null;
   pincode?: string | null;
+  area?: string | null;
   address?: string | null;
   hasActiveEnquiry: boolean;
   activeEnquiryId?: string | null;
@@ -45,6 +46,7 @@ export interface LeadEnrichmentPayload {
   dob?: string;
   profession?: string;
   pincode?: string;
+  area?: string;
   address?: string;
   department?: Department;
   sourceCategory?: SourceCategory;
@@ -61,6 +63,7 @@ export interface LeadEnrichmentPayload {
   exchangeCarYear?: number;
   exchangeCarKms?: number;
   exchangeCarOwners?: number;
+  exchangeCarRegNumber?: string;
   calledDate?: string;
   remarks?: string;
   /** Reassign the showroom consultant (used by the detail page's consultant picker). */

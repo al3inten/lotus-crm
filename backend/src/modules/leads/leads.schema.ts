@@ -9,6 +9,7 @@ export const leadEnrichmentSchema = z.object({
   dob: z.string().datetime().optional(),
   profession: z.string().optional(),
   pincode: z.string().optional(),
+  area: z.string().optional(),
   address: z.string().optional(),
   // Enquiry (vehicle/visit) fields
   department: z.enum(["SALES", "SERVICE", "USED_CAR", "ACCESSORIES", "HR", "OTHER_TERRITORY", "OTHERS"]).optional(),
@@ -44,6 +45,7 @@ export const leadEnrichmentSchema = z.object({
   exchangeCarYear: z.number().int().min(1980).optional(),
   exchangeCarKms: z.number().int().nonnegative().optional(),
   exchangeCarOwners: z.number().int().nonnegative().optional(),
+  exchangeCarRegNumber: z.string().optional(),
   calledDate: z.string().datetime().optional(),
   remarks: z.string().optional(),
 });

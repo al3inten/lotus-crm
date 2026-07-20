@@ -128,7 +128,9 @@ export const SearchableSelect = forwardRef<HTMLInputElement, SearchableSelectPro
             ) : (
               filtered.map((opt, i) => (
                 <button
-                  key={opt.value}
+                  // Index-suffixed so a caller passing two options with the same value
+                  // (e.g. vehicle variants sharing a name) can't produce duplicate keys.
+                  key={`${opt.value}-${i}`}
                   type="button"
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => commit(opt)}

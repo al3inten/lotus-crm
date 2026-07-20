@@ -9,35 +9,39 @@ import {
   Trash2,
   UserCircle2,
   Landmark,
-  Car,
+  Network,
 } from "lucide-react";
 import { useBranches } from "../hooks/useBranches";
+import {
+  useStaffDepartments,
+  useCreateStaffDepartment,
+  useDeleteStaffDepartment,
+} from "../hooks/useStaffDepartments";
 import { useBranchStaff, useDeleteUser } from "../hooks/useUsers";
 import { useRoles, useDeleteRole, useUpdateRole, useDirectory } from "../hooks/useRoles";
-import { useVehicleModels } from "../hooks/useVehicles";
 import { BranchList } from "../components/departments/BranchList";
 import { BranchForm } from "../components/departments/BranchForm";
 import { AddStaffModal } from "../components/departments/AddStaffModal";
 import { EditStaffModal } from "../components/departments/EditStaffModal";
 import { RoleModal } from "../components/departments/RoleModal";
-import { VehicleModelForm } from "../components/departments/VehicleModelForm";
-import { VehicleModelList } from "../components/departments/VehicleModelList";
 import { Button } from "../components/common/Button";
 import { Modal } from "../components/common/Modal";
 import { Card, CardHeader } from "../components/common/Card";
 import { Toggle } from "../components/common/Toggle";
-import { Select } from "../components/common/Input";
+import { Input, Select } from "../components/common/Input";
 import { MODULES } from "../types";
 import type { RoleDefinition } from "../types";
 
-type Tab = "overview" | "branches" | "roles" | "staff" | "vehicles";
+// Vehicle models intentionally live only on the dedicated /vehicles page (sidebar),
+// not as a tab here — they were previously duplicated across both.
+type Tab = "overview" | "branches" | "roles" | "departments" | "staff";
 
 const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
   { key: "overview", label: "Overview", icon: <LayoutGrid size={15} /> },
   { key: "branches", label: "Branches", icon: <Building2 size={15} /> },
   { key: "roles", label: "Roles & Permissions", icon: <ShieldCheck size={15} /> },
-  { key: "staff", label: "Staff", icon: <Users size={15} /> },
-  { key: "vehicles", label: "Vehicle Models", icon: <Car size={15} /> },
+  { key: "departments", label: "Departments", icon: <Network size={15} /> },
+  { key: "staff", label: "Employees", icon: <Users size={15} /> },
 ];
 
 const ROLE_BADGES: Record<string, string> = {
@@ -261,6 +265,103 @@ function BranchesTab() {
 
 /* ---------- Staff ---------- */
 
+/* ---------- Departments (per branch) ---------- */
+
+function DepartmentsTab() {
+  const { data: branches } = useBranches();
+  const [branchId, setBranchId] = useState<string>("");
+  const activeBranchId = branchId || branches?.[0]?.id || "";
+  const { data: departments, isLoading } = useStaffDepartments(activeBranchId || undefined, !!activeBranchId);
+  const createDepartment = useCreateStaffDepartment();
+  const deleteDepartment = useDeleteStaffDepartment();
+  const [name, setName] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const apiError = (err: unknown) =>
+    (err as { response?: { data?: { error?: string } } }).response?.data?.error ?? "Something went wrong.";
+
+  const handleCreate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || !activeBranchId) return;
+    setError(null);
+    createDepartment.mutate(
+      { name: name.trim(), branchId: activeBranchId },
+      { onSuccess: () => setName(""), onError: (err) => setError(apiError(err)) }
+    );
+  };
+
+  const handleDelete = (dept: { id: string; name: string }) => {
+    if (!window.confirm(`Delete "${dept.name}"? Only possible if no employees belong to it.`)) return;
+    setError(null);
+    deleteDepartment.mutate(dept.id, { onError: (err) => setError(apiError(err)) });
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      <Card>
+        <CardHeader title="Departments" subtitle="Org units inside a branch. Every employee must belong to one." />
+        <div className="flex flex-col gap-3 p-4 pt-0">
+          <Select label="Branch" value={activeBranchId} onChange={(e) => setBranchId(e.target.value)}>
+            {branches?.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </Select>
+
+          <form onSubmit={handleCreate} className="flex items-end gap-2">
+            <div className="flex-1">
+              <Input
+                label="New department"
+                placeholder="e.g. Sales, Service, HR"
+                value={name}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+              />
+            </div>
+            <Button type="submit" icon={<Plus size={15} />} isLoading={createDepartment.isPending} disabled={!name.trim()}>
+              Add
+            </Button>
+          </form>
+
+          {error && <p className="text-sm text-red-600">{error}</p>}
+        </div>
+      </Card>
+
+      {isLoading ? (
+        <p className="text-sm text-gray-500">Loading…</p>
+      ) : !departments?.length ? (
+        <div className="rounded-xl border border-dashed border-slate-300 p-8 text-center dark:border-slate-700">
+          <p className="text-sm font-medium text-slate-700 dark:text-slate-200">No departments in this branch yet</p>
+          <p className="mt-1 text-sm text-slate-500">Add one above before creating employees here.</p>
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {departments.map((dept) => (
+            <Card key={dept.id}>
+              <div className="flex items-center justify-between p-4">
+                <div>
+                  <p className="font-semibold text-slate-900 dark:text-white">{dept.name}</p>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    {dept._count?.users ?? 0} employee{(dept._count?.users ?? 0) === 1 ? "" : "s"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(dept)}
+                  aria-label={`Delete ${dept.name}`}
+                  className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10"
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function StaffTab() {
   const { data: branches } = useBranches();
   const [branchId, setBranchId] = useState<string>("");
@@ -377,34 +478,10 @@ function StaffTab() {
   );
 }
 
-/* ---------- Vehicle Models ---------- */
-
-function VehicleModelsTab() {
-  const { data: models, isLoading } = useVehicleModels();
-  const [showModelForm, setShowModelForm] = useState(false);
-
-  return (
-    <div className="flex flex-col gap-4">
-      <div className="flex justify-end">
-        <Button icon={<Plus size={15} />} onClick={() => setShowModelForm(true)}>
-          Add Model
-        </Button>
-      </div>
-      {isLoading ? (
-        <p className="text-sm text-gray-500">Loading…</p>
-      ) : (
-        <VehicleModelList models={models ?? []} />
-      )}
-      <Modal isOpen={showModelForm} onClose={() => setShowModelForm(false)} title="Create Vehicle Model">
-        <VehicleModelForm onSuccess={() => setShowModelForm(false)} />
-      </Modal>
-    </div>
-  );
-}
 
 /* ---------- Page ---------- */
 
-export function DepartmentsPage() {
+export function BranchesPage() {
   const [tab, setTab] = useState<Tab>("overview");
 
   return (
@@ -422,10 +499,10 @@ export function DepartmentsPage() {
               Organization Hub
             </span>
             <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
-              Departments
+              Branches
             </h1>
             <p className="mt-2 text-sm sm:text-base text-slate-300">
-              Manage branches, roles, and your staff — all in one place.
+              Manage branches, their roles and departments, and the employees in each — all in one place.
             </p>
           </div>
         </div>
@@ -452,8 +529,8 @@ export function DepartmentsPage() {
           {tab === "overview" && <OverviewTab />}
           {tab === "branches" && <BranchesTab />}
           {tab === "roles" && <RolesTab />}
+          {tab === "departments" && <DepartmentsTab />}
           {tab === "staff" && <StaffTab />}
-          {tab === "vehicles" && <VehicleModelsTab />}
         </main>
     </div>
   );

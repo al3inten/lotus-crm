@@ -31,6 +31,7 @@ import { Card } from "../components/common/Card";
 import { Modal } from "../components/common/Modal";
 import { Avatar } from "../components/common/Avatar";
 import { Select } from "../components/common/Input";
+import { DatePickerField } from "../components/common/DateTimePicker";
 import { StatusBadge } from "../components/common/StatusBadge";
 import { fadeUp, staggerContainer } from "../lib/motion";
 
@@ -347,13 +348,10 @@ export function FollowUpsPage() {
             <div className="sm:col-span-2 lg:col-span-2">
               <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">Select date</label>
               <div className="flex items-center gap-2">
-                <div className="relative flex-1">
-                  <CalendarClock size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="date"
-                    value={filters.dueDate ?? ""}
-                    onChange={(e) => patch({ dueDate: e.target.value || undefined, timeframe: "all" })}
-                    className="block w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-900 transition-colors focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:[color-scheme:dark]"
+                <div className="flex-1">
+                  <DatePickerField
+                    value={filters.dueDate ?? undefined}
+                    onChange={(value) => patch({ dueDate: value || undefined, timeframe: "all" })}
                   />
                 </div>
                 {filters.dueDate && (

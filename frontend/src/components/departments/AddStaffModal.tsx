@@ -8,6 +8,7 @@ import { branchStaffFormSchema } from "../../schemas/user.schema";
 import type { BranchStaffFormValues } from "../../schemas/user.schema";
 import { useCreateBranchStaff } from "../../hooks/useUsers";
 import { useRoles } from "../../hooks/useRoles";
+import { useStaffDepartments } from "../../hooks/useStaffDepartments";
 
 interface AddStaffModalProps {
   branchId: string;
@@ -24,6 +25,8 @@ const BASE_ROLE_OPTIONS = [
 export function AddStaffModal({ branchId, isOpen, onClose }: AddStaffModalProps) {
   const createStaff = useCreateBranchStaff(branchId);
   const { data: roles } = useRoles(branchId);
+  // Only fetch this branch's departments while the modal is actually open.
+  const { data: departments } = useStaffDepartments(branchId, isOpen);
   const [roleChoice, setRoleChoice] = useState<string>("CR_TEAM");
 
   const {
@@ -34,6 +37,8 @@ export function AddStaffModal({ branchId, isOpen, onClose }: AddStaffModalProps)
   } = useForm<BranchStaffFormValues>({ resolver: zodResolver(branchStaffFormSchema) });
 
   const activeRoles = roles?.filter((r) => r.isActive) ?? [];
+  const activeDepartments = departments?.filter((d) => d.isActive) ?? [];
+  const hasDepartments = activeDepartments.length > 0;
 
   const onSubmit = (values: BranchStaffFormValues) => {
     const isCustomRole = roleChoice.startsWith("custom:");
@@ -45,7 +50,7 @@ export function AddStaffModal({ branchId, isOpen, onClose }: AddStaffModalProps)
       },
       {
         onSuccess: () => {
-          reset({ name: "", email: "", phone: "", password: "" });
+          reset({ name: "", email: "", phone: "", password: "", staffDepartmentId: "" });
           onClose();
         },
       }
@@ -83,6 +88,35 @@ export function AddStaffModal({ branchId, isOpen, onClose }: AddStaffModalProps)
               </optgroup>
             )}
           </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="font-medium text-gray-700">
+            Department <span className="text-red-500">*</span>
+          </span>
+          <select
+            {...register("staffDepartmentId")}
+            disabled={!hasDepartments}
+            defaultValue=""
+            className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-100"
+          >
+            <option value="" disabled>
+              {hasDepartments ? "Select a department…" : "No departments in this branch yet"}
+            </option>
+            {activeDepartments.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name}
+              </option>
+            ))}
+          </select>
+          {errors.staffDepartmentId && (
+            <span className="text-xs text-red-600">{errors.staffDepartmentId.message}</span>
+          )}
+          {!hasDepartments && (
+            <span className="text-xs text-amber-600">
+              Create a department for this branch first — every employee must belong to one.
+            </span>
+          )}
         </label>
 
         <Input label="Temporary Password" type="password" placeholder="Min 8 characters" error={errors.password?.message} {...register("password")} />

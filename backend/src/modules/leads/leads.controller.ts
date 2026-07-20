@@ -5,18 +5,28 @@ import * as leadsService from "./leads.service";
 import * as importService from "./import.service";
 import { LeadListQuery, CustomerListQuery } from "./leads.schema";
 
+/**
+ * Overriding the duplicate-customer block is a supervisor decision, so `forceNew` is
+ * honoured only for these roles — a CR can't bypass it by posting the flag directly.
+ */
+const FORCE_NEW_ROLES = ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"];
+
+function withCheckedForceNew(body: Record<string, unknown>, role: string) {
+  if (!body.forceNew) return body;
+  return { ...body, forceNew: FORCE_NEW_ROLES.includes(role) };
+}
+
 export async function createEnquiryHandler(req: Request, res: Response) {
   if (!req.user) throw new UnauthorizedError();
-  const result = await leadsService.createOrAttachEnquiry(req.body, req.user.id);
+  const body = withCheckedForceNew(req.body, req.user.role);
+  const result = await leadsService.createOrAttachEnquiry(body as typeof req.body, req.user.id);
   res.status(201).json(result);
 }
 
 export async function createWalkInHandler(req: Request, res: Response) {
   if (!req.user) throw new UnauthorizedError();
-  const result = await leadsService.createOrAttachEnquiry(
-    { ...req.body, source: "WALK_IN" },
-    req.user.id
-  );
+  const body = withCheckedForceNew({ ...req.body, source: "WALK_IN" }, req.user.role);
+  const result = await leadsService.createOrAttachEnquiry(body as typeof req.body, req.user.id);
   res.status(201).json(result);
 }
 

@@ -287,6 +287,18 @@ export function Topbar({ onMenuToggle }: { onMenuToggle: () => void }) {
                 onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
                 className="flex items-center gap-2 rounded-md p-1 transition-colors hover:bg-slate-100 dark:hover:bg-white/5"
               >
+                {/* Name + branch shown inline so an employee sees which branch they're
+                    signed in to immediately after login, without opening this menu. */}
+                <span className="hidden text-right leading-tight lg:block">
+                  <span className="block truncate text-sm font-semibold text-slate-900 dark:text-white">
+                    {user?.name}
+                  </span>
+                  {user?.branch && (
+                    <span className="block truncate text-xs text-slate-500 dark:text-slate-400">
+                      {user.branch.name}
+                    </span>
+                  )}
+                </span>
                 <span className="relative">
                   <Avatar name={user?.name ?? "?"} size="sm" src={user?.avatarUrl} />
                   {user?.onBreak && (
@@ -325,9 +337,14 @@ export function Topbar({ onMenuToggle }: { onMenuToggle: () => void }) {
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">{user?.name}</p>
                         <p className="truncate text-xs text-slate-500 dark:text-slate-400">
-                          {user?.role.replaceAll("_", " ")}
-                          {user?.branch ? ` · ${user.branch.name}` : ""}
+                          {user?.roleName ?? user?.role.replaceAll("_", " ")}
+                          {user?.staffDepartment ? ` · ${user.staffDepartment.name}` : ""}
                         </p>
+                        {user?.branch && (
+                          <p className="truncate text-xs font-medium text-blue-600 dark:text-blue-400">
+                            {user.branch.name}
+                          </p>
+                        )}
                       </div>
                     </div>
 

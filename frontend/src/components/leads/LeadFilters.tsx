@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { SlidersHorizontal, X } from "lucide-react";
 import type { LeadFilters as LeadFiltersType } from "../../api/leads.api";
 import { Input, Select } from "../common/Input";
+import { DatePickerField } from "../common/DateTimePicker";
 import { ENQUIRY_STATUSES, LEAD_SOURCES } from "../../types";
 import { useBranches } from "../../hooks/useBranches";
 import { useBranchStaff } from "../../hooks/useUsers";
@@ -161,19 +162,15 @@ export function LeadFilters({ filters, onChange }: LeadFiltersProps) {
             </option>
           ))}
         </Select>
-        <Input
-          type="date"
+        <DatePickerField
           label="From"
-          value={filters.dateFrom ?? ""}
-          max={filters.dateTo ?? undefined}
-          onChange={(e) => update({ dateFrom: e.target.value || undefined })}
+          value={filters.dateFrom ?? undefined}
+          onChange={(value) => update({ dateFrom: value || undefined })}
         />
-        <Input
-          type="date"
+        <DatePickerField
           label="To"
-          value={filters.dateTo ?? ""}
-          min={filters.dateFrom ?? undefined}
-          onChange={(e) => update({ dateTo: e.target.value || undefined })}
+          value={filters.dateTo ?? undefined}
+          onChange={(value) => update({ dateTo: value || undefined })}
         />
       </div>
 

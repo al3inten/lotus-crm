@@ -28,7 +28,11 @@ function toSafeUser(user: {
 export async function login(input: LoginInput) {
   const user = await prisma.user.findUnique({
     where: { email: input.email },
-    include: { branch: true, roleDefinition: { select: { name: true, permissions: true, isActive: true } } },
+    include: {
+      branch: true,
+      staffDepartment: { select: { id: true, name: true } },
+      roleDefinition: { select: { name: true, permissions: true, isActive: true } },
+    },
   });
 
   if (!user || !user.isActive) {
@@ -54,6 +58,7 @@ export async function getCurrentUser(userId: string) {
     where: { id: userId },
     include: {
       branch: true,
+      staffDepartment: { select: { id: true, name: true } },
       roleDefinition: { select: { name: true, permissions: true, isActive: true } },
     },
   });

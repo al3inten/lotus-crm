@@ -32,6 +32,12 @@ export async function createBranchStaff(branchId: string, input: CreateBranchSta
   }
   if (!role) throw new ConflictError("A role is required");
 
+  // Department is mandatory and must belong to this branch — otherwise an employee could
+  // be filed under another branch's department.
+  const department = await prisma.staffDepartment.findUnique({ where: { id: input.staffDepartmentId } });
+  if (!department || !department.isActive) throw new NotFoundError("Department not found or inactive");
+  if (department.branchId !== branchId) throw new ConflictError("This department belongs to a different branch");
+
   const passwordHash = await hashPassword(input.password);
   const user = await prisma.user.create({
     data: {
@@ -40,6 +46,7 @@ export async function createBranchStaff(branchId: string, input: CreateBranchSta
       phone: input.phone,
       role,
       roleDefinitionId,
+      staffDepartmentId: department.id,
       branchId,
       passwordHash,
     },
@@ -68,7 +75,10 @@ export async function createUser(input: CreateUserInput) {
 export async function listBranchUsers(branchId: string, role?: Role) {
   const users = await prisma.user.findMany({
     where: { branchId, ...(role ? { role } : {}) },
-    include: { roleDefinition: { select: { id: true, name: true } } },
+    include: {
+      roleDefinition: { select: { id: true, name: true } },
+      staffDepartment: { select: { id: true, name: true } },
+    },
     orderBy: { name: "asc" },
   });
   return users.map(sanitize);
@@ -88,6 +98,7 @@ export async function getDirectory() {
           phone: true,
           role: true,
           roleDefinition: { select: { id: true, name: true } },
+          staffDepartment: { select: { id: true, name: true } },
         },
         orderBy: [{ role: "asc" }, { name: "asc" }],
       },
@@ -114,10 +125,20 @@ export async function updateUser(userId: string, input: UpdateUserInput) {
     if (emailTaken) throw new ConflictError("A user with this email already exists");
   }
 
-  const { password, roleDefinitionId, role, ...rest } = input;
+  const { password, roleDefinitionId, role, staffDepartmentId, ...rest } = input;
   const data: Parameters<typeof prisma.user.update>[0]["data"] = { ...rest };
 
   if (password) data.passwordHash = await hashPassword(password);
+
+  // Same branch check as on create — a user must not be moved into another branch's department.
+  if (staffDepartmentId !== undefined) {
+    const department = await prisma.staffDepartment.findUnique({ where: { id: staffDepartmentId } });
+    if (!department || !department.isActive) throw new NotFoundError("Department not found or inactive");
+    if (user.branchId && department.branchId !== user.branchId) {
+      throw new ConflictError("This department belongs to a different branch");
+    }
+    data.staffDepartmentId = staffDepartmentId;
+  }
 
   if (roleDefinitionId !== undefined) {
     if (roleDefinitionId === null) {

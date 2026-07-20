@@ -1,5 +1,6 @@
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { DatePickerField } from "../common/DateTimePicker";
 import { Input, Select } from "../common/Input";
 import { Button } from "../common/Button";
 import { useEffect } from "react";
@@ -24,6 +25,7 @@ export function QuotationForm({
 
   const {
     register,
+    control,
     handleSubmit,
     watch,
     setValue,
@@ -110,7 +112,18 @@ export function QuotationForm({
       <Input label="On-Road Price" type="number" step="0.01" error={errors.onRoadPrice?.message} {...register("onRoadPrice")} />
       <Input label="Discount" type="number" step="0.01" error={errors.discount?.message} {...register("discount")} />
       <Input label="Final Price (Auto-calculated)" type="number" step="0.01" error={errors.finalPrice?.message} {...register("finalPrice")} readOnly className="bg-slate-50 cursor-not-allowed text-slate-500 font-semibold" />
-      <Input label="Valid Until" type="date" {...register("validUntil")} />
+      <Controller
+        control={control}
+        name="validUntil"
+        render={({ field, fieldState }) => (
+          <DatePickerField
+            label="Valid Until"
+            value={field.value}
+            onChange={field.onChange}
+            error={fieldState.error?.message}
+          />
+        )}
+      />
       <Button type="submit" isLoading={isSubmitting} className="w-fit">
         {existing ? "Update Quotation" : "Generate Quotation"}
       </Button>

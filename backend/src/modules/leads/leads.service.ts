@@ -1,6 +1,7 @@
 import { EnquiryStatus, LeadSource, EnquiryCategory, Prisma } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
-import { NotFoundError } from "../../lib/errors";
+import { ConflictError, NotFoundError } from "../../lib/errors";
+import { notifyRepeatEnquiry } from "../notifications/repeatEnquiry.service";
 import { normalizePhone } from "./phone.util";
 import { getNextCrForBranch } from "../enquiries/routing.service";
 import { DIGITAL_SOURCES, TRANSACTION_OPTIONS } from "../../config/constants";
@@ -40,6 +41,7 @@ export async function createOrAttachEnquiry(input: CreateEnquiryInput, createdBy
         dob: input.dob ? new Date(input.dob) : undefined,
         profession: input.profession,
         pincode: input.pincode,
+        area: input.area,
         address: input.address,
       },
     });
@@ -51,6 +53,17 @@ export async function createOrAttachEnquiry(input: CreateEnquiryInput, createdBy
       where: { leadId: lead.id, status: { notIn: TERMINAL_STATUSES } },
       orderBy: { createdAt: "desc" },
     });
+
+    // A known phone number never silently opens a second enquiry. With an active
+    // enquiry the contact attaches to it (below); with only closed/completed ones we
+    // stop and make the operator confirm via `forceNew`, so a genuine repeat buyer is
+    // still possible but never accidental.
+    if (isRepeatLead && !activeEnquiry && !input.forceNew) {
+      throw new ConflictError(
+        `This customer already exists (${lead.name}) with ${priorEnquiryCount} previous ` +
+          `enquiry(s), all closed. Tick "Force new enquiry" to start a new one.`
+      );
+    }
 
     if (activeEnquiry && !input.forceNew) {
       await tx.leadTouch.create({
@@ -115,6 +128,7 @@ export async function createOrAttachEnquiry(input: CreateEnquiryInput, createdBy
         exchangeCarYear: input.exchangeCarYear,
         exchangeCarKms: input.exchangeCarKms,
         exchangeCarOwners: input.exchangeCarOwners,
+        exchangeCarRegNumber: input.exchangeCarRegNumber,
         calledDate: input.calledDate ? new Date(input.calledDate) : undefined,
         remarks: input.remarks,
       },
@@ -135,6 +149,13 @@ export async function createOrAttachEnquiry(input: CreateEnquiryInput, createdBy
 
     return { lead, enquiry, isRepeatLead, priorEnquiryCount, attachedToExisting: false };
   }, TRANSACTION_OPTIONS);
+
+  // A repeat contact on a live enquiry always alerts its CR and the branch manager(s),
+  // rather than relying on staff remembering to press "Notify CR & manager". Fired after
+  // the transaction commits so a notification failure can't roll back the enquiry.
+  if (result.attachedToExisting) {
+    void notifyRepeatEnquiry(result.enquiry.id, createdById);
+  }
 
   // Voice AI auto-dial: only for genuinely new enquiries from digital sources — never for
   // touches attached to an already-active enquiry (that lead has already been contacted).
@@ -395,6 +416,7 @@ export async function lookupLeadByPhone(phone: string) {
     dob: lead.dob,
     profession: lead.profession,
     pincode: lead.pincode,
+    area: lead.area,
     address: lead.address,
     hasActiveEnquiry: lead.enquiries.length > 0,
     activeEnquiryId: lead.enquiries[0]?.id ?? null,

@@ -4,15 +4,15 @@ import type { FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
-import { Check, Save, Building2, UserCircle2, Car, CalendarClock, RefreshCw, ChevronLeft, ChevronRight, ExternalLink, BellRing } from "lucide-react";
+import { Check, Save, Building2, UserCircle2, Car, RefreshCw, ChevronLeft, ChevronRight, ExternalLink, BellRing } from "lucide-react";
 import { Modal } from "../common/Modal";
 import { Input, Select, Textarea } from "../common/Input";
 import { SearchableSelect } from "../common/SearchableSelect";
-import { DateTimePicker, YearPicker } from "../common/DateTimePicker";
+import { DatePickerField, YearPicker } from "../common/DateTimePicker";
 import { Switch } from "../common/Switch";
 import { Button } from "../common/Button";
 import { Card, CardHeader } from "../common/Card";
-import { addLeadFormSchema } from "../../schemas/lead.schema";
+import { addLeadFormSchema, normaliseEmail } from "../../schemas/lead.schema";
 import type { AddLeadFormValues, AddLeadFormInput } from "../../schemas/lead.schema";
 import { useCreateWalkInLead, useSaveDraft, useUpdateDraft, useDeleteDraft, useLeadLookup } from "../../hooks/useLeads";
 import { usePushRepeatEnquiryAlert } from "../../hooks/useNotifications";
@@ -32,14 +32,13 @@ import {
 import type { LeadEnrichmentPayload, WalkInLeadPayload } from "../../api/leads.api";
 import { EASE } from "../../lib/motion";
 
-/** Section order for the flattened, single-scroll form — Exchange Car sits before
- * Appointment & Test Drive per the dealership's intake flow. */
+/** Section order for the flattened, single-scroll form, matching the dealership's
+ * intake flow. */
 const SECTIONS = [
   { title: "Enquiry & Source", icon: Building2, iconClassName: "bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400" },
   { title: "Customer Details", icon: UserCircle2, iconClassName: "bg-violet-50 text-violet-600 dark:bg-violet-500/20 dark:text-violet-400" },
   { title: "Vehicle Interest", icon: Car, iconClassName: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400" },
   { title: "Exchange Car", icon: RefreshCw, iconClassName: "bg-cyan-50 text-cyan-600 dark:bg-cyan-500/20 dark:text-cyan-400" },
-  { title: "Appointment & Test Drive", icon: CalendarClock, iconClassName: "bg-amber-50 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400" },
 ] as const;
 
 /** Visual top-to-bottom field order, used to focus the first invalid field on save
@@ -57,6 +56,7 @@ const FIELD_ORDER: (keyof AddLeadFormInput)[] = [
   "dob",
   "profession",
   "pincode",
+  "area",
   "location",
   "address",
   "carModel",
@@ -69,10 +69,7 @@ const FIELD_ORDER: (keyof AddLeadFormInput)[] = [
   "exchangeCarYear",
   "exchangeCarKms",
   "exchangeCarOwners",
-  "appointmentScheduled",
-  "appointmentAt",
-  "testDriveInterested",
-  "testDriveCount",
+  "exchangeCarRegNumber",
   "calledDate",
   "remarks",
 ];
@@ -81,10 +78,9 @@ const FIELD_ORDER: (keyof AddLeadFormInput)[] = [
  * a step before advancing and to jump to the offending step on a failed save. */
 const STEP_FIELDS: (keyof AddLeadFormInput)[][] = [
   ["branchId", "assignedCrId", "department", "sourceCategory", "subsource"],
-  ["name", "phone", "alternateMobile", "email", "dob", "profession", "pincode", "location", "address"],
+  ["name", "phone", "alternateMobile", "email", "dob", "profession", "pincode", "area", "location", "address"],
   ["carModel", "variant", "enquiryType", "enquiryCategory", "financeRequired", "financeRemarks"],
-  ["exchangeCarModel", "exchangeCarYear", "exchangeCarKms", "exchangeCarOwners"],
-  ["appointmentScheduled", "appointmentAt", "testDriveInterested", "testDriveCount"],
+  ["exchangeCarModel", "exchangeCarYear", "exchangeCarKms", "exchangeCarOwners", "exchangeCarRegNumber"],
 ];
 
 const collapseTransition = { duration: 0.25, ease: EASE };
@@ -134,6 +130,7 @@ export function AddLeadWizard({
   const [alertResult, setAlertResult] = useState<string | null>(null);
 
   const [resultMessage, setResultMessage] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [draftMessage, setDraftMessage] = useState<string | null>(null);
   const [showConfirmClose, setShowConfirmClose] = useState(false);
   const [draftId, setDraftId] = useState<string | undefined>(initialDraftId);
@@ -146,7 +143,7 @@ export function AddLeadWizard({
   const isLastStep = step === totalSteps - 1;
   // From the Vehicle Interest step (index 2) onward every required field has been
   // captured, so the enquiry can be saved without walking through the optional
-  // Exchange / Appointment steps.
+  // Exchange step.
   const REQUIRED_UP_TO_STEP = 2;
   const canSave = step >= REQUIRED_UP_TO_STEP;
   // Complete-details mode reviews an existing enquiry, so it drops the step-by-step
@@ -172,12 +169,13 @@ export function AddLeadWizard({
       branchId: user?.branchId ?? "",
       assignedCrId: user?.role === "CR_TEAM" ? user.id : "",
       financeRequired: false,
-      appointmentScheduled: false,
-      testDriveInterested: false,
       forceNew: false,
       ...initialValues,
     },
   });
+
+  // Only supervisors may override the "customer already exists" block (enforced by the API too).
+  const canForceNew = !!user && ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"].includes(user.role);
 
   const { data: crStaff } = useBranchStaff(watch("branchId"), "CR_TEAM", isOpen);
   const { data: vehicleModels } = useVehicleModels(isOpen);
@@ -185,9 +183,23 @@ export function AddLeadWizard({
   const subsourceOptions = selectedSourceCategory
     ? SOURCE_CATEGORY_SUBSOURCES[selectedSourceCategory]
     : LEAD_SUBSOURCES;
+
+  // A walk-in customer is physically in the showroom, so they're never a cold lead —
+  // only Hot/Warm apply. Every other source keeps the full Hot/Warm/Cold set.
+  const isWalkInSource = selectedSourceCategory === "WALK_IN";
+  const enquiryCategoryOptions = isWalkInSource
+    ? ENQUIRY_CATEGORIES.filter((c) => c !== "COLD")
+    : ENQUIRY_CATEGORIES;
+  const selectedEnquiryCategory = watch("enquiryCategory");
+
+  // Switching to Walk-in after Cold was already picked would leave an option that's no
+  // longer offered selected — clear it so the user consciously re-picks Hot or Warm.
+  useEffect(() => {
+    if (isWalkInSource && selectedEnquiryCategory === "COLD") {
+      setValue("enquiryCategory", "");
+    }
+  }, [isWalkInSource, selectedEnquiryCategory, setValue]);
   const financeRequired = watch("financeRequired");
-  const appointmentScheduled = watch("appointmentScheduled");
-  const testDriveInterested = watch("testDriveInterested");
   const selectedModelName = watch("carModel") as string | undefined;
   const selectedVariantName = watch("variant") as string | undefined;
   const activeModels = vehicleModels?.filter((m) => m.isActive) ?? [];
@@ -200,14 +212,26 @@ export function AddLeadWizard({
       : []),
     ...activeModels.map((m) => ({ value: m.name, label: m.name })),
   ];
+  // A model may have several variants sharing a name but differing in fuel type — the
+  // schema only requires (model, name, fuelType) to be unique. Since an enquiry stores
+  // the variant as a plain name string, those rows are indistinguishable once selected,
+  // so collapse them into one option (and merge their hints) rather than rendering
+  // duplicate rows with duplicate React keys.
+  const variantsByName = new Map<string, string[]>();
+  for (const v of variantOptions) {
+    const hint = `${v.transmissionType} · ${v.fuelType.replaceAll("_", " + ")}`;
+    const hints = variantsByName.get(v.name) ?? [];
+    if (!hints.includes(hint)) hints.push(hint);
+    variantsByName.set(v.name, hints);
+  }
   const variantOptionsList = [
-    ...(selectedVariantName && !variantOptions.some((v) => v.name === selectedVariantName)
+    ...(selectedVariantName && !variantsByName.has(selectedVariantName)
       ? [{ value: selectedVariantName, label: selectedVariantName }]
       : []),
-    ...variantOptions.map((v) => ({
-      value: v.name,
-      label: v.name,
-      hint: `${v.transmissionType} · ${v.fuelType.replaceAll("_", " + ")}`,
+    ...Array.from(variantsByName, ([name, hints]) => ({
+      value: name,
+      label: name,
+      hint: hints.join(" / "),
     })),
   ];
 
@@ -245,6 +269,12 @@ export function AddLeadWizard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
+  // Mirror the exchange toggle into the form so zod's conditional rule (which makes every
+  // exchange field mandatory) can see it. One effect covers all the places the state is set.
+  useEffect(() => {
+    setValue("hasExchangeVehicle", hasExchangeVehicle);
+  }, [hasExchangeVehicle, setValue]);
+
   const toggleExchangeVehicle = (val: boolean) => {
     setHasExchangeVehicle(val);
     if (!val) {
@@ -252,6 +282,7 @@ export function AddLeadWizard({
       setValue("exchangeCarYear", undefined);
       setValue("exchangeCarKms", undefined);
       setValue("exchangeCarOwners", undefined);
+      setValue("exchangeCarRegNumber", "");
     }
   };
 
@@ -260,6 +291,7 @@ export function AddLeadWizard({
     dob: toIso(values.dob),
     profession: values.profession || undefined,
     pincode: values.pincode || undefined,
+    area: values.area || undefined,
     address: values.address || undefined,
     department: values.department || undefined,
     sourceCategory: values.sourceCategory || undefined,
@@ -268,14 +300,11 @@ export function AddLeadWizard({
     enquiryCategory: values.enquiryCategory || undefined,
     financeRequired: values.financeRequired,
     financeRemarks: values.financeRemarks || undefined,
-    appointmentScheduled: values.appointmentScheduled,
-    appointmentAt: toIso(values.appointmentAt),
-    testDriveInterested: values.testDriveInterested,
-    testDriveCount: values.testDriveCount,
     exchangeCarModel: values.exchangeCarModel || undefined,
     exchangeCarYear: values.exchangeCarYear,
     exchangeCarKms: values.exchangeCarKms,
     exchangeCarOwners: values.exchangeCarOwners,
+    exchangeCarRegNumber: values.exchangeCarRegNumber || undefined,
     calledDate: toIso(values.calledDate),
     remarks: values.remarks || undefined,
   });
@@ -283,6 +312,7 @@ export function AddLeadWizard({
   const onSubmit = async (values: AddLeadFormValues, andAddAnother = false) => {
     setResultMessage(null);
     setPendingAction(andAddAnother ? "saveAndNew" : "save");
+    setSaveError(null);
     try {
       if (isComplete) {
         await updateDetails.mutateAsync(buildEnrichmentPayload(values));
@@ -293,7 +323,8 @@ export function AddLeadWizard({
       const payload: WalkInLeadPayload = {
         name: values.name,
         phone: values.phone,
-        email: values.email || undefined,
+        // "Nil" means the customer has no email — store nothing rather than the literal.
+        email: normaliseEmail(values.email),
         carModel: values.carModel,
         enquiryType: values.enquiryType,
         location: values.location || undefined,
@@ -322,6 +353,13 @@ export function AddLeadWizard({
       } else {
         autoCloseTimer.current = setTimeout(onClose, 1500);
       }
+    } catch (err) {
+      // The API rejects a second enquiry for a known customer unless forced, so show
+      // that message verbatim rather than a generic failure.
+      const message =
+        (err as { response?: { data?: { error?: string } } }).response?.data?.error ??
+        "Could not save this enquiry. Please try again.";
+      setSaveError(message);
     } finally {
       setPendingAction(null);
     }
@@ -636,10 +674,14 @@ export function AddLeadWizard({
                         <p className="text-xs text-slate-400 dark:text-slate-500">
                           Enquiry date: {new Date().toLocaleDateString()}
                         </p>
-                        <label className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm text-amber-700 dark:border-amber-800/50 dark:bg-amber-900/20 dark:text-amber-400">
-                          <input type="checkbox" {...register("forceNew")} className="rounded border-amber-300 text-amber-600 focus:ring-amber-500" />
-                          <span className="font-medium">Force new enquiry</span>
-                        </label>
+                        {/* Overriding the duplicate-customer block is a supervisor call —
+                            the API enforces the same rule regardless of this checkbox. */}
+                        {canForceNew && (
+                          <label className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm text-amber-700 dark:border-amber-800/50 dark:bg-amber-900/20 dark:text-amber-400">
+                            <input type="checkbox" {...register("forceNew")} className="rounded border-amber-300 text-amber-600 focus:ring-amber-500" />
+                            <span className="font-medium">Force new enquiry</span>
+                          </label>
+                        )}
                       </div>
                     )}
                   </div>
@@ -661,10 +703,22 @@ export function AddLeadWizard({
                       )}
                     </div>
                     <Input label="Alternate mobile" error={fieldError("alternateMobile")} {...register("alternateMobile")} />
-                    <Input label="Email" type="email" disabled={isComplete} error={fieldError("email")} {...register("email")} />
-                    <Input label="Date of birth" type="date" error={fieldError("dob")} {...register("dob")} />
+                    <Input label="Email" placeholder='name@example.com or "Nil"' required disabled={isComplete} error={fieldError("email")} {...register("email")} />
+                    <Controller
+                      control={control}
+                      name="dob"
+                      render={({ field }) => (
+                        <DatePickerField
+                          label="Date of birth"
+                          value={field.value}
+                          onChange={field.onChange}
+                          error={fieldError("dob")}
+                        />
+                      )}
+                    />
                     <Input label="Profession" error={fieldError("profession")} {...register("profession")} />
-                    <Input label="Pincode" error={fieldError("pincode")} {...register("pincode")} />
+                    <Input label="Pincode" required error={fieldError("pincode")} {...register("pincode")} />
+                    <Input label="Area" required placeholder="e.g. Peelamedu" error={fieldError("area")} {...register("area")} />
                     <Input label="City" required disabled={isComplete} error={fieldError("location")} {...register("location")} />
                     <div className="sm:col-span-2">
                       <Textarea label="Address" rows={2} error={fieldError("address")} {...register("address")} />
@@ -725,7 +779,7 @@ export function AddLeadWizard({
                     </Select>
                     <Select label="Enquiry Category" error={fieldError("enquiryCategory")} {...register("enquiryCategory")}>
                       <option value="">Select category</option>
-                      {ENQUIRY_CATEGORIES.map((c) => (
+                      {enquiryCategoryOptions.map((c) => (
                         <option key={c} value={c}>
                           {c}
                         </option>
@@ -772,21 +826,29 @@ export function AddLeadWizard({
                       {hasExchangeVehicle && (
                         <motion.div key="exchange-fields" {...collapseProps}>
                           <div className="grid grid-cols-1 gap-4 pt-1 sm:grid-cols-2">
-                            <Input label="Model name" error={fieldError("exchangeCarModel")} {...register("exchangeCarModel")} />
+                            <Input label="Model name" required error={fieldError("exchangeCarModel")} {...register("exchangeCarModel")} />
                             <Controller
                               control={control}
                               name="exchangeCarYear"
                               render={({ field }) => (
                                 <YearPicker
                                   label="Year"
+                                  required
                                   value={field.value as number | string | undefined}
                                   onChange={field.onChange}
                                   error={fieldError("exchangeCarYear")}
                                 />
                               )}
                             />
-                            <Input label="KMs driven" type="number" min={0} error={fieldError("exchangeCarKms")} {...register("exchangeCarKms")} />
-                            <Input label="No. of owners" type="number" min={0} error={fieldError("exchangeCarOwners")} {...register("exchangeCarOwners")} />
+                            <Input label="KMs driven" type="number" required min={0} error={fieldError("exchangeCarKms")} {...register("exchangeCarKms")} />
+                            <Input label="No. of owners" type="number" required min={0} error={fieldError("exchangeCarOwners")} {...register("exchangeCarOwners")} />
+                            <Input
+                              label="Car Register Number"
+                              required
+                              placeholder="e.g. TN 37 AB 1234"
+                              error={fieldError("exchangeCarRegNumber")}
+                              {...register("exchangeCarRegNumber")}
+                            />
                           </div>
                         </motion.div>
                       )}
@@ -795,50 +857,15 @@ export function AddLeadWizard({
                 </Card>
               )}
 
-              {/* 5. Appointment & Test Drive */}
-              {(singlePage || step === 4) && (
-                <Card>
-                  <CardHeader icon={<CalendarClock size={18} />} title={SECTIONS[4].title} subtitle="Any scheduled visit or test drive — optional." iconClassName={SECTIONS[4].iconClassName} />
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div className="sm:col-span-2">
-                      <Switch checked={!!appointmentScheduled} onChange={(v) => setValue("appointmentScheduled", v)} label="Appointment scheduled" />
-                    </div>
-                    <AnimatePresence initial={false}>
-                      {appointmentScheduled && (
-                        <motion.div key="appointment-at" {...collapseProps}>
-                          <Controller
-                            control={control}
-                            name="appointmentAt"
-                            render={({ field }) => (
-                              <DateTimePicker
-                                label="Appointment date & time"
-                                value={field.value}
-                                onChange={field.onChange}
-                                error={fieldError("appointmentAt")}
-                              />
-                            )}
-                          />
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-
-                    <div className="sm:col-span-2">
-                      <Switch checked={!!testDriveInterested} onChange={(v) => setValue("testDriveInterested", v)} label="Test drive interested" />
-                    </div>
-                    <AnimatePresence initial={false}>
-                      {testDriveInterested && (
-                        <motion.div key="test-drive-count" {...collapseProps}>
-                          <Input label="No. of test drives" type="number" min={0} error={fieldError("testDriveCount")} {...register("testDriveCount")} />
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                </Card>
-              )}
             </motion.div>
             </AnimatePresence>
 
             {resultMessage && <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">{resultMessage}</p>}
+            {saveError && (
+              <p className="text-sm font-medium text-red-600 dark:text-red-400" role="alert">
+                {saveError}
+              </p>
+            )}
             {draftMessage && <p className="text-sm font-medium text-blue-600 dark:text-blue-400">{draftMessage}</p>}
           </form>
         </div>

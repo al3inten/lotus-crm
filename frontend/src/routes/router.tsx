@@ -1,5 +1,5 @@
 import { lazy, Suspense, type ComponentType } from "react";
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 import { AppShell } from "../components/layout/AppShell";
 import { ProtectedRoute } from "./ProtectedRoute";
 // Public entry pages stay eager — they're the very first paint, so lazy-loading them
@@ -19,7 +19,7 @@ const LeadsPage = lazy(() => import("../pages/LeadsPage").then(named("LeadsPage"
 const LeadDetailPage = lazy(() => import("../pages/LeadDetailPage").then(named("LeadDetailPage")));
 const CustomersPage = lazy(() => import("../pages/CustomersPage").then(named("CustomersPage")));
 const FollowUpsPage = lazy(() => import("../pages/FollowUpsPage").then(named("FollowUpsPage")));
-const DepartmentsPage = lazy(() => import("../pages/DepartmentsPage").then(named("DepartmentsPage")));
+const BranchesPage = lazy(() => import("../pages/BranchesPage").then(named("BranchesPage")));
 const ReportsPage = lazy(() => import("../pages/ReportsPage").then(named("ReportsPage")));
 const IntegrationsPage = lazy(() => import("../pages/IntegrationsPage").then(named("IntegrationsPage")));
 const SocialInboxPage = lazy(() => import("../pages/SocialInboxPage").then(named("SocialInboxPage")));
@@ -69,7 +69,9 @@ export const router = createBrowserRouter([
           {
             element: <ProtectedRoute roles={["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"]} />,
             children: [
-              { path: "/departments", element: suspense(<DepartmentsPage />) },
+              { path: "/branches", element: suspense(<BranchesPage />) },
+              // Old URL kept so existing bookmarks/links don't 404.
+              { path: "/departments", element: <Navigate to="/branches" replace /> },
               { path: "/reports", element: suspense(<ReportsPage />) },
               { path: "/media-library", element: suspense(<MediaLibraryPage />) },
               { path: "/templates", element: suspense(<TemplatesPage />) },

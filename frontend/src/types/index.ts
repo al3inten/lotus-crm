@@ -131,7 +131,9 @@ export const MODULES = [
   { key: "leads", label: "Leads" },
   { key: "follow-ups", label: "Follow-ups" },
   { key: "social-inbox", label: "Social Inbox" },
-  { key: "departments", label: "Departments" },
+  // Key stays "departments" — it's persisted in RoleDefinition.permissions, so renaming
+  // it would orphan every existing role's saved permissions. Only the label changed.
+  { key: "departments", label: "Branches" },
   { key: "reports", label: "Reports" },
   { key: "ai-agents", label: "AI Agents" },
   { key: "media-library", label: "Media Library" },
@@ -155,6 +157,19 @@ export interface RoleDefinition {
   _count?: { users: number };
 }
 
+/**
+ * An org unit inside a branch (Sales, Service, HR...) that employees belong to.
+ * Distinct from the `Department` enum used to categorise enquiries.
+ */
+export interface StaffDepartment {
+  id: string;
+  name: string;
+  branchId: string;
+  branch?: { id: string; name: string } | null;
+  isActive: boolean;
+  _count?: { users: number };
+}
+
 export interface User {
   id: string;
   name: string;
@@ -167,6 +182,8 @@ export interface User {
   roleDefinition?: { id: string; name: string } | null;
   branchId: string | null;
   branch?: { id: string; name: string } | null;
+  staffDepartmentId?: string | null;
+  staffDepartment?: { id: string; name: string } | null;
   isActive: boolean;
   isAvailableForRouting: boolean;
   avatarUrl?: string | null;

@@ -7,6 +7,8 @@ export interface CreateBranchStaffPayload {
   phone?: string;
   role?: "CONSULTANT" | "CR_TEAM" | "BRANCH_MANAGER";
   roleDefinitionId?: string;
+  /** Required — every employee belongs to a department of their branch. */
+  staffDepartmentId: string;
   password: string;
 }
 

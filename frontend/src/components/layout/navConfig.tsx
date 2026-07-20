@@ -78,7 +78,7 @@ export const NAV_ITEMS: NavItem[] = [
 
   { to: "/ai-agents", label: "AI Agents", short: "Agents", icon: Bot, module: "ai-agents", group: "AUTOMATION", roles: ["SUPER_ADMIN", "ADMIN"] },
 
-  { to: "/departments", label: "Departments", short: "Teams", icon: Building2, module: "departments", group: "ADMIN", roles: ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"] },
+  { to: "/branches", label: "Branches", short: "Branches", icon: Building2, module: "departments", group: "ADMIN", roles: ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"] },
   { to: "/integrations", label: "Integrations", short: "Apps", icon: Plug, module: "integrations", group: "ADMIN", roles: ["SUPER_ADMIN", "ADMIN"] },
 ];
 

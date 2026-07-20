@@ -1,7 +1,9 @@
 import { z } from "zod";
 
-// Used by the Departments UI to add staff under a branch. Either a custom
-// roleDefinitionId (which carries baseRole + module permissions) or a plain base role.
+// Used by the Branches UI to add an employee under a branch. Role and department are
+// both mandatory: every employee must belong to exactly one department of their branch,
+// and carry either a custom roleDefinitionId (baseRole + module permissions) or a
+// plain base role.
 export const createBranchStaffSchema = z
   .object({
     name: z.string().min(1),
@@ -9,6 +11,7 @@ export const createBranchStaffSchema = z
     phone: z.string().optional(),
     role: z.enum(["CONSULTANT", "CR_TEAM", "BRANCH_MANAGER"]).optional(),
     roleDefinitionId: z.string().optional(),
+    staffDepartmentId: z.string().min(1, "Department is required"),
     password: z.string().min(8, "Password must be at least 8 characters"),
   })
   .refine((val) => val.role || val.roleDefinitionId, {
@@ -33,6 +36,8 @@ export const updateUserSchema = z.object({
   role: z.enum(["CONSULTANT", "CR_TEAM", "BRANCH_MANAGER"]).optional(),
   // Set to a role id to assign a custom role; explicit null clears it (falls back to `role`).
   roleDefinitionId: z.string().nullable().optional(),
+  // Moving an employee between departments of their branch.
+  staffDepartmentId: z.string().optional(),
   password: z.string().min(8).optional(),
   isActive: z.boolean().optional(),
   isAvailableForRouting: z.boolean().optional(),
