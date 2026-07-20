@@ -8,6 +8,8 @@ const STATUS_STYLES: Record<EnquiryStatus, string> = {
   TEST_DRIVE: "bg-teal-100 text-teal-800 dark:bg-teal-500/15 dark:text-teal-300",
   BOOKED: "bg-lime-100 text-lime-800 dark:bg-lime-500/15 dark:text-lime-300",
   RETAIL_DONE: "bg-green-200 text-green-900 dark:bg-green-500/15 dark:text-green-300",
+  RTO_DONE: "bg-cyan-100 text-cyan-800 dark:bg-cyan-500/15 dark:text-cyan-300",
+  DELIVERED: "bg-emerald-200 text-emerald-900 dark:bg-emerald-500/15 dark:text-emerald-300",
   CLOSED: "bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300",
 };
 

@@ -28,8 +28,6 @@ import { PipelineStepper } from "../components/enquiry/PipelineStepper";
 import { TestDriveForm } from "../components/enquiry/TestDriveForm";
 import { QuotationForm } from "../components/enquiry/QuotationForm";
 import { ExchangeForm } from "../components/enquiry/ExchangeForm";
-import { FinanceForm } from "../components/enquiry/FinanceForm";
-import { DeliveryForm } from "../components/enquiry/DeliveryForm";
 import { QuickActions } from "../components/enquiry/QuickActions";
 import { AddLeadWizard } from "../components/leads/AddLeadWizard";
 
@@ -366,6 +364,7 @@ export function LeadDetailPage() {
                   statusHistory={enquiry.statusHistory}
                   appointmentScheduled={enquiry.appointmentScheduled}
                   testDriveBooked={enquiry.testDriveInterested || (enquiry.testDriveFeedbacks?.length ?? 0) > 0}
+                  onStageClick={handleQuickActionStatus}
                 />
               </div>
 
@@ -425,9 +424,10 @@ export function LeadDetailPage() {
               settings?.quotationEnabled !== false &&
               (["TEST_DRIVE", "BOOKED", "RETAIL_DONE"].includes(enquiry.status) || !!enquiry.quotation);
             const showExchange = enquiry.status === "BOOKED" || !!enquiry.exchangeEvaluation;
-            const showFinance = enquiry.status === "BOOKED" || !!enquiry.financeApplication;
-            const showDelivery = enquiry.status === "RETAIL_DONE" || !!enquiry.deliveryDetails;
-            const hasForms = showTestDrive || showQuotation || showExchange || showFinance || showDelivery;
+            // Finance and delivery are now handled by the pipeline itself (finance toggle +
+            // checks on the Booked stage; the Delivered stage captures the delivery date),
+            // so the standalone Finance/Delivery forms have been retired.
+            const hasForms = showTestDrive || showQuotation || showExchange;
             const tabs: DetailTab[] = [...(hasForms ? (["forms"] as const) : []), "activity", "details"];
 
             return (
@@ -473,7 +473,13 @@ export function LeadDetailPage() {
                     {(showTestDrive || showQuotation) && (
                       <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
                         {showTestDrive && (
-                          <TestDriveForm enquiryId={enquiry.id} branchId={enquiry.branchId} existing={enquiry.testDriveFeedbacks} />
+                          <TestDriveForm
+                            enquiryId={enquiry.id}
+                            branchId={enquiry.branchId}
+                            existing={enquiry.testDriveFeedbacks}
+                            defaultCarModel={enquiry.carModel}
+                            defaultVariant={enquiry.variant}
+                          />
                         )}
                         {showQuotation && (
                           <QuotationForm enquiryId={enquiry.id} branchId={enquiry.branchId} existing={enquiry.quotation} />
@@ -481,8 +487,6 @@ export function LeadDetailPage() {
                       </div>
                     )}
                     {showExchange && <ExchangeForm enquiryId={enquiry.id} branchId={enquiry.branchId} existing={enquiry.exchangeEvaluation} />}
-                    {showFinance && <FinanceForm enquiryId={enquiry.id} existing={enquiry.financeApplication} />}
-                    {showDelivery && <DeliveryForm enquiryId={enquiry.id} existing={enquiry.deliveryDetails} />}
                   </div>
                 )}
 

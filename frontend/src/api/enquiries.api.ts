@@ -25,6 +25,16 @@ export interface ChangeStatusPayload {
   followUpDueAt?: string;
   appointmentAt?: string;
   consultantId?: string;
+  // Later-stage milestone dates.
+  bookedAt?: string;
+  retailDoneAt?: string;
+  rtoDoneAt?: string;
+  deliveredAt?: string;
+  // Booking-phase finance.
+  financeRequired?: boolean;
+  financeDocumentCollected?: boolean;
+  financeLoanApproved?: boolean;
+  financeDoReceived?: boolean;
 }
 
 export async function changeEnquiryStatus(enquiryId: string, payload: ChangeStatusPayload): Promise<Enquiry> {
@@ -44,6 +54,8 @@ export async function reassignEnquiry(enquiryId: string, toUserId: string, reaso
 
 export interface TestDrivePayload {
   conductedById: string;
+  carModel?: string;
+  variant?: string;
   scheduledAt?: string;
   completedAt?: string;
   rating?: number;

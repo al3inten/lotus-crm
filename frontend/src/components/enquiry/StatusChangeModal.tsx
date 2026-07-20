@@ -1,19 +1,56 @@
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { DateTimePicker } from "../common/DateTimePicker";
+import { DateTimePicker, DatePickerField } from "../common/DateTimePicker";
 import { useState, useEffect } from "react";
 import { ArrowRight, CalendarClock, Trophy, XCircle } from "lucide-react";
 import clsx from "clsx";
 import { Modal } from "../common/Modal";
 import { Select, Textarea } from "../common/Input";
+import { Switch } from "../common/Switch";
 import { Button } from "../common/Button";
 import { StatusBadge } from "../common/StatusBadge";
 import { statusChangeFormSchema } from "../../schemas/enquiry.schema";
 import type { StatusChangeFormValues } from "../../schemas/enquiry.schema";
-import { ALLOWED_TRANSITIONS, LOSS_REASONS } from "../../types";
+import { ALLOWED_TRANSITIONS, LOSS_REASONS, STATUS_LABELS } from "../../types";
 import type { EnquiryStatus } from "../../types";
 import { useChangeStatus } from "../../hooks/useEnquiry";
 import { useBranchStaff } from "../../hooks/useUsers";
+
+/** A compact Yes/No pair for the finance checklist. */
+function YesNo({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-sm text-slate-700 dark:text-slate-200">{label}</span>
+      <div className="flex overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700">
+        {([["Yes", true], ["No", false]] as const).map(([text, val]) => (
+          <button
+            key={text}
+            type="button"
+            onClick={() => onChange(val)}
+            className={clsx(
+              "px-3 py-1 text-xs font-semibold transition-colors",
+              checked === val
+                ? val
+                  ? "bg-emerald-600 text-white"
+                  : "bg-slate-600 text-white"
+                : "bg-white text-slate-500 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800"
+            )}
+          >
+            {text}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// The date-stamped milestones and the label shown on their date picker.
+const DATE_MILESTONES: Partial<Record<EnquiryStatus, { field: "bookedAt" | "retailDoneAt" | "rtoDoneAt" | "deliveredAt"; label: string }>> = {
+  BOOKED: { field: "bookedAt", label: "Booking date" },
+  RETAIL_DONE: { field: "retailDoneAt", label: "Retail date" },
+  RTO_DONE: { field: "rtoDoneAt", label: "RTO date" },
+  DELIVERED: { field: "deliveredAt", label: "Delivery date" },
+};
 
 interface StatusChangeModalProps {
   enquiryId: string;
@@ -27,14 +64,17 @@ interface StatusChangeModalProps {
 export function StatusChangeModal({ enquiryId, branchId, currentStatus, isOpen, onClose, initialTargetStatus }: StatusChangeModalProps) {
   const [outcome, setOutcome] = useState<"WON" | "LOST">("WON");
   const changeStatus = useChangeStatus(enquiryId);
-  const { data: consultants } = useBranchStaff(branchId, "CONSULTANT");
+  const { data: consultants, isLoading: consultantsLoading } = useBranchStaff(branchId, "CONSULTANT");
   const allowedNext = ALLOWED_TRANSITIONS[currentStatus];
+  const noConsultants = !consultantsLoading && (consultants?.length ?? 0) === 0;
 
   const {
     register,
     control,
     handleSubmit,
     watch,
+    setValue,
+    setError,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<StatusChangeFormValues>({
@@ -45,21 +85,43 @@ export function StatusChangeModal({ enquiryId, branchId, currentStatus, isOpen, 
     if (isOpen) {
       reset({
         toStatus: initialTargetStatus && allowedNext.includes(initialTargetStatus) ? initialTargetStatus : allowedNext[0],
+        financeRequired: false,
       });
       setOutcome("WON");
     }
   }, [isOpen, initialTargetStatus, allowedNext, reset]);
 
   const toStatus = watch("toStatus");
+  const financeRequired = watch("financeRequired");
+  const dateMilestone = DATE_MILESTONES[toStatus];
 
   const onSubmit = async (values: StatusChangeFormValues) => {
+    // A consultant must be allocated when the appointment is fixed (server enforces this too).
+    if (values.toStatus === "APPOINTMENT_FIXED" && !values.consultantId) {
+      setError("consultantId", { message: "Assign a consultant before fixing the appointment" });
+      return;
+    }
+    const toIso = (v?: string) => (v ? new Date(v).toISOString() : undefined);
     await changeStatus.mutateAsync({
       toStatus: values.toStatus,
       note: values.note,
       lossReason: values.toStatus === "CLOSED" && outcome === "LOST" ? values.lossReason || undefined : undefined,
-      followUpDueAt: values.followUpDueAt ? new Date(values.followUpDueAt).toISOString() : undefined,
-      appointmentAt: values.appointmentAt ? new Date(values.appointmentAt).toISOString() : undefined,
+      followUpDueAt: toIso(values.followUpDueAt),
+      appointmentAt: toIso(values.appointmentAt),
       consultantId: values.consultantId,
+      bookedAt: toIso(values.bookedAt),
+      retailDoneAt: toIso(values.retailDoneAt),
+      rtoDoneAt: toIso(values.rtoDoneAt),
+      deliveredAt: toIso(values.deliveredAt),
+      // Finance answers only travel with the Booked transition.
+      ...(values.toStatus === "BOOKED"
+        ? {
+            financeRequired: values.financeRequired,
+            financeDocumentCollected: values.financeRequired ? !!values.financeDocumentCollected : undefined,
+            financeLoanApproved: values.financeRequired ? !!values.financeLoanApproved : undefined,
+            financeDoReceived: values.financeRequired ? !!values.financeDoReceived : undefined,
+          }
+        : {}),
     });
     reset();
     setOutcome("WON");
@@ -93,10 +155,40 @@ export function StatusChangeModal({ enquiryId, branchId, currentStatus, isOpen, 
         <Select label="Move to" error={errors.toStatus?.message} {...register("toStatus")}>
           {allowedNext.map((status) => (
             <option key={status} value={status}>
-              {status.replaceAll("_", " ")}
+              {STATUS_LABELS[status]}
             </option>
           ))}
         </Select>
+
+        {/* Date for the later milestones (Booked / Retail / RTO / Delivered) */}
+        {dateMilestone && (
+          <Controller
+            control={control}
+            name={dateMilestone.field}
+            render={({ field }) => (
+              <DatePickerField label={dateMilestone.label} value={field.value} onChange={field.onChange} />
+            )}
+          />
+        )}
+
+        {/* Booking-phase finance: toggle + three Yes/No checks */}
+        {toStatus === "BOOKED" && (
+          <div className="flex flex-col gap-3 rounded-xl border border-emerald-200 bg-emerald-50/60 p-3 dark:border-emerald-500/25 dark:bg-emerald-500/10">
+            <Switch
+              checked={!!financeRequired}
+              onChange={(v) => setValue("financeRequired", v)}
+              label="Finance needed"
+              description="Turn on if the customer is financing this purchase."
+            />
+            {financeRequired && (
+              <div className="flex flex-col gap-2 border-t border-emerald-200 pt-3 dark:border-emerald-500/25">
+                <YesNo label="Documents collected" checked={!!watch("financeDocumentCollected")} onChange={(v) => setValue("financeDocumentCollected", v)} />
+                <YesNo label="Loan approved" checked={!!watch("financeLoanApproved")} onChange={(v) => setValue("financeLoanApproved", v)} />
+                <YesNo label="DO received" checked={!!watch("financeDoReceived")} onChange={(v) => setValue("financeDoReceived", v)} />
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Appointment scheduling (G3) */}
         {toStatus === "APPOINTMENT_FIXED" && (
@@ -116,14 +208,27 @@ export function StatusChangeModal({ enquiryId, branchId, currentStatus, isOpen, 
                 />
               )}
             />
-            <Select label="Showroom consultant" error={errors.consultantId?.message} {...register("consultantId")}>
-              <option value="">Select consultant</option>
+            <Select
+              label="Showroom consultant"
+              required
+              disabled={consultantsLoading || noConsultants}
+              error={errors.consultantId?.message}
+              {...register("consultantId")}
+            >
+              <option value="">
+                {consultantsLoading ? "Loading consultants…" : noConsultants ? "No consultants in this branch" : "Select consultant"}
+              </option>
               {consultants?.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
                 </option>
               ))}
             </Select>
+            {noConsultants && (
+              <p className="text-xs font-medium text-amber-600 dark:text-amber-400">
+                This branch has no consultants yet. Add one under Branches → Employees (role “Consultant”), then fix the appointment.
+              </p>
+            )}
           </div>
         )}
 

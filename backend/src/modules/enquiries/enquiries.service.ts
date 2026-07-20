@@ -44,6 +44,10 @@ export async function changeStatus(enquiryId: string, input: ChangeStatusInput, 
       throw new ValidationError(`consultantId is required when moving to ${CONSULTANT_REQUIRED_AT_STATUS}`);
     }
 
+    // Stamp the date the enquiry reached each milestone (client may pass an explicit date,
+    // otherwise "now"), so the pipeline and reports can show when each stage happened.
+    const stampNow = (explicit?: string) => (explicit ? new Date(explicit) : new Date());
+
     const updated = await tx.enquiry.update({
       where: { id: enquiryId },
       data: {
@@ -59,6 +63,22 @@ export async function changeStatus(enquiryId: string, input: ChangeStatusInput, 
         // value, so it must not overwrite an already-assigned consultant (|| falls back on
         // "" too, unlike ??, which would otherwise null out the FK and violate the constraint).
         consultantId: input.consultantId || enquiry.consultantId,
+
+        // ── Later-stage milestone dates ──
+        bookedAt: input.toStatus === "BOOKED" ? stampNow(input.bookedAt) : enquiry.bookedAt,
+        retailDoneAt: input.toStatus === "RETAIL_DONE" ? stampNow(input.retailDoneAt) : enquiry.retailDoneAt,
+        rtoDoneAt: input.toStatus === "RTO_DONE" ? stampNow(input.rtoDoneAt) : enquiry.rtoDoneAt,
+        deliveredAt: input.toStatus === "DELIVERED" ? stampNow(input.deliveredAt) : enquiry.deliveredAt,
+
+        // ── Booking-phase finance ── captured when moving to BOOKED. If finance isn't
+        // required, the three checks are cleared so stale Yes/No answers don't linger.
+        financeRequired: input.toStatus === "BOOKED" && input.financeRequired !== undefined ? input.financeRequired : enquiry.financeRequired,
+        financeDocumentCollected:
+          input.toStatus === "BOOKED" ? (input.financeRequired ? input.financeDocumentCollected ?? null : null) : enquiry.financeDocumentCollected,
+        financeLoanApproved:
+          input.toStatus === "BOOKED" ? (input.financeRequired ? input.financeLoanApproved ?? null : null) : enquiry.financeLoanApproved,
+        financeDoReceived:
+          input.toStatus === "BOOKED" ? (input.financeRequired ? input.financeDoReceived ?? null : null) : enquiry.financeDoReceived,
       },
     });
 

@@ -97,6 +97,10 @@ export async function lookupLeadHandler(req: Request, res: Response) {
 
 export async function getRemindersHandler(req: Request, res: Response) {
   if (!req.user) throw new UnauthorizedError();
-  const reminders = await leadsService.getReminders(req.user.id);
+  const reminders = await leadsService.getReminders({
+    id: req.user.id,
+    role: req.user.role,
+    branchId: req.user.branchId ?? null,
+  });
   res.json(reminders);
 }

@@ -94,9 +94,24 @@ export const ENQUIRY_STATUSES = [
   "TEST_DRIVE",
   "BOOKED",
   "RETAIL_DONE",
+  "RTO_DONE",
+  "DELIVERED",
   "CLOSED",
 ] as const;
 export type EnquiryStatus = (typeof ENQUIRY_STATUSES)[number];
+
+/** Human labels for each status (badges, dropdowns). */
+export const STATUS_LABELS: Record<EnquiryStatus, string> = {
+  NEW: "New",
+  UNDER_FOLLOW_UP: "Under Follow-up",
+  APPOINTMENT_FIXED: "Appointment Fixed",
+  TEST_DRIVE: "Test Drive",
+  BOOKED: "Booked",
+  RETAIL_DONE: "Retail Done",
+  RTO_DONE: "RTO Done",
+  DELIVERED: "Delivered",
+  CLOSED: "Closed (Lost)",
+};
 
 export const LOSS_REASONS = [
   "LOST_TO_DEALER",
@@ -115,13 +130,17 @@ export type FinanceStatus = (typeof FINANCE_STATUSES)[number];
 
 // Mirrors backend ALLOWED_TRANSITIONS in backend/src/config/constants.ts —
 // client-side only for UX (disabling invalid options); server re-validates.
+// Strict forward-only pipeline (mirrors backend ALLOWED_TRANSITIONS). Each stage advances
+// only to the next; UNDER_FOLLOW_UP is an early sub-state, CLOSED an off-ramp until delivery.
 export const ALLOWED_TRANSITIONS: Record<EnquiryStatus, EnquiryStatus[]> = {
-  NEW: ["UNDER_FOLLOW_UP", "TEST_DRIVE", "BOOKED", "CLOSED"],
-  UNDER_FOLLOW_UP: ["APPOINTMENT_FIXED", "TEST_DRIVE", "BOOKED", "CLOSED"],
+  NEW: ["UNDER_FOLLOW_UP", "APPOINTMENT_FIXED", "CLOSED"],
+  UNDER_FOLLOW_UP: ["APPOINTMENT_FIXED", "CLOSED"],
   APPOINTMENT_FIXED: ["TEST_DRIVE", "CLOSED"],
-  TEST_DRIVE: ["BOOKED", "UNDER_FOLLOW_UP", "CLOSED"],
+  TEST_DRIVE: ["BOOKED", "CLOSED"],
   BOOKED: ["RETAIL_DONE", "CLOSED"],
-  RETAIL_DONE: ["CLOSED"],
+  RETAIL_DONE: ["RTO_DONE", "CLOSED"],
+  RTO_DONE: ["DELIVERED", "CLOSED"],
+  DELIVERED: [],
   CLOSED: [],
 };
 
@@ -277,6 +296,15 @@ export interface Enquiry {
   enquiryCategory?: EnquiryCategory | null;
   financeRequired?: boolean | null;
   financeRemarks?: string | null;
+  // Booking-phase finance checks (only meaningful when financeRequired is true).
+  financeDocumentCollected?: boolean | null;
+  financeLoanApproved?: boolean | null;
+  financeDoReceived?: boolean | null;
+  // Pipeline milestone dates.
+  bookedAt?: string | null;
+  retailDoneAt?: string | null;
+  rtoDoneAt?: string | null;
+  deliveredAt?: string | null;
   appointmentScheduled: boolean;
   appointmentAt?: string | null;
   testDriveInterested: boolean;
@@ -343,6 +371,8 @@ export interface TestDriveFeedback {
   id: string;
   conductedById: string;
   conductedBy?: { id: string; name: string };
+  carModel?: string | null;
+  variant?: string | null;
   scheduledAt?: string | null;
   completedAt?: string | null;
   rating?: number | null;

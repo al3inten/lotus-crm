@@ -17,6 +17,8 @@ export const changeStatusSchema = z.object({
     "TEST_DRIVE",
     "BOOKED",
     "RETAIL_DONE",
+    "RTO_DONE",
+    "DELIVERED",
     "CLOSED",
   ]),
   note: z.string().optional(),
@@ -31,8 +33,19 @@ export const changeStatusSchema = z.object({
     "OTHER_REASON",
   ]).optional(),
   followUpDueAt: z.string().datetime().optional(),
+  // Appointment Fixed: date + allocated consultant.
   appointmentAt: z.string().datetime().optional(),
   consultantId: z.string().optional(),
+  // Milestone dates for the later stages (default to now if omitted).
+  bookedAt: z.string().datetime().optional(),
+  retailDoneAt: z.string().datetime().optional(),
+  rtoDoneAt: z.string().datetime().optional(),
+  deliveredAt: z.string().datetime().optional(),
+  // Booking-phase finance: toggle + the three Yes/No checks.
+  financeRequired: z.boolean().optional(),
+  financeDocumentCollected: z.boolean().optional(),
+  financeLoanApproved: z.boolean().optional(),
+  financeDoReceived: z.boolean().optional(),
 });
 
 export const reassignSchema = z.object({
@@ -42,6 +55,10 @@ export const reassignSchema = z.object({
 
 export const testDriveSchema = z.object({
   conductedById: z.string().min(1),
+  // The car driven — defaults to the enquiry's car, but the customer may try a different
+  // model/variant, which the CR records here.
+  carModel: z.string().optional(),
+  variant: z.string().optional(),
   scheduledAt: z.string().datetime().optional(),
   completedAt: z.string().datetime().optional(),
   rating: z.number().int().min(1).max(5).optional(),

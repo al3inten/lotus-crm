@@ -1,16 +1,23 @@
-import { Check, Inbox, PhoneCall, CalendarCheck, Car, BadgeCheck, Trophy, Ban, Flag } from "lucide-react";
+import { Check, Inbox, CalendarCheck, Car, BadgeCheck, Trophy, FileCheck2, Truck, Ban, Flag } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import clsx from "clsx";
-import type { EnquiryStatus, EnquiryStatusHistoryEntry } from "../../types";
+import { ALLOWED_TRANSITIONS, type EnquiryStatus, type EnquiryStatusHistoryEntry } from "../../types";
 
+// The stepper milestones. UNDER_FOLLOW_UP is deliberately NOT a node — it's a sub-state
+// of the early journey, shown as a status badge on the "New" node instead.
 const MAIN_PATH: { status: EnquiryStatus; label: string; Icon: LucideIcon }[] = [
   { status: "NEW", label: "New", Icon: Inbox },
-  { status: "UNDER_FOLLOW_UP", label: "Under Follow-up", Icon: PhoneCall },
   { status: "APPOINTMENT_FIXED", label: "Appointment Fixed", Icon: CalendarCheck },
   { status: "TEST_DRIVE", label: "Test Drive", Icon: Car },
   { status: "BOOKED", label: "Booked", Icon: BadgeCheck },
   { status: "RETAIL_DONE", label: "Retail Done", Icon: Trophy },
+  { status: "RTO_DONE", label: "RTO Done", Icon: FileCheck2 },
+  { status: "DELIVERED", label: "Delivered", Icon: Truck },
 ];
+
+// UNDER_FOLLOW_UP sits at the "New" milestone visually.
+const statusToPathIndex = (status: EnquiryStatus) =>
+  status === "UNDER_FOLLOW_UP" ? 0 : MAIN_PATH.findIndex((s) => s.status === status);
 
 type NodeTone = "blue" | "green" | "red" | "muted";
 
@@ -74,6 +81,8 @@ function StageNode({
   glow,
   showCheck,
   pill,
+  onClick,
+  clickable,
 }: {
   number: number;
   label: string;
@@ -82,9 +91,18 @@ function StageNode({
   glow?: boolean;
   showCheck?: boolean;
   pill: StagePill;
+  onClick?: () => void;
+  clickable?: boolean;
 }) {
   return (
-    <div className="flex w-[76px] flex-col items-center gap-1.5 sm:w-24">
+    <div
+      className={clsx(
+        "flex w-[76px] flex-col items-center gap-1.5 rounded-xl p-1 sm:w-24",
+        clickable && "cursor-pointer transition-colors hover:bg-slate-100/70 dark:hover:bg-slate-800/50"
+      )}
+      onClick={clickable ? onClick : undefined}
+      role={clickable ? "button" : undefined}
+      title={clickable ? `Move to ${label}` : undefined}>
       <span className={clsx("flex h-4 items-center text-[11px] font-bold leading-none", NUMBER_COLOR[tone])}>{number}</span>
       <span className="relative flex h-9 w-9 items-center justify-center">
         {glow && (
@@ -135,15 +153,21 @@ export function PipelineStepper({
   statusHistory,
   appointmentScheduled,
   testDriveBooked,
+  onStageClick,
 }: PipelineStepperProps) {
   const isClosed = status === "CLOSED";
   const isLost = isClosed && !!lossReason;
+  const isUnderFollowUp = status === "UNDER_FOLLOW_UP";
 
   const reachedIndexes = (statusHistory ?? [])
-    .map((h) => MAIN_PATH.findIndex((s) => s.status === h.toStatus))
+    .map((h) => statusToPathIndex(h.toStatus))
     .filter((i) => i >= 0);
   const forkIndex = reachedIndexes.length ? Math.max(...reachedIndexes) : 0;
-  const currentIndex = isClosed ? forkIndex : MAIN_PATH.findIndex((s) => s.status === status);
+  const currentIndex = isClosed ? forkIndex : statusToPathIndex(status);
+
+  // Which milestones the CR can jump to from here (server re-validates). Used to make the
+  // stepper nodes clickable — the whole point of "click the pipeline to change status".
+  const nextStatuses = ALLOWED_TRANSITIONS[status] ?? [];
 
   // Milestones booked at intake (appointment / test drive) light up their stage with a
   // "Booked" marker even if the status pointer hasn't advanced there yet.
@@ -180,7 +204,10 @@ export function PipelineStepper({
                     ? isLost
                       ? { tone: "blue", text: "Last stage" }
                       : { tone: "green", text: "Completed", check: true }
-                    : { tone: "blue", text: "In progress" }
+                    : // An enquiry being actively followed up shows that as its status on the New node.
+                      current && isUnderFollowUp
+                      ? { tone: "blue", text: "Under Follow-up" }
+                      : { tone: "blue", text: "In progress" }
                   : booked
                     ? { tone: "blue", text: booked, check: true }
                     : { tone: "muted", text: "Pending" };
@@ -188,10 +215,24 @@ export function PipelineStepper({
               // Colour the connector into a booked upcoming stage so the line reaches it.
               const connectorTone: NodeTone = index <= currentIndex ? tone : booked ? "blue" : "muted";
 
+              // A node is clickable when moving to its status is an allowed transition and
+              // the parent wants to handle it — this is how a CR changes status from the pipe.
+              const clickable = !!onStageClick && !isClosed && nextStatuses.includes(step.status);
+
               return (
                 <div key={step.status} className="flex items-start">
                   {index > 0 && <Connector tone={connectorTone} />}
-                  <StageNode number={index + 1} label={step.label} Icon={Icon} tone={tone} glow={glow} showCheck={showCheck} pill={pill} />
+                  <StageNode
+                    number={index + 1}
+                    label={step.label}
+                    Icon={Icon}
+                    tone={tone}
+                    glow={glow}
+                    showCheck={showCheck}
+                    pill={pill}
+                    clickable={clickable}
+                    onClick={() => onStageClick?.(step.status)}
+                  />
                 </div>
               );
             })}
@@ -268,4 +309,6 @@ interface PipelineStepperProps {
   appointmentScheduled?: boolean;
   /** Test drive booked/interested — marks the Test Drive stage similarly. */
   testDriveBooked?: boolean;
+  /** Called with the target status when a CR clicks a pipeline node to change status. */
+  onStageClick?: (status: EnquiryStatus) => void;
 }

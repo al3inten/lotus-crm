@@ -4,9 +4,17 @@ import { ReportQuery, BreakdownQuery, BreakdownDimension } from "./reports.schem
 
 const CONVERTED_STATUSES: EnquiryStatus[] = ["RETAIL_DONE"];
 
-// Pipeline stages in funnel order. BOOKING_CANCEL / RETAIL_CANCEL / ENQUIRY_CLOSED are
-// terminal states, not funnel milestones, so they're excluded from stage-reach counting.
-const FUNNEL_STAGES: EnquiryStatus[] = ["NEW", "UNDER_FOLLOW_UP", "APPOINTMENT_FIXED", "TEST_DRIVE", "BOOKED", "RETAIL_DONE"];
+// Pipeline stages in funnel order. UNDER_FOLLOW_UP is a sub-state (not a milestone) and
+// CLOSED is a terminal off-ramp, so both are excluded from stage-reach counting.
+const FUNNEL_STAGES: EnquiryStatus[] = [
+  "NEW",
+  "APPOINTMENT_FIXED",
+  "TEST_DRIVE",
+  "BOOKED",
+  "RETAIL_DONE",
+  "RTO_DONE",
+  "DELIVERED",
+];
 
 function buildWhere(query: ReportQuery, branchFilter?: { branchId: string }): Prisma.EnquiryWhereInput {
   const where: Prisma.EnquiryWhereInput = {};

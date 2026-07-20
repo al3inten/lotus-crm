@@ -8,12 +8,24 @@ export const statusChangeFormSchema = z.object({
   followUpDueAt: z.string().optional(),
   appointmentAt: z.string().optional(),
   consultantId: z.string().optional(),
+  // Later-stage milestone dates.
+  bookedAt: z.string().optional(),
+  retailDoneAt: z.string().optional(),
+  rtoDoneAt: z.string().optional(),
+  deliveredAt: z.string().optional(),
+  // Booking-phase finance.
+  financeRequired: z.boolean().optional(),
+  financeDocumentCollected: z.boolean().optional(),
+  financeLoanApproved: z.boolean().optional(),
+  financeDoReceived: z.boolean().optional(),
 });
 
 export type StatusChangeFormValues = z.infer<typeof statusChangeFormSchema>;
 
 export const testDriveFormSchema = z.object({
   conductedById: z.string().min(1, "Select a consultant"),
+  carModel: z.string().min(1, "Select the car"),
+  variant: z.string().optional(),
   scheduledAt: z.string().optional(),
   completedAt: z.string().optional(),
   rating: z.coerce.number().int().min(1).max(5).optional(),
@@ -24,6 +36,8 @@ export type TestDriveFormValues = z.infer<typeof testDriveFormSchema>;
 // (zod accepts any coercible value), which is what zodResolver's Resolver type expects here.
 export interface TestDriveFormInput {
   conductedById: string;
+  carModel: string;
+  variant?: string;
   scheduledAt?: string;
   completedAt?: string;
   rating?: unknown;

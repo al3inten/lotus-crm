@@ -38,11 +38,15 @@ enum EnquiryType {
 
 enum EnquiryStatus {
   NEW
+  // A sub-state, not a stepper milestone — an enquiry being actively followed up still
+  // sits at the "New" node in the pipeline UI; this just labels the status badge.
   UNDER_FOLLOW_UP
   APPOINTMENT_FIXED
   TEST_DRIVE
   BOOKED
   RETAIL_DONE
+  RTO_DONE
+  DELIVERED
   CLOSED
 }
 
@@ -453,6 +457,19 @@ model Enquiry {
   lossReason    LossReason?
   lossNote      String?
 
+  // ── Pipeline milestone metadata (set as the enquiry advances through the stepper) ──
+  // Booking-phase finance: `financeRequired` (above) is the toggle; when on, these three
+  // Yes/No checks track the loan progress. Null = not answered yet.
+  financeDocumentCollected Boolean?
+  financeLoanApproved      Boolean?
+  financeDoReceived        Boolean?
+  // Dates captured when the enquiry reaches each milestone, so the stepper and reports can
+  // show exactly when each stage happened (distinct from createdAt of a status-history row).
+  bookedAt     DateTime?
+  retailDoneAt DateTime?
+  rtoDoneAt    DateTime?
+  deliveredAt  DateTime?
+
   // Digital-lead auto-dial pipeline (Voice AI outbound call on new digital enquiries).
   score         Int              @default(0)
   callTriggered Boolean          @default(false)
@@ -568,8 +585,14 @@ model TestDriveFeedback {
   enquiry       Enquiry   @relation(fields: [enquiryId], references: [id])
   conductedById String
   conductedBy   User      @relation("ConductedBy", fields: [conductedById], references: [id])
+  // Which car this drive was for. A customer may test several — same car again, or a
+  // different model/variant — so each row snapshots its own car (defaults to the enquiry's).
+  carModel      String?
+  variant       String?
   scheduledAt   DateTime?
   completedAt   DateTime?
+  // The consultant's feedback form, stored structurally in the DB (not an uploaded file):
+  // an overall rating plus written comments.
   rating        Int?
   comments      String?
   createdAt     DateTime  @default(now())
