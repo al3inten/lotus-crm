@@ -91,12 +91,24 @@ export function LeadDetailPage() {
   const [activeTab, setActiveTab] = useState<DetailTab>("activity");
 
   const prevStatusRef = useRef<EnquiryStatus | null>(null);
+  const tabDefaultedFor = useRef<string | null>(null);
 
   const { data: lead, isLoading: leadLoading, isError: leadError, refetch: refetchLead } = useLeadHistory(leadId);
   const activeEnquiryId = enquiryIdParam ?? lead?.enquiries[0]?.id;
   const { data: enquiry, isLoading: enquiryLoading, isError: enquiryError, refetch: refetchEnquiry } = useEnquiry(activeEnquiryId);
   const reassign = useReassign(activeEnquiryId ?? "");
   const updateDetails = useUpdateEnquiryDetails(activeEnquiryId ?? "");
+
+  // Open straight to the forms tab (Test Drive / Quotation) when the enquiry is at the
+  // appointment/test-drive stage — that's where the CR needs to act, so it shouldn't be
+  // hidden behind a tab. Runs once per enquiry, so it won't fight a manual tab switch.
+  useEffect(() => {
+    if (!enquiry || tabDefaultedFor.current === enquiry.id) return;
+    tabDefaultedFor.current = enquiry.id;
+    if (enquiry.status === "APPOINTMENT_FIXED" || enquiry.status === "TEST_DRIVE") {
+      setActiveTab("forms");
+    }
+  }, [enquiry]);
   const { data: crTeam } = useBranchStaff(enquiry?.branchId, "CR_TEAM");
   const { data: consultants } = useBranchStaff(enquiry?.branchId, "CONSULTANT");
   const { data: callLogs } = useCallLogsForLead(leadId);
@@ -522,6 +534,7 @@ export function LeadDetailPage() {
             isOpen={showStatusModal}
             onClose={() => setShowStatusModal(false)}
             initialTargetStatus={statusModalTarget}
+            hasCompletedTestDrive={(enquiry.testDriveFeedbacks ?? []).some((td) => !!td.completedAt)}
           />
 
           <LeadModals

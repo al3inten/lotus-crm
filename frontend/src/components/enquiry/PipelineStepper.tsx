@@ -1,4 +1,4 @@
-import { Check, Inbox, CalendarCheck, Car, BadgeCheck, Trophy, FileCheck2, Truck, Ban, Flag } from "lucide-react";
+import { Check, Inbox, CalendarCheck, Car, BadgeCheck, Trophy, FileCheck2, Truck, Ban, Flag, MousePointerClick } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import clsx from "clsx";
 import { ALLOWED_TRANSITIONS, type EnquiryStatus, type EnquiryStatusHistoryEntry } from "../../types";
@@ -98,11 +98,14 @@ function StageNode({
     <div
       className={clsx(
         "flex w-[76px] flex-col items-center gap-1.5 rounded-xl p-1 sm:w-24",
-        clickable && "cursor-pointer transition-colors hover:bg-slate-100/70 dark:hover:bg-slate-800/50"
+        clickable &&
+          "cursor-pointer ring-1 ring-blue-300/70 transition-all hover:-translate-y-0.5 hover:bg-blue-50 hover:ring-2 hover:ring-blue-400 dark:ring-blue-500/40 dark:hover:bg-blue-500/10"
       )}
       onClick={clickable ? onClick : undefined}
       role={clickable ? "button" : undefined}
-      title={clickable ? `Move to ${label}` : undefined}>
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={clickable ? (e) => (e.key === "Enter" || e.key === " ") && onClick?.() : undefined}
+      title={clickable ? "Click to update status" : undefined}>
       <span className={clsx("flex h-4 items-center text-[11px] font-bold leading-none", NUMBER_COLOR[tone])}>{number}</span>
       <span className="relative flex h-9 w-9 items-center justify-center">
         {glow && (
@@ -158,6 +161,8 @@ export function PipelineStepper({
   const isClosed = status === "CLOSED";
   const isLost = isClosed && !!lossReason;
   const isUnderFollowUp = status === "UNDER_FOLLOW_UP";
+  // Reaching Delivered means the sale is won — the whole pipeline turns green.
+  const isDelivered = status === "DELIVERED";
 
   const reachedIndexes = (statusHistory ?? [])
     .map((h) => statusToPathIndex(h.toStatus))
@@ -177,9 +182,17 @@ export function PipelineStepper({
   };
 
   const forkTone: NodeTone = isLost ? "red" : "green";
+  // Show the "click a stage" hint only when there's actually somewhere to move to.
+  const canChangeFromPipeline = !!onStageClick && !isClosed && !isDelivered && nextStatuses.length > 0;
 
   return (
     <div className="flex flex-col">
+      {canChangeFromPipeline && (
+        <p className="mb-2 flex items-center gap-1.5 text-[11px] font-medium text-blue-600 dark:text-blue-400">
+          <MousePointerClick size={12} />
+          Click a highlighted stage to update the status
+        </p>
+      )}
       <div className="relative min-w-0">
         <div className="overflow-x-auto pb-4">
           <div className="flex min-w-max flex-col">
@@ -191,23 +204,33 @@ export function PipelineStepper({
               const booked = bookedLabel[step.status];
               const { Icon } = step;
 
-              // The stage that a won deal ends on turns green; a dropped/active stage stays blue.
-              // An upcoming stage with a booked milestone lights up blue instead of muted.
-              const tone: NodeTone = upcoming ? (booked ? "blue" : "muted") : isClosed && current && !isLost ? "green" : "blue";
-              const showCheck = done || (isClosed && current) || (!!booked && upcoming);
+              // Won (delivered) turns every reached stage green; a won-closed stage also goes
+              // green; otherwise reached/active stages are blue and upcoming ones muted.
+              const tone: NodeTone = upcoming
+                ? booked
+                  ? "blue"
+                  : "muted"
+                : isDelivered
+                  ? "green"
+                  : isClosed && current && !isLost
+                    ? "green"
+                    : "blue";
+              const showCheck = done || (isClosed && current) || (isDelivered && current) || (!!booked && upcoming);
               const glow = current;
 
               const pill: StagePill = done
                 ? { tone: "green", text: "Completed", check: true }
                 : current
-                  ? isClosed
-                    ? isLost
-                      ? { tone: "blue", text: "Last stage" }
-                      : { tone: "green", text: "Completed", check: true }
-                    : // An enquiry being actively followed up shows that as its status on the New node.
-                      current && isUnderFollowUp
-                      ? { tone: "blue", text: "Under Follow-up" }
-                      : { tone: "blue", text: "In progress" }
+                  ? isDelivered
+                    ? { tone: "green", text: "Won", check: true }
+                    : isClosed
+                      ? isLost
+                        ? { tone: "blue", text: "Last stage" }
+                        : { tone: "green", text: "Completed", check: true }
+                      : // An enquiry being actively followed up shows that as its status on the New node.
+                        isUnderFollowUp
+                        ? { tone: "blue", text: "Under Follow-up" }
+                        : { tone: "blue", text: "In progress" }
                   : booked
                     ? { tone: "blue", text: booked, check: true }
                     : { tone: "muted", text: "Pending" };
@@ -215,9 +238,14 @@ export function PipelineStepper({
               // Colour the connector into a booked upcoming stage so the line reaches it.
               const connectorTone: NodeTone = index <= currentIndex ? tone : booked ? "blue" : "muted";
 
-              // A node is clickable when moving to its status is an allowed transition and
-              // the parent wants to handle it — this is how a CR changes status from the pipe.
-              const clickable = !!onStageClick && !isClosed && nextStatuses.includes(step.status);
+              // How a CR changes status straight from the pipeline:
+              //  • the next allowed stage(s) → jump there (modal pre-targets that stage)
+              //  • the CURRENT stage → open the status modal to pick any allowed move
+              //    (incl. Closed/Lost or Under Follow-up)
+              const canInteract = !!onStageClick && !isClosed && !isDelivered && nextStatuses.length > 0;
+              const isNextStage = nextStatuses.includes(step.status);
+              const clickable = canInteract && (current || isNextStage);
+              const handleClick = () => onStageClick?.(isNextStage ? step.status : undefined);
 
               return (
                 <div key={step.status} className="flex items-start">
@@ -231,7 +259,7 @@ export function PipelineStepper({
                     showCheck={showCheck}
                     pill={pill}
                     clickable={clickable}
-                    onClick={() => onStageClick?.(step.status)}
+                    onClick={handleClick}
                   />
                 </div>
               );
@@ -309,6 +337,7 @@ interface PipelineStepperProps {
   appointmentScheduled?: boolean;
   /** Test drive booked/interested — marks the Test Drive stage similarly. */
   testDriveBooked?: boolean;
-  /** Called with the target status when a CR clicks a pipeline node to change status. */
-  onStageClick?: (status: EnquiryStatus) => void;
+  /** Called when a CR clicks a pipeline node to change status — with the target stage for a
+   * next-stage node, or undefined for the current node (opens the modal to pick any move). */
+  onStageClick?: (status?: EnquiryStatus) => void;
 }

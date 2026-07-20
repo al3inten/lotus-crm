@@ -65,7 +65,7 @@ export const testDriveSchema = z.object({
   comments: z.string().optional(),
 });
 
-// Follow-up edit once the drive has happened: mark it complete and capture the rating/feedback.
+// Marking a scheduled test drive as done / editing its feedback.
 export const updateTestDriveSchema = z.object({
   completedAt: z.string().datetime().optional(),
   rating: z.number().int().min(1).max(5).optional(),

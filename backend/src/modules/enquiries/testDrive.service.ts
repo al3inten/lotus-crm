@@ -16,6 +16,7 @@ export async function addTestDrive(enquiryId: string, input: TestDriveInput) {
       carModel: input.carModel || enquiry.carModel,
       variant: input.variant ?? enquiry.variant ?? undefined,
       scheduledAt: input.scheduledAt ? new Date(input.scheduledAt) : undefined,
+      // completedAt present ⇒ the drive is Done; absent ⇒ it's just scheduled ("Not done").
       completedAt: input.completedAt ? new Date(input.completedAt) : undefined,
       rating: input.rating,
       comments: input.comments,
@@ -23,17 +24,21 @@ export async function addTestDrive(enquiryId: string, input: TestDriveInput) {
   });
 }
 
-/** Follow-up edit after the drive happened — mark it complete and capture rating/feedback. */
+/**
+ * Marks a scheduled test drive as done (or edits an existing one): sets the completion
+ * date and the consultant's feedback. Used by the "Mark as done" action so a fixed test
+ * drive can be closed out with a rating/comments once it actually happens.
+ */
 export async function updateTestDrive(enquiryId: string, testDriveId: string, input: UpdateTestDriveInput) {
-  const existing = await prisma.testDriveFeedback.findFirst({ where: { id: testDriveId, enquiryId } });
-  if (!existing) throw new NotFoundError("Test drive not found");
+  const testDrive = await prisma.testDriveFeedback.findUnique({ where: { id: testDriveId } });
+  if (!testDrive || testDrive.enquiryId !== enquiryId) throw new NotFoundError("Test drive not found");
 
   return prisma.testDriveFeedback.update({
     where: { id: testDriveId },
     data: {
-      completedAt: input.completedAt ? new Date(input.completedAt) : undefined,
-      rating: input.rating,
-      comments: input.comments,
+      completedAt: input.completedAt ? new Date(input.completedAt) : testDrive.completedAt,
+      rating: input.rating ?? testDrive.rating,
+      comments: input.comments ?? testDrive.comments,
     },
   });
 }

@@ -71,6 +71,7 @@ export interface UpdateTestDrivePayload {
   rating?: number;
   comments?: string;
 }
+/** Mark a scheduled test drive done / update its feedback. */
 export async function updateTestDrive(
   enquiryId: string,
   testDriveId: string,
