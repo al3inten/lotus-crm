@@ -1,4 +1,5 @@
 import clsx from "clsx";
+import { STATUS_LABELS } from "../../types";
 import type { EnquiryStatus } from "../../types";
 
 const STATUS_STYLES: Record<EnquiryStatus, string> = {
@@ -29,7 +30,7 @@ interface StatusBadgeProps {
 export function StatusBadge({ status, lossReason }: StatusBadgeProps) {
   const isWon = status === "CLOSED" && lossReason === null;
   const isLost = status === "CLOSED" && !!lossReason;
-  const label = isWon ? "WON" : isLost ? "LOST" : status.replaceAll("_", " ");
+  const label = isWon ? "WON" : isLost ? "LOST" : STATUS_LABELS[status];
   const style = isWon ? WON_STYLE : STATUS_STYLES[status];
 
   return (

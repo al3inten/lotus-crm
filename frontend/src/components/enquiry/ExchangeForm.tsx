@@ -12,10 +12,16 @@ export function ExchangeForm({
   enquiryId,
   branchId,
   existing,
+  editable = true,
+  lockedHint,
 }: {
   enquiryId: string;
   branchId: string;
   existing?: ExchangeEvaluation | null;
+  /** When false, the card is read-only (fields disabled, no save). */
+  editable?: boolean;
+  /** Small note shown in place of the save button when read-only. */
+  lockedHint?: string;
 }) {
   const saveEvaluation = useSaveExchangeEvaluation(enquiryId);
   const { data: staff } = useBranchStaff(branchId);
@@ -44,6 +50,7 @@ export function ExchangeForm({
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-white p-4">
       <h3 className="text-sm font-semibold text-gray-800">Exchange (Old Car) Evaluation</h3>
+      <fieldset disabled={!editable} className="m-0 flex flex-col gap-3 border-0 p-0 disabled:opacity-70">
       <Input label="Old Car Make" error={errors.oldCarMake?.message} {...register("oldCarMake")} />
       <Input label="Old Car Model" error={errors.oldCarModel?.message} {...register("oldCarModel")} />
       <Input label="Old Car Year" type="number" error={errors.oldCarYear?.message} {...register("oldCarYear")} />
@@ -64,9 +71,14 @@ export function ExchangeForm({
           </option>
         ))}
       </Select>
-      <Button type="submit" isLoading={isSubmitting} className="w-fit">
-        Save Evaluation
-      </Button>
+      </fieldset>
+      {editable ? (
+        <Button type="submit" isLoading={isSubmitting} className="w-fit">
+          Save Evaluation
+        </Button>
+      ) : (
+        lockedHint && <p className="text-xs font-medium text-slate-400 dark:text-slate-500">{lockedHint}</p>
+      )}
     </form>
   );
 }

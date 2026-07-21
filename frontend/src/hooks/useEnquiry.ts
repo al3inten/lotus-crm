@@ -39,6 +39,14 @@ export function useUpdateEnquiryDetails(enquiryId: string) {
   });
 }
 
+export function useUpdateBookingDetails(enquiryId: string) {
+  const invalidate = useInvalidateEnquiry(enquiryId);
+  return useMutation({
+    mutationFn: (payload: enquiriesApi.BookingDetailsPayload) => enquiriesApi.updateBookingDetails(enquiryId, payload),
+    onSuccess: invalidate,
+  });
+}
+
 export function useReassign(enquiryId: string) {
   const invalidate = useInvalidateEnquiry(enquiryId);
   return useMutation({

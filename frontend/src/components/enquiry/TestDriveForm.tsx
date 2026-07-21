@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Car, Check, Clock, Plus, Star, X } from "lucide-react";
+import { Car, Check, Clock, MapPin, Plus, Star, X } from "lucide-react";
 import clsx from "clsx";
-import { Select, Textarea } from "../common/Input";
+import { Input, Select, Textarea } from "../common/Input";
 import { DateTimePicker } from "../common/DateTimePicker";
 import { Switch } from "../common/Switch";
 import { Button } from "../common/Button";
@@ -21,6 +21,8 @@ export function TestDriveForm({
   defaultCarModel,
   defaultVariant,
   hideHistory = false,
+  editable = true,
+  lockedHint,
   onSaved,
 }: {
   enquiryId: string;
@@ -32,6 +34,10 @@ export function TestDriveForm({
    *  caller (e.g. the Activity tab's compact card) already renders those itself and just
    *  wants to embed the "add another test drive" form inline. */
   hideHistory?: boolean;
+  /** When false, the card is read-only: no add form, no mark-done actions — history only. */
+  editable?: boolean;
+  /** Small note shown when read-only. */
+  lockedHint?: string;
   onSaved?: () => void;
 }) {
   const saveTestDrive = useSaveTestDrive(enquiryId);
@@ -43,7 +49,7 @@ export function TestDriveForm({
 
   // When embedded via `hideHistory`, the caller already gates visibility of this form —
   // so skip the internal collapse/expand toggle and always show it.
-  const [adding, setAdding] = useState(hideHistory || previousDrives.length === 0);
+  const [adding, setAdding] = useState(editable && (hideHistory || previousDrives.length === 0));
   const [carChoice, setCarChoice] = useState<"same" | "different">("same");
   const [markDone, setMarkDone] = useState(false);
 
@@ -86,6 +92,7 @@ export function TestDriveForm({
       carModel: values.carModel,
       variant: values.variant || undefined,
       scheduledAt: values.scheduledAt || undefined,
+      address: values.address || undefined,
       completedAt: markDone ? values.completedAt || new Date().toISOString() : undefined,
       rating: markDone ? (values.rating as number | undefined) : undefined,
       comments: markDone ? values.comments || undefined : undefined,
@@ -106,7 +113,7 @@ export function TestDriveForm({
                 Test Drives {previousDrives.length > 0 && <span className="text-slate-400">· {previousDrives.length}</span>}
               </h3>
             </div>
-            {!adding && (
+            {editable && !adding && (
               <button
                 type="button"
                 onClick={() => setAdding(true)}
@@ -135,9 +142,15 @@ export function TestDriveForm({
       {!hideHistory && previousDrives.length > 0 && (
         <ul className="flex flex-col gap-2">
           {previousDrives.map((drive, index) => (
-            <TestDriveRow key={drive.id} enquiryId={enquiryId} drive={drive} number={previousDrives.length - index} />
+            <TestDriveRow key={drive.id} enquiryId={enquiryId} drive={drive} number={previousDrives.length - index} editable={editable} />
           ))}
         </ul>
+      )}
+
+      {!hideHistory && !editable && previousDrives.length === 0 && (
+        <p className="text-xs font-medium text-slate-400 dark:text-slate-500">
+          {lockedHint ?? "No test drives recorded."}
+        </p>
       )}
 
       {adding && (
@@ -228,6 +241,8 @@ export function TestDriveForm({
             </p>
           )}
 
+          <Input label="Address (optional)" placeholder="Where the drive takes place" {...register("address")} />
+
           <Switch
             checked={markDone}
             onChange={setMarkDone}
@@ -270,12 +285,23 @@ export function TestDriveForm({
 }
 
 /** One test drive in the list — shows Done/Scheduled status and lets a scheduled one be marked done. */
-function TestDriveRow({ enquiryId, drive, number }: { enquiryId: string; drive: TestDriveFeedback; number: number }) {
+function TestDriveRow({ enquiryId, drive, number, editable = true }: { enquiryId: string; drive: TestDriveFeedback; number: number; editable?: boolean }) {
   const updateTestDrive = useUpdateTestDrive(enquiryId);
   const isDone = !!drive.completedAt;
   const [markingDone, setMarkingDone] = useState(false);
   const [rating, setRating] = useState<string>("");
   const [comments, setComments] = useState("");
+  // Address can be added/edited at any time — independent of the card's stage lock and of
+  // whether the drive is done.
+  const [editingAddr, setEditingAddr] = useState(false);
+  const [addr, setAddr] = useState(drive.address ?? "");
+
+  const saveAddress = () => {
+    updateTestDrive.mutate(
+      { testDriveId: drive.id, payload: { address: addr.trim() } },
+      { onSuccess: () => setEditingAddr(false) }
+    );
+  };
 
   const submitDone = () => {
     updateTestDrive.mutate(
@@ -287,7 +313,11 @@ function TestDriveRow({ enquiryId, drive, number }: { enquiryId: string; drive: 
           comments: comments || undefined,
         },
       },
-      { onSuccess: () => setMarkingDone(false) }
+      {
+        onSuccess: () => {
+          setMarkingDone(false);
+        },
+      }
     );
   };
 
@@ -322,7 +352,56 @@ function TestDriveRow({ enquiryId, drive, number }: { enquiryId: string; drive: 
       </div>
       {drive.comments && <p className="mt-1 text-slate-600 dark:text-slate-300">{drive.comments}</p>}
 
-      {!isDone && !markingDone && (
+      {/* Address — viewable always; add/edit available at any time (not gated by stage lock). */}
+      {editingAddr ? (
+        <div className="mt-2 flex flex-col gap-2 rounded-md border border-slate-200 bg-white p-2 dark:border-slate-700 dark:bg-slate-900">
+          <textarea
+            value={addr}
+            onChange={(e) => setAddr(e.target.value)}
+            placeholder="Test drive address…"
+            rows={2}
+            className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+          />
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={saveAddress}
+              disabled={updateTestDrive.isPending}
+              className="inline-flex items-center gap-1 rounded-md bg-slate-700 px-2.5 py-1 text-[11px] font-semibold text-white transition-colors hover:bg-slate-800 disabled:opacity-50"
+            >
+              <Check size={11} /> {updateTestDrive.isPending ? "Saving…" : "Save address"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAddr(drive.address ?? "");
+                setEditingAddr(false);
+              }}
+              className="rounded-md border border-slate-200 px-2.5 py-1 text-[11px] font-medium text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-1.5 flex items-start gap-1.5 text-slate-500 dark:text-slate-400">
+          <MapPin size={11} className="mt-0.5 shrink-0" />
+          {drive.address ? (
+            <span className="min-w-0 break-words">{drive.address}</span>
+          ) : (
+            <span className="italic text-slate-400 dark:text-slate-500">No address</span>
+          )}
+          <button
+            type="button"
+            onClick={() => setEditingAddr(true)}
+            className="ml-1 shrink-0 font-medium text-teal-600 hover:underline dark:text-teal-400"
+          >
+            {drive.address ? "Edit" : "Add"}
+          </button>
+        </div>
+      )}
+
+      {editable && !isDone && !markingDone && (
         <button
           type="button"
           onClick={() => setMarkingDone(true)}

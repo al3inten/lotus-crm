@@ -46,8 +46,6 @@ export const leadEnrichmentFormSchema = z.object({
   subsource: z.enum(LEAD_SUBSOURCES).optional().or(z.literal("")),
   variant: z.string().optional().or(z.literal("")),
   enquiryCategory: z.enum(ENQUIRY_CATEGORIES).optional().or(z.literal("")),
-  financeRequired: z.boolean().optional(),
-  financeRemarks: z.string().optional().or(z.literal("")),
   appointmentScheduled: z.boolean().optional(),
   appointmentAt: z.string().optional().or(z.literal("")),
   testDriveInterested: z.boolean().optional(),
@@ -137,8 +135,6 @@ export interface WalkInLeadFormInput {
   subsource?: WalkInLeadFormValues["subsource"];
   variant?: string;
   enquiryCategory?: WalkInLeadFormValues["enquiryCategory"];
-  financeRequired?: boolean;
-  financeRemarks?: string;
   appointmentScheduled?: boolean;
   appointmentAt?: string;
   testDriveInterested?: boolean;

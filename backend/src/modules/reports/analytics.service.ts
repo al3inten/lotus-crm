@@ -1,6 +1,13 @@
 import { Prisma, EnquiryStatus } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { ReportQuery, BreakdownQuery, BreakdownDimension } from "./reports.schema";
+import { cacheKey, getOrCompute } from "../../lib/simpleCache";
+
+// Heavy report aggregations (funnel, time-in-stage, vehicle performance) are read-only and
+// tolerate a short staleness window, so they're cached per distinct filter combination for
+// 60s to avoid recomputing the same GROUP BY / window-function query on every dashboard
+// refresh or repeated request.
+const REPORT_CACHE_TTL_MS = 60_000;
 
 const CONVERTED_STATUSES: EnquiryStatus[] = ["RETAIL_DONE"];
 
@@ -93,6 +100,10 @@ export async function getYearOverYear(query: ReportQuery, branchFilter?: { branc
  * the funnel shows true drop-off, not a snapshot of where enquiries happen to sit today.
  */
 export async function getFunnel(query: ReportQuery, branchFilter?: { branchId: string }) {
+  return getOrCompute(cacheKey("getFunnel", { query, branchFilter }), () => computeFunnel(query, branchFilter), REPORT_CACHE_TTL_MS);
+}
+
+async function computeFunnel(query: ReportQuery, branchFilter?: { branchId: string }) {
   const where = buildWhere(query, branchFilter);
   const totalEnquiries = await prisma.enquiry.count({ where });
 
@@ -129,6 +140,14 @@ export async function getFunnel(query: ReportQuery, branchFilter?: { branchId: s
  * status-history rows via a window function.
  */
 export async function getTimeInStage(query: ReportQuery, branchFilter?: { branchId: string }) {
+  return getOrCompute(
+    cacheKey("getTimeInStage", { query, branchFilter }),
+    () => computeTimeInStage(query, branchFilter),
+    REPORT_CACHE_TTL_MS
+  );
+}
+
+async function computeTimeInStage(query: ReportQuery, branchFilter?: { branchId: string }) {
   const rows = await prisma.$queryRaw<{ stage: EnquiryStatus; avgHours: number | null; transitions: bigint }[]>(
     Prisma.sql`
       WITH stage_durations AS (
@@ -435,51 +454,86 @@ const BOOKED_OR_LATER: EnquiryStatus[] = ["BOOKED", "RETAIL_DONE", "RTO_DONE", "
  * rarely quoted" or "Venue has the best test-drive → booking conversion".
  */
 export async function getVehiclePerformance(query: ReportQuery, branchFilter?: { branchId: string }) {
+  return getOrCompute(
+    cacheKey("getVehiclePerformance", { query, branchFilter }),
+    () => computeVehiclePerformance(query, branchFilter),
+    REPORT_CACHE_TTL_MS
+  );
+}
+
+async function computeVehiclePerformance(query: ReportQuery, branchFilter?: { branchId: string }) {
   const where = buildWhere(query, branchFilter);
 
-  const [totals, booked, converted, testDrives, quotations] = await Promise.all([
+  // Same filter fragments as buildWhere, expressed as raw SQL — see getFunnel/getTimeInStage
+  // above for the precedent. Test drives and quotations are aggregated per carModel in the DB
+  // (via GROUP BY + FILTER) instead of pulling every row into memory and reducing in JS.
+  const branchSql = branchFilter?.branchId ? Prisma.sql`AND e."branchId" = ${branchFilter.branchId}` : Prisma.empty;
+  const queryBranchSql = query.branchId ? Prisma.sql`AND e."branchId" = ${query.branchId}` : Prisma.empty;
+  const dateFromSql = query.dateFrom ? Prisma.sql`AND e."createdAt" >= ${new Date(query.dateFrom)}` : Prisma.empty;
+  const dateToSql = query.dateTo ? Prisma.sql`AND e."createdAt" <= ${new Date(query.dateTo)}` : Prisma.empty;
+
+  const [totals, booked, converted, testDriveRows, quoteRows] = await Promise.all([
     prisma.enquiry.groupBy({ by: ["carModel"], where, _count: true }),
     prisma.enquiry.groupBy({ by: ["carModel"], where: { ...where, status: { in: BOOKED_OR_LATER } }, _count: true }),
     prisma.enquiry.groupBy({ by: ["carModel"], where: { ...where, status: { in: CONVERTED_STATUSES } }, _count: true }),
-    prisma.testDriveFeedback.findMany({
-      where: { enquiry: where },
-      select: { rating: true, completedAt: true, enquiry: { select: { carModel: true } } },
-    }),
-    prisma.quotation.findMany({
-      where: { enquiry: where },
-      select: { discount: true, onRoadPrice: true, enquiry: { select: { carModel: true } } },
-    }),
+    prisma.$queryRaw<
+      { carModel: string; count: bigint; completed: bigint; avgRating: number | null; ratingCount: bigint }[]
+    >(
+      Prisma.sql`
+        SELECT
+          e."carModel" AS "carModel",
+          COUNT(*)::bigint AS count,
+          COUNT(*) FILTER (WHERE t."completedAt" IS NOT NULL)::bigint AS completed,
+          AVG(t.rating) FILTER (WHERE t.rating IS NOT NULL)::float AS "avgRating",
+          COUNT(t.rating) FILTER (WHERE t.rating IS NOT NULL)::bigint AS "ratingCount"
+        FROM test_drive_feedback t
+        JOIN enquiries e ON e.id = t."enquiryId"
+        WHERE 1=1 ${branchSql} ${queryBranchSql} ${dateFromSql} ${dateToSql}
+        GROUP BY e."carModel"
+      `
+    ),
+    prisma.$queryRaw<
+      { carModel: string; count: bigint; discountPctSum: number | null; discountCount: bigint }[]
+    >(
+      Prisma.sql`
+        SELECT
+          e."carModel" AS "carModel",
+          COUNT(*)::bigint AS count,
+          SUM(CASE WHEN q."onRoadPrice" > 0 AND q.discount > 0 THEN (q.discount / q."onRoadPrice") * 100 ELSE 0 END)::float AS "discountPctSum",
+          COUNT(*) FILTER (WHERE q."onRoadPrice" > 0 AND q.discount > 0)::bigint AS "discountCount"
+        FROM quotations q
+        JOIN enquiries e ON e.id = q."enquiryId"
+        WHERE 1=1 ${branchSql} ${queryBranchSql} ${dateFromSql} ${dateToSql}
+        GROUP BY e."carModel"
+      `
+    ),
   ]);
 
   const bookedMap = new Map(booked.map((r) => [r.carModel, r._count]));
   const convertedMap = new Map(converted.map((r) => [r.carModel, r._count]));
 
-  const testDriveStats = new Map<string, { count: number; completed: number; ratingSum: number; ratingCount: number }>();
-  for (const td of testDrives) {
-    const model = td.enquiry.carModel;
-    const stat = testDriveStats.get(model) ?? { count: 0, completed: 0, ratingSum: 0, ratingCount: 0 };
-    stat.count += 1;
-    if (td.completedAt) stat.completed += 1;
-    if (td.rating != null) {
-      stat.ratingSum += td.rating;
-      stat.ratingCount += 1;
-    }
-    testDriveStats.set(model, stat);
-  }
+  const testDriveStats = new Map(
+    testDriveRows.map((td) => [
+      td.carModel,
+      {
+        count: Number(td.count),
+        completed: Number(td.completed),
+        ratingSum: (td.avgRating ?? 0) * Number(td.ratingCount),
+        ratingCount: Number(td.ratingCount),
+      },
+    ])
+  );
 
-  const quoteStats = new Map<string, { count: number; discountPctSum: number; discountCount: number }>();
-  for (const q of quotations) {
-    const model = q.enquiry.carModel;
-    const stat = quoteStats.get(model) ?? { count: 0, discountPctSum: 0, discountCount: 0 };
-    stat.count += 1;
-    const onRoad = q.onRoadPrice ? Number(q.onRoadPrice) : 0;
-    const discount = q.discount ? Number(q.discount) : 0;
-    if (onRoad > 0 && discount > 0) {
-      stat.discountPctSum += (discount / onRoad) * 100;
-      stat.discountCount += 1;
-    }
-    quoteStats.set(model, stat);
-  }
+  const quoteStats = new Map(
+    quoteRows.map((q) => [
+      q.carModel,
+      {
+        count: Number(q.count),
+        discountPctSum: q.discountPctSum ?? 0,
+        discountCount: Number(q.discountCount),
+      },
+    ])
+  );
 
   const rows = totals.map((row) => {
     const model = row.carModel;

@@ -8,7 +8,7 @@ import { Modal } from "../common/Modal";
 // The stepper milestones. UNDER_FOLLOW_UP is deliberately NOT a node — it's a sub-state
 // of the early journey, shown as a status badge on the "New" node instead.
 const MAIN_PATH: { status: EnquiryStatus; label: string; Icon: LucideIcon }[] = [
-  { status: "NEW", label: "New", Icon: Inbox },
+  { status: "NEW", label: "New Lead", Icon: Inbox },
   { status: "APPOINTMENT_FIXED", label: "Appointment Fixed", Icon: CalendarCheck },
   { status: "TEST_DRIVE", label: "Test Drive", Icon: Car },
   { status: "BOOKED", label: "Booked", Icon: BadgeCheck },

@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import clsx from "clsx";
-import { LogOut, Search, Bell, HelpCircle, Menu, ChevronDown, Sun, Moon, BellOff, CheckCheck, Camera, Coffee, Loader2, User, Car } from "lucide-react";
+import { LogOut, Search, Bell, HelpCircle, Menu, ChevronDown, Sun, Moon, BellOff, CheckCheck, Camera, Coffee, Loader2, User, Car, CalendarClock, Cake, PartyPopper, ArrowRight } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../hooks/useTheme";
 import { useNavItems } from "./navConfig";
 import { useGlobalSearch } from "../../hooks/useGlobalSearch";
-import { useNotifications, useMarkNotificationAsRead } from "../../hooks/useNotifications";
+import { useNotifications, useMarkNotificationAsRead, useReminders } from "../../hooks/useNotifications";
 import { useUploadAvatar, useSetBreak } from "../../hooks/useUsers";
-import type { AppNotification } from "../../types";
+import type { AppNotification, Reminder } from "../../types";
 import { Avatar } from "../common/Avatar";
 import { LogoutConfirmModal } from "../common/LogoutConfirmModal";
 
@@ -55,14 +55,26 @@ export function Topbar({ onMenuToggle }: { onMenuToggle: () => void }) {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const { data: notifications } = useNotifications();
+  const { data: reminders } = useReminders();
   const markRead = useMarkNotificationAsRead();
   const unreadCount = notifications?.length ?? 0;
+  const reminderCount = reminders?.length ?? 0;
+  const badgeCount = unreadCount + reminderCount;
 
   const openNotification = (n: AppNotification) => {
     markRead.mutate(n.id);
     setIsNotificationsOpen(false);
     if (n.linkUrl) navigate(n.linkUrl);
   };
+
+  // Reminders are computed live (not stored) — just navigate to the lead, no mark-read.
+  const openReminder = (r: Reminder) => {
+    setIsNotificationsOpen(false);
+    navigate(r.linkUrl);
+  };
+
+  const reminderIcon = (type: Reminder["type"]) =>
+    type === "BIRTHDAY" ? Cake : type === "ANNIVERSARY" ? PartyPopper : CalendarClock;
 
   const trimmedQuery = query.trim();
   const results = trimmedQuery
@@ -223,13 +235,13 @@ export function Topbar({ onMenuToggle }: { onMenuToggle: () => void }) {
             <div className="relative">
               <button
                 onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-                aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ""}`}
+                aria-label={`Notifications${badgeCount ? `, ${badgeCount} new` : ""}`}
                 className="relative flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:text-slate-500 dark:hover:bg-white/5 dark:hover:text-slate-300"
               >
                 <Bell size={15} />
-                {unreadCount > 0 && (
+                {badgeCount > 0 && (
                   <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-bold leading-none text-white ring-2 ring-white dark:ring-[#0a0a0a]">
-                    {unreadCount > 9 ? "9+" : unreadCount}
+                    {badgeCount > 9 ? "9+" : badgeCount}
                   </span>
                 )}
               </button>
@@ -251,13 +263,45 @@ export function Topbar({ onMenuToggle }: { onMenuToggle: () => void }) {
                       )}
                     </div>
                     <div className="max-h-[22rem] overflow-y-auto">
-                      {unreadCount === 0 ? (
+                      {/* Reminders for today — follow-ups due, birthdays, delivery anniversaries. */}
+                      {reminderCount > 0 && (
+                        <div>
+                          <p className="bg-slate-50 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:bg-slate-800/60 dark:text-slate-500">
+                            Reminders for today
+                          </p>
+                          {reminders!.map((r) => {
+                            const Icon = reminderIcon(r.type);
+                            return (
+                              <div
+                                key={r.id}
+                                className="flex items-start gap-3 border-b border-slate-50 px-4 py-3 dark:border-slate-800/60"
+                              >
+                                <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400">
+                                  <Icon size={14} />
+                                </span>
+                                <span className="min-w-0 flex-1">
+                                  <span className="block truncate text-sm font-semibold text-slate-900 dark:text-white">{r.title}</span>
+                                  <span className="mt-0.5 block text-xs leading-snug text-slate-500 dark:text-slate-400">{r.body}</span>
+                                  <button
+                                    onClick={() => openReminder(r)}
+                                    className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-blue-600 transition-colors hover:text-blue-700 dark:text-blue-400"
+                                  >
+                                    View <ArrowRight size={12} />
+                                  </button>
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {badgeCount === 0 ? (
                         <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
                           <BellOff size={22} className="text-slate-300 dark:text-slate-600" />
                           <p className="text-sm text-slate-400 dark:text-slate-500">You're all caught up.</p>
                         </div>
                       ) : (
-                        notifications!.map((n) => (
+                        notifications?.map((n) => (
                           <button
                             key={n.id}
                             onClick={() => openNotification(n)}

@@ -15,10 +15,16 @@ export function QuotationForm({
   enquiryId,
   branchId,
   existing,
+  editable = true,
+  lockedHint,
 }: {
   enquiryId: string;
   branchId: string;
   existing?: Quotation | null;
+  /** When false, the card is read-only (fields disabled, no save). */
+  editable?: boolean;
+  /** Small note shown in place of the save button when read-only. */
+  lockedHint?: string;
 }) {
   const saveQuotation = useSaveQuotation(enquiryId);
   const { data: consultants } = useBranchStaff(branchId, "CONSULTANT");
@@ -100,6 +106,7 @@ export function QuotationForm({
         )}
       </div>
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
+      <fieldset disabled={!editable} className="m-0 flex flex-col gap-3 border-0 p-0 disabled:opacity-70">
       <Select label="Quoted By" error={errors.quotedById?.message} {...register("quotedById")}>
         <option value="">Select consultant</option>
         {consultants?.map((c) => (
@@ -124,9 +131,14 @@ export function QuotationForm({
           />
         )}
       />
-      <Button type="submit" isLoading={isSubmitting} className="w-fit">
-        {existing ? "Update Quotation" : "Generate Quotation"}
-      </Button>
+      </fieldset>
+      {editable ? (
+        <Button type="submit" isLoading={isSubmitting} className="w-fit">
+          {existing ? "Update Quotation" : "Generate Quotation"}
+        </Button>
+      ) : (
+        lockedHint && <p className="text-xs font-medium text-slate-400 dark:text-slate-500">{lockedHint}</p>
+      )}
       </form>
     </div>
   );

@@ -43,7 +43,7 @@ const LOSS_REASON_LABELS: Record<string, string> = {
 };
 
 const STAGE_LABELS: Record<string, string> = {
-  NEW: "New",
+  NEW: "New Lead",
   UNDER_FOLLOW_UP: "Under Follow-up",
   APPOINTMENT_FIXED: "Appointment Fixed",
   TEST_DRIVE: "Test Drive",

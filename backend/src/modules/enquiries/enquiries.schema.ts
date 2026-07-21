@@ -36,12 +36,24 @@ export const changeStatusSchema = z.object({
   // Appointment Fixed: date + allocated consultant.
   appointmentAt: z.string().datetime().optional(),
   consultantId: z.string().optional(),
+  // Test Drive: scheduled date/time for the first drive (consultant reuses consultantId above).
+  testDriveScheduledAt: z.string().datetime().optional(),
   // Milestone dates for the later stages (default to now if omitted).
   bookedAt: z.string().datetime().optional(),
   retailDoneAt: z.string().datetime().optional(),
   rtoDoneAt: z.string().datetime().optional(),
   deliveredAt: z.string().datetime().optional(),
   // Booking-phase finance: toggle + the three Yes/No checks.
+  financeRequired: z.boolean().optional(),
+  financeDocumentCollected: z.boolean().optional(),
+  financeLoanApproved: z.boolean().optional(),
+  financeDoReceived: z.boolean().optional(),
+});
+
+// Booking-stage details, captured once the enquiry is at BOOKED (not during the transition):
+// the booking date plus the finance toggle and its three Yes/No checks.
+export const bookingDetailsSchema = z.object({
+  bookedAt: z.string().datetime().optional(),
   financeRequired: z.boolean().optional(),
   financeDocumentCollected: z.boolean().optional(),
   financeLoanApproved: z.boolean().optional(),
@@ -61,13 +73,15 @@ export const testDriveSchema = z.object({
   variant: z.string().optional(),
   scheduledAt: z.string().datetime().optional(),
   completedAt: z.string().datetime().optional(),
+  address: z.string().optional(),
   rating: z.number().int().min(1).max(5).optional(),
   comments: z.string().optional(),
 });
 
-// Marking a scheduled test drive as done / editing its feedback.
+// Marking a scheduled test drive as done / editing its feedback (or just its address).
 export const updateTestDriveSchema = z.object({
   completedAt: z.string().datetime().optional(),
+  address: z.string().optional(),
   rating: z.number().int().min(1).max(5).optional(),
   comments: z.string().optional(),
 });
@@ -125,6 +139,7 @@ export const createCommentSchema = z.object({
 
 export type EnquiryDetailsInput = z.infer<typeof enquiryDetailsSchema>;
 export type ChangeStatusInput = z.infer<typeof changeStatusSchema>;
+export type BookingDetailsInput = z.infer<typeof bookingDetailsSchema>;
 export type ReassignInput = z.infer<typeof reassignSchema>;
 export type TestDriveInput = z.infer<typeof testDriveSchema>;
 export type UpdateTestDriveInput = z.infer<typeof updateTestDriveSchema>;

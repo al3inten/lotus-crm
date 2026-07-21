@@ -1,0 +1,110 @@
+import { Prisma, Role } from "@prisma/client";
+import { prisma } from "../../lib/prisma";
+
+export interface Reminder {
+  id: string;
+  type: "FOLLOW_UP" | "BIRTHDAY" | "ANNIVERSARY";
+  title: string;
+  body: string;
+  linkUrl: string;
+}
+
+interface Ctx {
+  userId: string;
+  role: Role;
+  branchFilter?: { branchId: string };
+}
+
+const leadLink = (leadId: string, enquiryId: string) => `/leads/${leadId}/enquiries/${enquiryId}`;
+const sameMonthDay = (d: Date, today: Date) =>
+  d.getMonth() === today.getMonth() && d.getDate() === today.getDate();
+
+/**
+ * Live "reminders for today" for the bell menu: follow-ups due today plus customer birthdays
+ * and delivery anniversaries. Computed on the fly (not stored), scoped to what the user owns:
+ * CR/consultants see their own enquiries, branch managers their branch, admins everything.
+ */
+export async function getRemindersForUser(ctx: Ctx): Promise<Reminder[]> {
+  // Base visibility scope, mirroring the follow-ups module.
+  const scope: Prisma.EnquiryWhereInput = {};
+  if (ctx.role === "CR_TEAM" || ctx.role === "CONSULTANT") {
+    scope.assignedCrId = ctx.userId;
+  } else if (ctx.branchFilter) {
+    scope.branchId = ctx.branchFilter.branchId;
+  }
+
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+  const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+  const [dueToday, withDob, delivered] = await Promise.all([
+    // Follow-ups due today — skip closed/delivered enquiries.
+    prisma.enquiry.findMany({
+      where: {
+        ...scope,
+        status: { notIn: ["CLOSED", "DELIVERED"] },
+        followUpDueAt: { gte: startOfToday, lte: endOfToday },
+      },
+      select: { id: true, leadId: true, followUpDueAt: true, lead: { select: { name: true } } },
+      orderBy: { followUpDueAt: "asc" },
+    }),
+    // Candidates for a birthday today (month/day matched in JS below).
+    prisma.enquiry.findMany({
+      where: { ...scope, lead: { dob: { not: null } } },
+      select: { id: true, leadId: true, lead: { select: { name: true, dob: true } } },
+    }),
+    // Candidates for a delivery anniversary today.
+    prisma.enquiry.findMany({
+      where: { ...scope, deliveredAt: { not: null } },
+      select: { id: true, leadId: true, deliveredAt: true, carModel: true, lead: { select: { name: true } } },
+    }),
+  ]);
+
+  const reminders: Reminder[] = [];
+
+  for (const e of dueToday) {
+    reminders.push({
+      id: `followup:${e.id}`,
+      type: "FOLLOW_UP",
+      title: "Follow-up due today",
+      body: `${e.lead.name} has a follow-up due today.`,
+      linkUrl: leadLink(e.leadId, e.id),
+    });
+  }
+
+  // Birthdays — one per lead (a customer may have several enquiries).
+  const seenBirthday = new Set<string>();
+  for (const e of withDob) {
+    const dob = e.lead.dob;
+    if (!dob || seenBirthday.has(e.leadId) || !sameMonthDay(new Date(dob), now)) continue;
+    seenBirthday.add(e.leadId);
+    reminders.push({
+      id: `birthday:${e.leadId}`,
+      type: "BIRTHDAY",
+      title: "🎂 Customer birthday today",
+      body: `It's ${e.lead.name}'s birthday today — wish them well.`,
+      linkUrl: leadLink(e.leadId, e.id),
+    });
+  }
+
+  // Delivery anniversaries — only for years after the delivery year.
+  for (const e of delivered) {
+    const del = e.deliveredAt;
+    if (!del) continue;
+    const d = new Date(del);
+    if (!sameMonthDay(d, now)) continue;
+    const years = now.getFullYear() - d.getFullYear();
+    if (years < 1) continue;
+    reminders.push({
+      id: `anniv:${e.id}`,
+      type: "ANNIVERSARY",
+      title: "🎉 Delivery anniversary",
+      body: `${e.lead.name} — ${years} year${years > 1 ? "s" : ""} since taking delivery${
+        e.carModel ? ` of the ${e.carModel}` : ""
+      }.`,
+      linkUrl: leadLink(e.leadId, e.id),
+    });
+  }
+
+  return reminders;
+}

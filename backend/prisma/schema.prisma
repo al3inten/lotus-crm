@@ -499,6 +499,10 @@ model Enquiry {
   @@index([branchId, status])
   @@index([assignedCrId])
   @@index([createdAt])
+  // listEnquiries/buildWhere in leads.service.ts filters by branchId + status + createdAt
+  // together; this composite index lets Postgres satisfy that combination with a single
+  // index scan instead of falling back to the narrower branchId+status or createdAt indexes.
+  @@index([branchId, status, createdAt])
   // The leads/customers lists group + paginate by leadId (and order by createdAt);
   // without this, Postgres sequential-scans the whole enquiry table on every page.
   @@index([leadId, createdAt])
@@ -591,6 +595,9 @@ model TestDriveFeedback {
   variant       String?
   scheduledAt   DateTime?
   completedAt   DateTime?
+  // Where the drive takes place (customer's address / pickup point). Free-text, optional, and
+  // editable at any time — before or after the drive is completed.
+  address       String?
   // The consultant's feedback form, stored structurally in the DB (not an uploaded file):
   // an overall rating plus written comments.
   rating        Int?

@@ -102,7 +102,7 @@ export type EnquiryStatus = (typeof ENQUIRY_STATUSES)[number];
 
 /** Human labels for each status (badges, dropdowns). */
 export const STATUS_LABELS: Record<EnquiryStatus, string> = {
-  NEW: "New",
+  NEW: "New Lead",
   UNDER_FOLLOW_UP: "Under Follow-up",
   APPOINTMENT_FIXED: "Appointment Fixed",
   TEST_DRIVE: "Test Drive",
@@ -133,7 +133,7 @@ export type FinanceStatus = (typeof FINANCE_STATUSES)[number];
 // Strict forward-only pipeline (mirrors backend ALLOWED_TRANSITIONS). Each stage advances
 // only to the next; UNDER_FOLLOW_UP is an early sub-state, CLOSED an off-ramp until delivery.
 export const ALLOWED_TRANSITIONS: Record<EnquiryStatus, EnquiryStatus[]> = {
-  NEW: ["UNDER_FOLLOW_UP", "APPOINTMENT_FIXED", "CLOSED"],
+  NEW: ["APPOINTMENT_FIXED", "CLOSED"],
   UNDER_FOLLOW_UP: ["APPOINTMENT_FIXED", "CLOSED"],
   APPOINTMENT_FIXED: ["TEST_DRIVE", "CLOSED"],
   TEST_DRIVE: ["BOOKED", "CLOSED"],
@@ -245,6 +245,7 @@ export interface Lead {
   dob?: string | null;
   profession?: string | null;
   pincode?: string | null;
+  area?: string | null;
   address?: string | null;
   createdAt: string;
   _count?: { enquiries: number; touches: number };
@@ -367,6 +368,14 @@ export interface AppNotification {
   createdAt: string;
 }
 
+export interface Reminder {
+  id: string;
+  type: "FOLLOW_UP" | "BIRTHDAY" | "ANNIVERSARY";
+  title: string;
+  body: string;
+  linkUrl: string;
+}
+
 export interface TestDriveFeedback {
   id: string;
   conductedById: string;
@@ -375,6 +384,7 @@ export interface TestDriveFeedback {
   variant?: string | null;
   scheduledAt?: string | null;
   completedAt?: string | null;
+  address?: string | null;
   rating?: number | null;
   comments?: string | null;
   createdAt?: string;

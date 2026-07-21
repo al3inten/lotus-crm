@@ -44,7 +44,7 @@ interface StageTheme {
 const STAGES: StageTheme[] = [
   {
     id: "NEW",
-    label: "New",
+    label: "New Lead",
     Icon: Inbox,
     head: "border-slate-200 bg-slate-50 dark:border-slate-700/60 dark:bg-slate-800/50",
     badge: "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-200",
@@ -395,6 +395,8 @@ export function LeadKanbanBoard({ enquiries }: { enquiries: Enquiry[] }) {
             setModalEnquiry(null);
           }}
           initialTargetStatus={targetStatus}
+          currentConsultantId={modalEnquiry.consultantId ?? undefined}
+          enquiry={modalEnquiry}
         />
       )}
     </DndContext>

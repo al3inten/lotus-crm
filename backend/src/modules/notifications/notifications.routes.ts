@@ -1,8 +1,10 @@
 import { Router } from "express";
 import { asyncHandler } from "../../lib/asyncHandler";
 import { verifyJwt } from "../../middleware/auth";
+import { applyBranchScope } from "../../middleware/branchScope";
 import { prisma } from "../../lib/prisma";
 import { notifyRepeatEnquiry } from "./repeatEnquiry.service";
+import { getRemindersForUser } from "./reminders.service";
 
 const router = Router();
 
@@ -15,6 +17,17 @@ router.get("/", asyncHandler(async (req, res) => {
     orderBy: { createdAt: "desc" },
   });
   res.json(notifications);
+}));
+
+// Live "reminders for today" — follow-ups due today + customer birthdays + delivery
+// anniversaries. Computed on the fly (not stored), scoped to what the user can see.
+router.get("/reminders", applyBranchScope, asyncHandler(async (req, res) => {
+  const reminders = await getRemindersForUser({
+    userId: req.user!.id,
+    role: req.user!.role,
+    branchFilter: req.branchFilter,
+  });
+  res.json(reminders);
 }));
 
 // Mark a notification as read
