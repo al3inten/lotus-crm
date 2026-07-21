@@ -80,6 +80,7 @@ export function LeadModals({
             />
             <InfoField icon={<CalendarDays size={13} />} label="Date of Birth" value={lead.dob ? new Date(lead.dob).toLocaleDateString() : "—"} />
             <InfoField icon={<Briefcase size={13} />} label="Profession" value={lead.profession || "—"} />
+            <InfoField icon={<MapPin size={13} />} label="Area" value={lead.area || "—"} />
             <InfoField icon={<MapPin size={13} />} label="Pincode" value={lead.pincode || "—"} />
             <InfoField icon={<MapPin size={13} />} label="Address" className="sm:col-span-2" value={lead.address || "—"} />
             <InfoField icon={<Car size={13} />} label="Interested Vehicle" value={enquiry.carModel} />

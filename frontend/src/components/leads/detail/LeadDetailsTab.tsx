@@ -4,6 +4,7 @@ import { CalendarDays, MessagesSquare, Eye, PhoneCall } from "lucide-react";
 
 import { Card, CardHeader } from "../../../components/common/Card";
 import { fadeUp } from "../../../lib/motion";
+import { CustomerInfoCard } from "./CustomerInfoCard";
 import type { LeadWithHistory, Enquiry } from "../../../types";
 import type { CallLog } from "../../../api/voice.api";
 
@@ -28,6 +29,11 @@ export function LeadDetailsTab({
 }: LeadDetailsTabProps) {
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      {/* ---------- CUSTOMER INFORMATION ---------- */}
+      <motion.div variants={fadeUp} className="lg:col-span-3">
+        <CustomerInfoCard lead={lead} enquiry={enquiry} />
+      </motion.div>
+
       {/* ---------- KEY DATES ---------- */}
       <motion.div variants={fadeUp}>
         <Card>

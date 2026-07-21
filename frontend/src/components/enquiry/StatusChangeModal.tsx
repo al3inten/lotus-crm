@@ -111,9 +111,10 @@ export function StatusChangeModal({
       setError("consultantId", { message: "Assign a consultant before fixing the appointment" });
       return;
     }
-    // A test drive must be completed before the enquiry can be booked (server enforces too).
+    // A test drive must be marked Done (via the Test Drives card) before the enquiry can be
+    // booked — server enforces this too.
     if (values.toStatus === "BOOKED" && !hasCompletedTestDrive) {
-      setError("toStatus", { message: "Mark a test drive as Done before booking." });
+      setError("toStatus", { message: "Mark a test drive as Done (Test Drives card) before booking." });
       return;
     }
     const toIso = (v?: string) => (v ? new Date(v).toISOString() : undefined);
@@ -175,8 +176,22 @@ export function StatusChangeModal({
           ))}
         </Select>
 
+        {toStatus === "TEST_DRIVE" && (
+          <p className="rounded-lg border border-teal-200 bg-teal-50/60 px-3 py-2 text-xs font-medium text-teal-700 dark:border-teal-500/25 dark:bg-teal-500/10 dark:text-teal-300">
+            The appointment's date/time and consultant carry straight over as the first test drive. Log
+            each additional drive and mark one Done from the Test Drives card below.
+          </p>
+        )}
+
+        {/* Can't book until a test drive is marked Done on the Test Drives card */}
+        {toStatus === "BOOKED" && !hasCompletedTestDrive && (
+          <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 dark:border-amber-500/25 dark:bg-amber-500/10 dark:text-amber-300">
+            Mark at least one test drive as <strong>Done</strong> before booking (Test Drives card above).
+          </p>
+        )}
+
         {/* Date for the later milestones (Booked / Retail / RTO / Delivered) */}
-        {dateMilestone && (
+        {dateMilestone && (toStatus !== "BOOKED" || hasCompletedTestDrive) && (
           <Controller
             control={control}
             name={dateMilestone.field}
@@ -184,13 +199,6 @@ export function StatusChangeModal({
               <DatePickerField label={dateMilestone.label} value={field.value} onChange={field.onChange} />
             )}
           />
-        )}
-
-        {/* Can't book until a test drive is done */}
-        {toStatus === "BOOKED" && !hasCompletedTestDrive && (
-          <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 dark:border-amber-500/25 dark:bg-amber-500/10 dark:text-amber-300">
-            Mark at least one test drive as <strong>Done</strong> before booking (Test Drives panel above).
-          </p>
         )}
 
         {/* Booking-phase finance: toggle + three Yes/No checks */}

@@ -9,7 +9,7 @@ import { Switch } from "../common/Switch";
 import { Button } from "../common/Button";
 import { testDriveFormSchema } from "../../schemas/enquiry.schema";
 import type { TestDriveFormValues, TestDriveFormInput } from "../../schemas/enquiry.schema";
-import { useSaveTestDrive, useUpdateTestDrive } from "../../hooks/useEnquiry";
+import { useSaveTestDrive, useUpdateTestDrive, useChangeStatus } from "../../hooks/useEnquiry";
 import { useBranchStaff } from "../../hooks/useUsers";
 import { useVehicleModels } from "../../hooks/useVehicles";
 import type { TestDriveFeedback } from "../../types";
@@ -272,6 +272,7 @@ export function TestDriveForm({
 /** One test drive in the list — shows Done/Scheduled status and lets a scheduled one be marked done. */
 function TestDriveRow({ enquiryId, drive, number }: { enquiryId: string; drive: TestDriveFeedback; number: number }) {
   const updateTestDrive = useUpdateTestDrive(enquiryId);
+  const changeStatus = useChangeStatus(enquiryId);
   const isDone = !!drive.completedAt;
   const [markingDone, setMarkingDone] = useState(false);
   const [rating, setRating] = useState<string>("");
@@ -287,7 +288,12 @@ function TestDriveRow({ enquiryId, drive, number }: { enquiryId: string; drive: 
           comments: comments || undefined,
         },
       },
-      { onSuccess: () => setMarkingDone(false) }
+      {
+        onSuccess: () => {
+          setMarkingDone(false);
+          changeStatus.mutate({ toStatus: "BOOKED" });
+        },
+      }
     );
   };
 

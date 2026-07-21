@@ -256,7 +256,14 @@ export async function listCustomers(query: CustomerListQuery, branchFilter?: { b
   const branchId = branchFilter?.branchId ?? query.branchId;
   if (branchId) leadWhere.enquiries = { some: { branchId } };
 
-  // Purchases per matching customer → tiers + KPI stats.
+  // Purchases per matching customer → tiers + KPI stats. groupBy is already DB-side
+  // aggregation (one row per distinct purchaser, not per enquiry), so this stays bounded
+  // by the number of actual buyers rather than total enquiry volume. We still need the
+  // per-lead id lists below (diamondIds/goldIds) because the tier filter narrows a
+  // paginated Lead.findMany, and Prisma's typed where API has no count-threshold relation
+  // filter — an id list is the only way to express ">=2 purchases" without hand-rolling
+  // the whole paginated query as raw SQL, which risks behavior drift on the dynamic
+  // search/branch filters above.
   const purchaseGroups = await prisma.enquiry.groupBy({
     by: ["leadId"],
     where: { status: "RETAIL_DONE", lead: leadWhere },
@@ -267,6 +274,9 @@ export async function listCustomers(query: CustomerListQuery, branchFilter?: { b
   const goldIds = purchaseGroups.filter((g) => g._count === 1).map((g) => g.leadId);
   const ownerIds = [...diamondIds, ...goldIds];
 
+  // Stats counts computed from the same DB-aggregated groups above (array lengths, not a
+  // second full-table scan) plus a single DB-side count for the total — no row-by-row
+  // reduction over unbounded data.
   const totalAll = await prisma.lead.count({ where: leadWhere });
   const stats = {
     total: totalAll,

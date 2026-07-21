@@ -3,10 +3,11 @@ import { EnquiryStatus, LeadSource } from "@prisma/client";
 // Strict, forward-only pipeline — each stage advances to exactly the next one, so the
 // process can't be skipped or jumped around:
 //   NEW → APPOINTMENT_FIXED → TEST_DRIVE → BOOKED → RETAIL_DONE → RTO_DONE → DELIVERED
-// UNDER_FOLLOW_UP is an optional early sub-state between NEW and the appointment, and
-// CLOSED (Lost) is an off-ramp available at every stage until the car is delivered.
+// UNDER_FOLLOW_UP is no longer directly reachable from NEW (New Lead moves straight to
+// Appointment Fixed); it's kept here only so enquiries already in that status can still
+// progress. CLOSED (Lost) is an off-ramp available at every stage until the car is delivered.
 export const ALLOWED_TRANSITIONS: Record<EnquiryStatus, EnquiryStatus[]> = {
-  NEW: ["UNDER_FOLLOW_UP", "APPOINTMENT_FIXED", "CLOSED"],
+  NEW: ["APPOINTMENT_FIXED", "CLOSED"],
   UNDER_FOLLOW_UP: ["APPOINTMENT_FIXED", "CLOSED"],
   APPOINTMENT_FIXED: ["TEST_DRIVE", "CLOSED"],
   TEST_DRIVE: ["BOOKED", "CLOSED"],

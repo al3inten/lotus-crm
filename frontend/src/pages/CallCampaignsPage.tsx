@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   useCallCampaigns,
   useCreateCallCampaign,
@@ -52,16 +52,25 @@ function CallDetailModal({
 
 function CallLogTable() {
   const [filters, setFilters] = useState<ListCallLogsFilters>({ page: 1, pageSize: 20 });
+  const [phoneInput, setPhoneInput] = useState("");
   const { data, isLoading } = useCallLogs(filters);
   const [detail, setDetail] = useState<{ log: GlobalCallLog; field: "transcript" | "insights" } | null>(null);
+
+  useEffect(() => {
+    const next = phoneInput || undefined;
+    if (next === filters.phoneNumber) return;
+    const t = setTimeout(() => setFilters((f) => ({ ...f, phoneNumber: next, page: 1 })), 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phoneInput]);
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end gap-3 rounded-lg border border-gray-200 bg-white p-4">
         <Input
           label="Phone Number"
-          value={filters.phoneNumber ?? ""}
-          onChange={(e) => setFilters((f) => ({ ...f, phoneNumber: e.target.value || undefined, page: 1 }))}
+          value={phoneInput}
+          onChange={(e) => setPhoneInput(e.target.value)}
           placeholder="Search by phone"
         />
         <Select
@@ -86,7 +95,13 @@ function CallLogTable() {
           value={filters.dateTo ?? undefined}
           onChange={(value) => setFilters((f) => ({ ...f, dateTo: value || undefined, page: 1 }))}
         />
-        <Button variant="secondary" onClick={() => setFilters({ page: 1, pageSize: 20 })}>
+        <Button
+          variant="secondary"
+          onClick={() => {
+            setPhoneInput("");
+            setFilters({ page: 1, pageSize: 20 });
+          }}
+        >
           Reset
         </Button>
       </div>

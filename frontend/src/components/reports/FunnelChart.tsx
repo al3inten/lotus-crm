@@ -2,7 +2,7 @@ import { HBarList } from "./HBarList";
 import type { FunnelStage } from "../../api/reports.api";
 
 const STAGE_LABELS: Record<string, string> = {
-  NEW: "New",
+  NEW: "New Lead",
   UNDER_FOLLOW_UP: "Under Follow-up",
   APPOINTMENT_FIXED: "Appointment Fixed",
   TEST_DRIVE: "Test Drive",

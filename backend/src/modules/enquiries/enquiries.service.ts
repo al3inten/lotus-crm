@@ -44,6 +44,25 @@ export async function changeStatus(enquiryId: string, input: ChangeStatusInput, 
       throw new ValidationError(`consultantId is required when moving to ${CONSULTANT_REQUIRED_AT_STATUS}`);
     }
 
+    // Stamp the date the enquiry reached each milestone (client may pass an explicit date,
+    // otherwise "now"), so the pipeline and reports can show when each stage happened.
+    const stampNow = (explicit?: string) => (explicit ? new Date(explicit) : new Date());
+
+    // Moving to Test Drive logs the first drive automatically, carrying over the date/time
+    // and consultant already fixed for the appointment — nothing extra to ask here. Further
+    // drives (and marking one Done) happen from the Test Drives card.
+    if (input.toStatus === "TEST_DRIVE" && enquiry.consultantId) {
+      await tx.testDriveFeedback.create({
+        data: {
+          enquiryId,
+          conductedById: enquiry.consultantId,
+          carModel: enquiry.carModel,
+          variant: enquiry.variant,
+          scheduledAt: enquiry.appointmentAt ?? new Date(),
+        },
+      });
+    }
+
     // A booking can only happen after the customer has actually taken a test drive — so at
     // least one test drive must be marked Done (has a completion date) before BOOKED.
     if (input.toStatus === "BOOKED") {
@@ -56,10 +75,6 @@ export async function changeStatus(enquiryId: string, input: ChangeStatusInput, 
         );
       }
     }
-
-    // Stamp the date the enquiry reached each milestone (client may pass an explicit date,
-    // otherwise "now"), so the pipeline and reports can show when each stage happened.
-    const stampNow = (explicit?: string) => (explicit ? new Date(explicit) : new Date());
 
     const updated = await tx.enquiry.update({
       where: { id: enquiryId },

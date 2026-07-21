@@ -55,7 +55,8 @@ function PickerShell({
   placeholder: string;
   hasValue: boolean;
   onClear: () => void;
-  children: React.ReactNode;
+  /** Render prop so pickers can close the popover themselves once a selection is complete. */
+  children: (close: () => void) => React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -86,7 +87,7 @@ function PickerShell({
             </button>
           )}
         </div>
-        <PopoverContent onOpenAutoFocus={(e) => e.preventDefault()}>{children}</PopoverContent>
+        <PopoverContent onOpenAutoFocus={(e) => e.preventDefault()}>{children(() => setOpen(false))}</PopoverContent>
       </Popover>
     </FieldWrapper>
   );
@@ -159,10 +160,18 @@ export function DateTimePicker({ label, error, required, value, onChange, placeh
       hasValue={!!selected}
       onClear={() => onChange(undefined)}
     >
-      <div className="flex gap-2">
-        <Calendar mode="single" selected={selected ?? undefined} onSelect={commitDate} defaultMonth={selected ?? undefined} />
-        <TimeColumn selected={selected ? format(selected, "HH:mm") : null} onSelect={commitTime} />
-      </div>
+      {(close) => (
+        <div className="flex gap-2">
+          <Calendar mode="single" selected={selected ?? undefined} onSelect={commitDate} defaultMonth={selected ?? undefined} />
+          <TimeColumn
+            selected={selected ? format(selected, "HH:mm") : null}
+            onSelect={(t) => {
+              commitTime(t);
+              close();
+            }}
+          />
+        </div>
+      )}
     </PickerShell>
   );
 }
@@ -184,12 +193,17 @@ export function DatePickerField({ label, error, required, value, onChange, place
       hasValue={!!selected}
       onClear={() => onChange(undefined)}
     >
-      <Calendar
-        mode="single"
-        selected={selected ?? undefined}
-        defaultMonth={selected ?? undefined}
-        onSelect={(d) => onChange(d ? format(d, "yyyy-MM-dd") : undefined)}
-      />
+      {(close) => (
+        <Calendar
+          mode="single"
+          selected={selected ?? undefined}
+          defaultMonth={selected ?? undefined}
+          onSelect={(d) => {
+            onChange(d ? format(d, "yyyy-MM-dd") : undefined);
+            close();
+          }}
+        />
+      )}
     </PickerShell>
   );
 }
@@ -211,10 +225,15 @@ export function TimePicker({ label, error, required, value, onChange, placeholde
       hasValue={!!selected}
       onClear={() => onChange(undefined)}
     >
-      <TimeColumn
-        selected={selected ? format(selected, "HH:mm") : null}
-        onSelect={(t) => onChange(t)}
-      />
+      {(close) => (
+        <TimeColumn
+          selected={selected ? format(selected, "HH:mm") : null}
+          onSelect={(t) => {
+            onChange(t);
+            close();
+          }}
+        />
+      )}
     </PickerShell>
   );
 }
@@ -253,44 +272,49 @@ export function YearPicker({ label, error, required, value, onChange, placeholde
       hasValue={!!selectedYear}
       onClear={() => onChange(undefined)}
     >
-      <div className="w-60">
-        <div className="mb-2 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => setPageStart((s) => s - DECADE_SIZE)}
-            className="rounded-lg px-2 py-1 text-slate-500 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-          >
-            ‹
-          </button>
-          <span className="text-sm font-semibold text-slate-900 dark:text-white">
-            {pageStart} – {pageStart + DECADE_SIZE - 1}
-          </span>
-          <button
-            type="button"
-            onClick={() => setPageStart((s) => s + DECADE_SIZE)}
-            className="rounded-lg px-2 py-1 text-slate-500 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-          >
-            ›
-          </button>
-        </div>
-        <div className="grid grid-cols-3 gap-1">
-          {years.map((year) => (
+      {(close) => (
+        <div className="w-60">
+          <div className="mb-2 flex items-center justify-between">
             <button
-              key={year}
               type="button"
-              onClick={() => onChange(year)}
-              className={cn(
-                "rounded-lg px-2 py-2 text-sm font-medium transition-colors",
-                year === selectedYear
-                  ? "bg-blue-600 text-white dark:bg-blue-500"
-                  : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-              )}
+              onClick={() => setPageStart((s) => s - DECADE_SIZE)}
+              className="rounded-lg px-2 py-1 text-slate-500 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
             >
-              {year}
+              ‹
             </button>
-          ))}
+            <span className="text-sm font-semibold text-slate-900 dark:text-white">
+              {pageStart} – {pageStart + DECADE_SIZE - 1}
+            </span>
+            <button
+              type="button"
+              onClick={() => setPageStart((s) => s + DECADE_SIZE)}
+              className="rounded-lg px-2 py-1 text-slate-500 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+            >
+              ›
+            </button>
+          </div>
+          <div className="grid grid-cols-3 gap-1">
+            {years.map((year) => (
+              <button
+                key={year}
+                type="button"
+                onClick={() => {
+                  onChange(year);
+                  close();
+                }}
+                className={cn(
+                  "rounded-lg px-2 py-2 text-sm font-medium transition-colors",
+                  year === selectedYear
+                    ? "bg-blue-600 text-white dark:bg-blue-500"
+                    : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                )}
+              >
+                {year}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </PickerShell>
   );
 }

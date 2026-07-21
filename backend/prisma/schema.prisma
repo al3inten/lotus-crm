@@ -499,6 +499,10 @@ model Enquiry {
   @@index([branchId, status])
   @@index([assignedCrId])
   @@index([createdAt])
+  // listEnquiries/buildWhere in leads.service.ts filters by branchId + status + createdAt
+  // together; this composite index lets Postgres satisfy that combination with a single
+  // index scan instead of falling back to the narrower branchId+status or createdAt indexes.
+  @@index([branchId, status, createdAt])
   // The leads/customers lists group + paginate by leadId (and order by createdAt);
   // without this, Postgres sequential-scans the whole enquiry table on every page.
   @@index([leadId, createdAt])

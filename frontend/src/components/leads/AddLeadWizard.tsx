@@ -1,22 +1,16 @@
 import { Fragment, useEffect, useRef, useState } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import type { FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
-import { Check, Save, Building2, UserCircle2, Car, RefreshCw, ChevronLeft, ChevronRight, ExternalLink, BellRing } from "lucide-react";
+import { Check, Save, Building2, UserCircle2, Car, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 import { Modal } from "../common/Modal";
-import { Input, Select, Textarea } from "../common/Input";
-import { SearchableSelect } from "../common/SearchableSelect";
-import { DatePickerField, YearPicker } from "../common/DateTimePicker";
-import { Switch } from "../common/Switch";
 import { Button } from "../common/Button";
-import { Card, CardHeader } from "../common/Card";
 import { addLeadFormSchema, normaliseEmail } from "../../schemas/lead.schema";
 import type { AddLeadFormValues, AddLeadFormInput } from "../../schemas/lead.schema";
 import { useCreateWalkInLead, useSaveDraft, useUpdateDraft, useDeleteDraft, useLeadLookup } from "../../hooks/useLeads";
 import { usePincodeLookup, usePostOfficeSearch, rankSuggestions } from "../../hooks/useLocationLookup";
-import { TypeaheadInput } from "../common/TypeaheadInput";
 import type { TypeaheadOption } from "../common/TypeaheadInput";
 import { usePushRepeatEnquiryAlert } from "../../hooks/useNotifications";
 import { useUpdateEnquiryDetails } from "../../hooks/useEnquiry";
@@ -25,15 +19,18 @@ import { useBranchStaff } from "../../hooks/useUsers";
 import { useVehicleModels } from "../../hooks/useVehicles";
 import { useAuth } from "../../context/AuthContext";
 import {
-  ENQUIRY_TYPES,
-  DEPARTMENTS,
   LEAD_SUBSOURCES,
-  SOURCE_CATEGORIES,
   SOURCE_CATEGORY_SUBSOURCES,
   ENQUIRY_CATEGORIES,
 } from "../../types";
 import type { LeadEnrichmentPayload, WalkInLeadPayload } from "../../api/leads.api";
 import { EASE } from "../../lib/motion";
+import { RepeatEnquiryBanner } from "./wizard/RepeatEnquiryBanner";
+import { Step1EnquirySource } from "./wizard/Step1EnquirySource";
+import { Step2CustomerDetails } from "./wizard/Step2CustomerDetails";
+import { Step3VehicleInterest } from "./wizard/Step3VehicleInterest";
+import { Step4ExchangeCar } from "./wizard/Step4ExchangeCar";
+import { ConfirmCloseModal } from "./wizard/ConfirmCloseModal";
 
 /** Section order for the flattened, single-scroll form, matching the dealership's
  * intake flow. */
@@ -66,8 +63,6 @@ const FIELD_ORDER: (keyof AddLeadFormInput)[] = [
   "variant",
   "enquiryType",
   "enquiryCategory",
-  "financeRequired",
-  "financeRemarks",
   "exchangeCarModel",
   "exchangeCarYear",
   "exchangeCarKms",
@@ -82,12 +77,12 @@ const FIELD_ORDER: (keyof AddLeadFormInput)[] = [
 const STEP_FIELDS: (keyof AddLeadFormInput)[][] = [
   ["branchId", "assignedCrId", "department", "sourceCategory", "subsource"],
   ["name", "phone", "alternateMobile", "email", "dob", "profession", "pincode", "area", "location", "address"],
-  ["carModel", "variant", "enquiryType", "enquiryCategory", "financeRequired", "financeRemarks"],
+  ["carModel", "variant", "enquiryType", "enquiryCategory"],
   ["exchangeCarModel", "exchangeCarYear", "exchangeCarKms", "exchangeCarOwners", "exchangeCarRegNumber"],
 ];
 
 const collapseTransition = { duration: 0.25, ease: EASE };
-const collapseProps = {
+export const collapseProps = {
   initial: { height: 0, opacity: 0 },
   animate: { height: "auto", opacity: 1 },
   exit: { height: 0, opacity: 0 },
@@ -171,7 +166,6 @@ export function AddLeadWizard({
     defaultValues: {
       branchId: user?.branchId ?? "",
       assignedCrId: user?.role === "CR_TEAM" ? user.id : "",
-      financeRequired: false,
       forceNew: false,
       ...initialValues,
     },
@@ -202,7 +196,6 @@ export function AddLeadWizard({
       setValue("enquiryCategory", "");
     }
   }, [isWalkInSource, selectedEnquiryCategory, setValue]);
-  const financeRequired = watch("financeRequired");
   const selectedModelName = watch("carModel") as string | undefined;
   const selectedVariantName = watch("variant") as string | undefined;
   const activeModels = vehicleModels?.filter((m) => m.isActive) ?? [];
@@ -304,6 +297,14 @@ export function AddLeadWizard({
       setHasExchangeVehicle(
         !!(initialValues?.exchangeCarModel || initialValues?.exchangeCarYear || initialValues?.exchangeCarKms || initialValues?.exchangeCarOwners)
       );
+      // react-hook-form only applies `defaultValues` at mount, so re-push the latest
+      // initialValues (e.g. the lead's saved address) into the form every time it reopens.
+      reset({
+        branchId: user?.branchId ?? "",
+        assignedCrId: user?.role === "CR_TEAM" ? user.id : "",
+        forceNew: false,
+        ...initialValues,
+      });
     }
     // Only re-sync when the modal is (re)opened — not on every keystroke.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -338,8 +339,6 @@ export function AddLeadWizard({
     subsource: values.subsource || undefined,
     variant: values.variant || undefined,
     enquiryCategory: values.enquiryCategory || undefined,
-    financeRequired: values.financeRequired,
-    financeRemarks: values.financeRemarks || undefined,
     exchangeCarModel: values.exchangeCarModel || undefined,
     exchangeCarYear: values.exchangeCarYear,
     exchangeCarKms: values.exchangeCarKms,
@@ -455,7 +454,8 @@ export function AddLeadWizard({
   const confirmClose = () => {
     setShowConfirmClose(false);
     onClose();
-    reset();
+    // Form is re-synced from the latest initialValues on next open (see isOpen effect above);
+    // resetting here to the stale mount-time defaults would blow away unrelated saved fields.
   };
 
   const fieldError = (name: keyof AddLeadFormInput) => errors[name]?.message as string | undefined;
@@ -523,51 +523,13 @@ export function AddLeadWizard({
             </p>
           )}
 
-          {lookupResult && !isComplete && (
-            <div className="mb-5 flex flex-col gap-2">
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-500/20 dark:bg-emerald-500/10">
-                <p className="flex items-center gap-2 text-sm font-medium text-emerald-800 dark:text-emerald-300">
-                  <Check size={16} /> Customer found! Existing details have been auto-filled.
-                </p>
-              </div>
-              {lookupResult.hasActiveEnquiry && (
-                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 dark:border-amber-500/20 dark:bg-amber-500/10">
-                  <p className="text-sm text-amber-800 dark:text-amber-300">
-                    <span className="font-bold">Active enquiry detected:</span> this customer currently has an active
-                    enquiry in the{" "}
-                    <span className="font-semibold">{lookupResult.activeEnquiryStatus?.replaceAll("_", " ")}</span>{" "}
-                    stage. Saving this form will attach this contact to their existing enquiry unless you check
-                    "Force new enquiry" in step 1.
-                  </p>
-                  <div className="mt-2.5 flex flex-wrap items-center gap-2">
-                    {lookupResult.activeEnquiryId && (
-                      <a
-                        href={`/leads/${lookupResult.leadId}/enquiries/${lookupResult.activeEnquiryId}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-100 dark:border-amber-500/30 dark:bg-transparent dark:text-amber-200 dark:hover:bg-amber-500/10"
-                      >
-                        <ExternalLink size={13} /> View previous enquiry
-                      </a>
-                    )}
-                    <button
-                      type="button"
-                      onClick={notifyRepeatEnquiry}
-                      disabled={pushAlert.isPending || !!alertResult}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-2.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      <BellRing size={13} /> {pushAlert.isPending ? "Notifying…" : "Notify CR & manager"}
-                    </button>
-                    {alertResult && (
-                      <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-400">
-                        <Check size={13} /> {alertResult}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+          <RepeatEnquiryBanner
+            lookupResult={lookupResult}
+            isComplete={isComplete}
+            alertResult={alertResult}
+            pushAlertPending={pushAlert.isPending}
+            onNotify={notifyRepeatEnquiry}
+          />
 
           {/* Progress rail — connectors fill blue as the enquiry advances. */}
           {!singlePage && (
@@ -634,311 +596,65 @@ export function AddLeadWizard({
             >
               {/* 1. Enquiry & Source */}
               {(singlePage || step === 0) && (
-                <Card>
-                  <CardHeader icon={<Building2 size={18} />} title={SECTIONS[0].title} subtitle="Where this enquiry came from and who's handling it." iconClassName={SECTIONS[0].iconClassName} />
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    {isComplete ? (
-                      <p className="sm:col-span-2 text-sm text-slate-500 dark:text-slate-400">
-                        Branch, source, and assigned CR are already set for this enquiry — fill in department/sub-source
-                        below if known.
-                      </p>
-                    ) : (
-                      <>
-                        <Controller
-                          control={control}
-                          name="branchId"
-                          render={({ field }) => (
-                            <SearchableSelect
-                              ref={field.ref}
-                              label="Dealer / Branch"
-                              required
-                              placeholder="Search branches…"
-                              value={field.value}
-                              onChange={field.onChange}
-                              onBlur={field.onBlur}
-                              error={fieldError("branchId")}
-                              options={branches?.map((b) => ({ value: b.id, label: `${b.code} — ${b.name}` })) ?? []}
-                            />
-                          )}
-                        />
-                        <Controller
-                          control={control}
-                          name="assignedCrId"
-                          render={({ field }) => (
-                            <SearchableSelect
-                              ref={field.ref}
-                              label="CR (handled by)"
-                              placeholder="Search CRs…"
-                              value={field.value}
-                              onChange={field.onChange}
-                              onBlur={field.onBlur}
-                              error={fieldError("assignedCrId")}
-                              options={crStaff?.map((cr) => ({ value: cr.id, label: cr.name })) ?? []}
-                            />
-                          )}
-                        />
-                      </>
-                    )}
-                    <Select label="Department" error={fieldError("department")} {...register("department")}>
-                      <option value="">Select department</option>
-                      {DEPARTMENTS.map((d) => (
-                        <option key={d} value={d}>
-                          {d.replaceAll("_", " ")}
-                        </option>
-                      ))}
-                    </Select>
-                    <Select
-                      label="Lead Source"
-                      required
-                      error={fieldError("sourceCategory")}
-                      {...register("sourceCategory", { onChange: () => setValue("subsource", "") })}
-                    >
-                      <option value="">Select source</option>
-                      {SOURCE_CATEGORIES.map((c) => (
-                        <option key={c} value={c}>
-                          {c.replaceAll("_", " ")}
-                        </option>
-                      ))}
-                    </Select>
-                    <Select label="Subsource" error={fieldError("subsource")} {...register("subsource")}>
-                      <option value="">Select subsource</option>
-                      {subsourceOptions.map((s) => (
-                        <option key={s} value={s}>
-                          {s.replaceAll("_", " ")}
-                        </option>
-                      ))}
-                    </Select>
-
-                    {!isComplete && (
-                      <div className="sm:col-span-2 mt-1 flex flex-col justify-between gap-2 border-t border-slate-100 pt-4 dark:border-slate-800 sm:flex-row sm:items-center">
-                        <p className="text-xs text-slate-400 dark:text-slate-500">
-                          Enquiry date: {new Date().toLocaleDateString()}
-                        </p>
-                        {/* Overriding the duplicate-customer block is a supervisor call —
-                            the API enforces the same rule regardless of this checkbox. */}
-                        {canForceNew && (
-                          <label className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm text-amber-700 dark:border-amber-800/50 dark:bg-amber-900/20 dark:text-amber-400">
-                            <input type="checkbox" {...register("forceNew")} className="rounded border-amber-300 text-amber-600 focus:ring-amber-500" />
-                            <span className="font-medium">Force new enquiry</span>
-                          </label>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </Card>
+                <Step1EnquirySource
+                  control={control}
+                  register={register}
+                  fieldError={fieldError}
+                  setValue={setValue}
+                  isComplete={isComplete}
+                  branches={branches}
+                  crStaff={crStaff}
+                  canForceNew={canForceNew}
+                  subsourceOptions={subsourceOptions}
+                  sectionTitle={SECTIONS[0].title}
+                  sectionIconClassName={SECTIONS[0].iconClassName}
+                />
               )}
 
               {/* 2. Customer Details */}
               {(singlePage || step === 1) && (
-                <Card>
-                  <CardHeader icon={<UserCircle2 size={18} />} title={SECTIONS[1].title} subtitle="Who the customer is and how to reach them." iconClassName={SECTIONS[1].iconClassName} />
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <Input label="Customer Name" required disabled={isComplete} error={fieldError("name")} {...register("name")} />
-                    <div className="relative">
-                      <Input label="Mobile Number" required disabled={isComplete} error={fieldError("phone")} {...register("phone")} />
-                      {lookupLoading && (
-                        <div className="absolute right-3 top-[38px]">
-                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600" />
-                        </div>
-                      )}
-                    </div>
-                    <Input label="Alternate mobile" error={fieldError("alternateMobile")} {...register("alternateMobile")} />
-                    <Input label="Email" placeholder='name@example.com or "Nil"' required disabled={isComplete} error={fieldError("email")} {...register("email")} />
-                    <Controller
-                      control={control}
-                      name="dob"
-                      render={({ field }) => (
-                        <DatePickerField
-                          label="Date of birth"
-                          value={field.value}
-                          onChange={field.onChange}
-                          error={fieldError("dob")}
-                        />
-                      )}
-                    />
-                    <Input label="Profession" error={fieldError("profession")} {...register("profession")} />
-                    <Controller
-                      control={control}
-                      name="location"
-                      render={({ field }) => (
-                        <TypeaheadInput
-                          label="City"
-                          required
-                          disabled={isComplete}
-                          error={fieldError("location")}
-                          value={field.value ?? ""}
-                          onChange={field.onChange}
-                          onBlur={field.onBlur}
-                          suggestions={citySuggestions}
-                        />
-                      )}
-                    />
-                    <Controller
-                      control={control}
-                      name="area"
-                      render={({ field }) => (
-                        <TypeaheadInput
-                          label="Area"
-                          required
-                          placeholder="e.g. Peelamedu"
-                          error={fieldError("area")}
-                          value={field.value ?? ""}
-                          onChange={field.onChange}
-                          onBlur={field.onBlur}
-                          suggestions={areaSuggestions}
-                        />
-                      )}
-                    />
-                    <Controller
-                      control={control}
-                      name="pincode"
-                      render={({ field }) => (
-                        <TypeaheadInput
-                          label="Pincode"
-                          required
-                          error={fieldError("pincode")}
-                          value={field.value ?? ""}
-                          onChange={field.onChange}
-                          onBlur={field.onBlur}
-                          suggestions={pincodeSuggestions}
-                        />
-                      )}
-                    />
-                    <div className="sm:col-span-2">
-                      <Textarea label="Address" rows={2} error={fieldError("address")} {...register("address")} />
-                    </div>
-                  </div>
-                </Card>
+                <Step2CustomerDetails
+                  control={control}
+                  register={register}
+                  fieldError={fieldError}
+                  isComplete={isComplete}
+                  lookupLoading={lookupLoading}
+                  citySuggestions={citySuggestions}
+                  areaSuggestions={areaSuggestions}
+                  pincodeSuggestions={pincodeSuggestions}
+                  sectionTitle={SECTIONS[1].title}
+                  sectionIconClassName={SECTIONS[1].iconClassName}
+                />
               )}
 
               {/* 3. Vehicle Interest */}
               {(singlePage || step === 2) && (
-                <Card>
-                  <CardHeader icon={<Car size={18} />} title={SECTIONS[2].title} subtitle="The car they're after and how they'll pay for it." iconClassName={SECTIONS[2].iconClassName} />
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <Controller
-                      control={control}
-                      name="carModel"
-                      render={({ field }) => (
-                        <SearchableSelect
-                          ref={field.ref}
-                          label="Vehicle Model"
-                          required
-                          disabled={isComplete}
-                          placeholder="Search models…"
-                          value={field.value}
-                          onChange={(v) => {
-                            field.onChange(v);
-                            setValue("variant", "");
-                          }}
-                          onBlur={field.onBlur}
-                          error={fieldError("carModel")}
-                          options={modelOptions}
-                        />
-                      )}
-                    />
-                    <Controller
-                      control={control}
-                      name="variant"
-                      render={({ field }) => (
-                        <SearchableSelect
-                          ref={field.ref}
-                          label="Variant"
-                          disabled={isComplete || !selectedModelName}
-                          placeholder="Search variants…"
-                          value={field.value}
-                          onChange={field.onChange}
-                          onBlur={field.onBlur}
-                          error={fieldError("variant")}
-                          options={variantOptionsList}
-                        />
-                      )}
-                    />
-                    <Select label="Lead Type" required disabled={isComplete} error={fieldError("enquiryType")} {...register("enquiryType")}>
-                      {ENQUIRY_TYPES.map((type) => (
-                        <option key={type} value={type}>
-                          {type.replaceAll("_", " ")}
-                        </option>
-                      ))}
-                    </Select>
-                    <Select label="Enquiry Category" error={fieldError("enquiryCategory")} {...register("enquiryCategory")}>
-                      <option value="">Select category</option>
-                      {enquiryCategoryOptions.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                    </Select>
-                    <div className="sm:col-span-2">
-                      <Switch
-                        checked={!!financeRequired}
-                        onChange={(v) => setValue("financeRequired", v)}
-                        label="Finance required"
-                        description="Toggle on if the customer needs financing for this purchase."
-                      />
-                    </div>
-                    <AnimatePresence initial={false}>
-                      {financeRequired && (
-                        <motion.div key="finance-remarks" {...collapseProps}>
-                          <Input label="Finance remarks" error={fieldError("financeRemarks")} {...register("financeRemarks")} />
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                </Card>
+                <Step3VehicleInterest
+                  control={control}
+                  register={register}
+                  fieldError={fieldError}
+                  setValue={setValue}
+                  isComplete={isComplete}
+                  selectedModelName={selectedModelName}
+                  modelOptions={modelOptions}
+                  variantOptionsList={variantOptionsList}
+                  enquiryCategoryOptions={enquiryCategoryOptions}
+                  sectionTitle={SECTIONS[2].title}
+                  sectionIconClassName={SECTIONS[2].iconClassName}
+                />
               )}
 
               {/* 4. Exchange Car — optional, hidden unless the customer has one */}
               {(singlePage || step === 3) && (
-                <Card>
-                  <CardHeader
-                    icon={<RefreshCw size={18} />}
-                    title={SECTIONS[3].title}
-                    subtitle="Optional — only if the customer mentioned an exchange vehicle."
-                    iconClassName={SECTIONS[3].iconClassName}
-                  />
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div className="sm:col-span-2">
-                      <Switch
-                        checked={hasExchangeVehicle}
-                        onChange={toggleExchangeVehicle}
-                        label="Do you have a vehicle for exchange?"
-                        description="Switch on to capture the customer's exchange vehicle details."
-                      />
-                    </div>
-                    <AnimatePresence initial={false}>
-                      {hasExchangeVehicle && (
-                        <motion.div key="exchange-fields" {...collapseProps}>
-                          <div className="grid grid-cols-1 gap-4 pt-1 sm:grid-cols-2">
-                            <Input label="Model name" required error={fieldError("exchangeCarModel")} {...register("exchangeCarModel")} />
-                            <Controller
-                              control={control}
-                              name="exchangeCarYear"
-                              render={({ field }) => (
-                                <YearPicker
-                                  label="Year"
-                                  required
-                                  value={field.value as number | string | undefined}
-                                  onChange={field.onChange}
-                                  error={fieldError("exchangeCarYear")}
-                                />
-                              )}
-                            />
-                            <Input label="KMs driven" type="number" required min={0} error={fieldError("exchangeCarKms")} {...register("exchangeCarKms")} />
-                            <Input label="No. of owners" type="number" required min={0} error={fieldError("exchangeCarOwners")} {...register("exchangeCarOwners")} />
-                            <Input
-                              label="Car Register Number"
-                              required
-                              placeholder="e.g. TN 37 AB 1234"
-                              error={fieldError("exchangeCarRegNumber")}
-                              {...register("exchangeCarRegNumber")}
-                            />
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                </Card>
+                <Step4ExchangeCar
+                  register={register}
+                  fieldError={fieldError}
+                  control={control}
+                  hasExchangeVehicle={hasExchangeVehicle}
+                  toggleExchangeVehicle={toggleExchangeVehicle}
+                  sectionTitle={SECTIONS[3].title}
+                  sectionIconClassName={SECTIONS[3].iconClassName}
+                />
               )}
 
             </motion.div>
@@ -955,29 +671,12 @@ export function AddLeadWizard({
         </div>
       </Modal>
 
-      {/* Confirm-close dialog */}
-      <Modal isOpen={showConfirmClose} onClose={() => setShowConfirmClose(false)} maxWidth="max-w-sm">
-        <div className="mt-2 flex flex-col items-center text-center">
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 ring-4 ring-amber-50 dark:bg-amber-500/20 dark:ring-amber-500/10">
-            <svg className="h-6 w-6 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-          </div>
-          <h3 className="mb-2 text-lg font-bold text-slate-900 dark:text-white">Discard Changes?</h3>
-          <p className="mb-6 px-2 text-sm text-slate-500 dark:text-slate-400">
-            Are you sure you want to close this form? Any unsaved data will be permanently lost
-            {!isComplete && " (unless you Save as Draft first)"}.
-          </p>
-        </div>
-        <div className="flex w-full gap-3">
-          <Button type="button" variant="secondary" className="flex-1 justify-center" onClick={() => setShowConfirmClose(false)}>
-            No, keep editing
-          </Button>
-          <Button type="button" variant="danger" className="flex-1 justify-center shadow-md shadow-rose-500/20" onClick={confirmClose}>
-            Yes, discard
-          </Button>
-        </div>
-      </Modal>
+      <ConfirmCloseModal
+        isOpen={showConfirmClose}
+        onClose={() => setShowConfirmClose(false)}
+        onConfirm={confirmClose}
+        isComplete={isComplete}
+      />
     </>
   );
 }
