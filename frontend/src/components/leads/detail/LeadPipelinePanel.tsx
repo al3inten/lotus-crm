@@ -228,9 +228,10 @@ export function LeadPipelinePanel({
 
       {activeTab === "forms" && hasForms && (
         <div className="flex flex-col gap-4">
-          {/* Cards in pipeline order: Test Drive → Quotation → Exchange → Booking Details.
-              All shown at every stage; each editable only from its stage onward. */}
-          <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
+          {/* 2×2 grid — Row 1: Test Drive | Booking Details, Row 2: Exchange | Quotation.
+              Equal-sized cards (stretch to the tallest in each row). All shown at every stage;
+              each editable only from its stage onward. */}
+          <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2 [&>*]:h-full">
             <TestDriveForm
               enquiryId={enquiry.id}
               branchId={enquiry.branchId}
@@ -239,6 +240,14 @@ export function LeadPipelinePanel({
               defaultVariant={enquiry.variant}
               editable={testDriveEditable}
               lockedHint={lockedHint("Appointment Fixed")}
+            />
+            <BookingDetailsForm enquiry={enquiry} editable={bookingEditable} lockedHint={lockedHint("Booked")} />
+            <ExchangeForm
+              enquiryId={enquiry.id}
+              branchId={enquiry.branchId}
+              existing={enquiry.exchangeEvaluation}
+              editable={exchangeEditable}
+              lockedHint={lockedHint("Booked")}
             />
             {showQuotation && (
               <QuotationForm
@@ -249,14 +258,6 @@ export function LeadPipelinePanel({
                 lockedHint={lockedHint("Test Drive")}
               />
             )}
-            <ExchangeForm
-              enquiryId={enquiry.id}
-              branchId={enquiry.branchId}
-              existing={enquiry.exchangeEvaluation}
-              editable={exchangeEditable}
-              lockedHint={lockedHint("Booked")}
-            />
-            <BookingDetailsForm enquiry={enquiry} editable={bookingEditable} lockedHint={lockedHint("Booked")} />
           </div>
         </div>
       )}
