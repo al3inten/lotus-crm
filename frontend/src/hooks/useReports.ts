@@ -78,12 +78,33 @@ export function useLostReasonsReport(filters: reportsApi.ReportFilters) {
   });
 }
 
+export function useVehiclePerformanceReport(filters: reportsApi.ReportFilters) {
+  return useQuery({
+    queryKey: ["reports", "vehicle-performance", filters],
+    queryFn: () => reportsApi.fetchVehiclePerformance(filters),
+  });
+}
+
 export function useBreakdownReport(
-  filters: reportsApi.ReportFilters & { dimension: reportsApi.BreakdownDimension }
+  filters: reportsApi.ReportFilters & { dimension: reportsApi.BreakdownDimension },
+  enabled = true
 ) {
   return useQuery({
     queryKey: ["reports", "breakdown", filters],
     queryFn: () => reportsApi.fetchBreakdown(filters),
+    enabled,
     placeholderData: (prev) => prev, // keep the old chart visible while a new dimension loads
+  });
+}
+
+export function useBreakdown2DReport(
+  filters: reportsApi.ReportFilters & { dimension: reportsApi.BreakdownDimension; splitBy: reportsApi.BreakdownDimension },
+  enabled = true
+) {
+  return useQuery({
+    queryKey: ["reports", "breakdown2d", filters],
+    queryFn: () => reportsApi.fetchBreakdown2D(filters),
+    enabled,
+    placeholderData: (prev) => prev,
   });
 }

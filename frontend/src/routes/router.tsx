@@ -21,6 +21,7 @@ const CustomersPage = lazy(() => import("../pages/CustomersPage").then(named("Cu
 const FollowUpsPage = lazy(() => import("../pages/FollowUpsPage").then(named("FollowUpsPage")));
 const BranchesPage = lazy(() => import("../pages/BranchesPage").then(named("BranchesPage")));
 const ReportsPage = lazy(() => import("../pages/ReportsPage").then(named("ReportsPage")));
+const VehiclePerformancePage = lazy(() => import("../pages/VehiclePerformancePage").then(named("VehiclePerformancePage")));
 const IntegrationsPage = lazy(() => import("../pages/IntegrationsPage").then(named("IntegrationsPage")));
 const SocialInboxPage = lazy(() => import("../pages/SocialInboxPage").then(named("SocialInboxPage")));
 const AiAgentsPage = lazy(() => import("../pages/AiAgentsPage").then(named("AiAgentsPage")));
@@ -73,6 +74,7 @@ export const router = createBrowserRouter([
               // Old URL kept so existing bookmarks/links don't 404.
               { path: "/departments", element: <Navigate to="/branches" replace /> },
               { path: "/reports", element: suspense(<ReportsPage />) },
+              { path: "/reports/vehicle-performance", element: suspense(<VehiclePerformancePage />) },
               { path: "/media-library", element: suspense(<MediaLibraryPage />) },
               { path: "/templates", element: suspense(<TemplatesPage />) },
               { path: "/bulk-messages", element: suspense(<BulkMessagesPage />) },

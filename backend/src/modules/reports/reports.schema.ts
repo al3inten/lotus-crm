@@ -32,9 +32,17 @@ export const BREAKDOWN_DIMENSIONS = [
   "branch",
 ] as const;
 
-export const breakdownQuerySchema = reportQuerySchema.extend({
-  dimension: z.enum(BREAKDOWN_DIMENSIONS),
-});
+export const breakdownQuerySchema = reportQuerySchema
+  .extend({
+    dimension: z.enum(BREAKDOWN_DIMENSIONS),
+    // Optional second grouping dimension — when set, the Chart Builder renders a
+    // stacked bar (dimension × splitBy) instead of a single-series breakdown.
+    splitBy: z.enum(BREAKDOWN_DIMENSIONS).optional(),
+  })
+  .refine((data) => !data.splitBy || data.splitBy !== data.dimension, {
+    message: "Split by must be different from Group by",
+    path: ["splitBy"],
+  });
 
 export type ReportQuery = z.infer<typeof reportQuerySchema>;
 export type TrendQuery = z.infer<typeof trendQuerySchema>;

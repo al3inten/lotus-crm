@@ -16,6 +16,7 @@ import {
   callAnalysisHandler,
   sourcePerformanceHandler,
   lostReasonsHandler,
+  vehiclePerformanceHandler,
   breakdownHandler,
   exportCsvHandler,
 } from "./reports.controller";
@@ -34,6 +35,7 @@ router.get("/time-in-stage", validateQuery(reportQuerySchema), asyncHandler(time
 router.get("/call-analysis", validateQuery(reportQuerySchema), asyncHandler(callAnalysisHandler));
 router.get("/source-performance", validateQuery(reportQuerySchema), asyncHandler(sourcePerformanceHandler));
 router.get("/lost-reasons", validateQuery(reportQuerySchema), asyncHandler(lostReasonsHandler));
+router.get("/vehicle-performance", validateQuery(reportQuerySchema), asyncHandler(vehiclePerformanceHandler));
 router.get("/breakdown", validateQuery(breakdownQuerySchema), asyncHandler(breakdownHandler));
 router.get("/export", validateQuery(reportQuerySchema), asyncHandler(exportCsvHandler));
 

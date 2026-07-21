@@ -53,8 +53,22 @@ export async function lostReasonsHandler(req: Request, res: Response) {
   res.json(result);
 }
 
+export async function vehiclePerformanceHandler(req: Request, res: Response) {
+  const result = await analyticsService.getVehiclePerformance(req.query as unknown as ReportQuery, req.branchFilter);
+  res.json(result);
+}
+
 export async function breakdownHandler(req: Request, res: Response) {
-  const result = await analyticsService.getBreakdown(req.query as unknown as BreakdownQuery, req.branchFilter);
+  const query = req.query as unknown as BreakdownQuery;
+  if (query.splitBy) {
+    const result = await analyticsService.getBreakdown2D(
+      query as BreakdownQuery & { splitBy: NonNullable<BreakdownQuery["splitBy"]> },
+      req.branchFilter
+    );
+    res.json(result);
+    return;
+  }
+  const result = await analyticsService.getBreakdown(query, req.branchFilter);
   res.json(result);
 }
 

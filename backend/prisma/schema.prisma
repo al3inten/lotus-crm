@@ -920,3 +920,23 @@ model SystemSettings {
 
   @@map("system_settings")
 }
+
+// Local cache of India Post pincode/post-office lookups (backs the Add Lead wizard's
+// City/Area/Pincode suggestions). Populated lazily the first time a pincode or name is
+// looked up via the public postalpincode.in API, so repeat lookups (and the vast majority
+// of common cities) get served from our own DB — no per-keystroke external calls, no CORS
+// dependency on that 3rd-party API's availability.
+model PostOffice {
+  id        String   @id @default(cuid())
+  pincode   String
+  name      String
+  city      String
+  state     String
+  createdAt DateTime @default(now())
+
+  @@unique([pincode, name])
+  @@index([pincode])
+  @@index([name])
+  @@index([city])
+  @@map("post_offices")
+}
