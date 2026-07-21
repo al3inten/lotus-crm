@@ -368,6 +368,14 @@ export interface AppNotification {
   createdAt: string;
 }
 
+export interface Reminder {
+  id: string;
+  type: "FOLLOW_UP" | "BIRTHDAY" | "ANNIVERSARY";
+  title: string;
+  body: string;
+  linkUrl: string;
+}
+
 export interface TestDriveFeedback {
   id: string;
   conductedById: string;
@@ -376,6 +384,7 @@ export interface TestDriveFeedback {
   variant?: string | null;
   scheduledAt?: string | null;
   completedAt?: string | null;
+  address?: string | null;
   rating?: number | null;
   comments?: string | null;
   createdAt?: string;

@@ -7,6 +7,7 @@ import { Button } from "../../common/Button";
 import { StatusChangeModal } from "../../enquiry/StatusChangeModal";
 import { PipelineStepper } from "../../enquiry/PipelineStepper";
 import { TestDriveForm } from "../../enquiry/TestDriveForm";
+import { BookingDetailsForm } from "../../enquiry/BookingDetailsForm";
 import { QuotationForm } from "../../enquiry/QuotationForm";
 import { ExchangeForm } from "../../enquiry/ExchangeForm";
 import { QuickActions } from "../../enquiry/QuickActions";
@@ -73,18 +74,33 @@ export function LeadPipelinePanel({
 }) {
   const moodStyle = MOOD_STYLES[moodOf(enquiry)];
 
-  const showTestDrive =
-    enquiry.status === "APPOINTMENT_FIXED" ||
-    enquiry.status === "TEST_DRIVE" ||
-    (enquiry.testDriveFeedbacks?.length ?? 0) > 0;
-  const showQuotation =
-    settings?.quotationEnabled !== false &&
-    (["TEST_DRIVE", "BOOKED", "RETAIL_DONE"].includes(enquiry.status) || !!enquiry.quotation);
-  const showExchange = enquiry.status === "BOOKED" || !!enquiry.exchangeEvaluation;
-  // Finance and delivery are now handled by the pipeline itself (finance toggle +
-  // checks on the Booked stage; the Delivered stage captures the delivery date),
-  // so the standalone Finance/Delivery forms have been retired.
-  const hasForms = showTestDrive || showQuotation || showExchange;
+  // All stage cards are always visible so their details can be reviewed at any point. Each card
+  // is editable only from its own stage onward (read-only before), and everything locks once the
+  // enquiry is Closed. Forward pipeline rank drives the "from its stage onward" rule.
+  const STAGE_RANK: Record<EnquiryStatus, number> = {
+    NEW: 0,
+    UNDER_FOLLOW_UP: 0,
+    APPOINTMENT_FIXED: 1,
+    TEST_DRIVE: 2,
+    BOOKED: 3,
+    RETAIL_DONE: 4,
+    RTO_DONE: 5,
+    DELIVERED: 6,
+    CLOSED: -1,
+  };
+  const editableFrom = (start: EnquiryStatus) =>
+    enquiry.status !== "CLOSED" && STAGE_RANK[enquiry.status] >= STAGE_RANK[start];
+
+  const testDriveEditable = editableFrom("APPOINTMENT_FIXED");
+  const quotationEditable = editableFrom("TEST_DRIVE");
+  const exchangeEditable = editableFrom("BOOKED");
+  const bookingEditable = editableFrom("BOOKED");
+
+  // Quotation card still respects the branch's quotationEnabled setting; the rest are always shown.
+  const showQuotation = settings?.quotationEnabled !== false;
+  const lockedHint = (stage: string) => `Read-only — editable from the ${stage} stage.`;
+
+  const hasForms = true;
   const tabs: DetailTab[] = [...(hasForms ? (["forms"] as const) : []), "activity", "details"];
 
   return (
@@ -212,23 +228,36 @@ export function LeadPipelinePanel({
 
       {activeTab === "forms" && hasForms && (
         <div className="flex flex-col gap-4">
-          {(showTestDrive || showQuotation) && (
-            <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
-              {showTestDrive && (
-                <TestDriveForm
-                  enquiryId={enquiry.id}
-                  branchId={enquiry.branchId}
-                  existing={enquiry.testDriveFeedbacks}
-                  defaultCarModel={enquiry.carModel}
-                  defaultVariant={enquiry.variant}
-                />
-              )}
-              {showQuotation && (
-                <QuotationForm enquiryId={enquiry.id} branchId={enquiry.branchId} existing={enquiry.quotation} />
-              )}
-            </div>
-          )}
-          {showExchange && <ExchangeForm enquiryId={enquiry.id} branchId={enquiry.branchId} existing={enquiry.exchangeEvaluation} />}
+          {/* Cards in pipeline order: Test Drive → Quotation → Exchange → Booking Details.
+              All shown at every stage; each editable only from its stage onward. */}
+          <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
+            <TestDriveForm
+              enquiryId={enquiry.id}
+              branchId={enquiry.branchId}
+              existing={enquiry.testDriveFeedbacks}
+              defaultCarModel={enquiry.carModel}
+              defaultVariant={enquiry.variant}
+              editable={testDriveEditable}
+              lockedHint={lockedHint("Appointment Fixed")}
+            />
+            {showQuotation && (
+              <QuotationForm
+                enquiryId={enquiry.id}
+                branchId={enquiry.branchId}
+                existing={enquiry.quotation}
+                editable={quotationEditable}
+                lockedHint={lockedHint("Test Drive")}
+              />
+            )}
+            <ExchangeForm
+              enquiryId={enquiry.id}
+              branchId={enquiry.branchId}
+              existing={enquiry.exchangeEvaluation}
+              editable={exchangeEditable}
+              lockedHint={lockedHint("Booked")}
+            />
+            <BookingDetailsForm enquiry={enquiry} editable={bookingEditable} lockedHint={lockedHint("Booked")} />
+          </div>
         </div>
       )}
 
@@ -262,6 +291,8 @@ export function LeadPipelinePanel({
         onClose={() => setShowStatusModal(false)}
         initialTargetStatus={statusModalTarget}
         hasCompletedTestDrive={(enquiry.testDriveFeedbacks ?? []).some((td) => !!td.completedAt)}
+        currentConsultantId={enquiry.consultantId ?? undefined}
+        enquiry={enquiry}
       />
     </>
   );

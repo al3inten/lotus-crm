@@ -3,6 +3,7 @@ import * as notificationsApi from "../api/notifications.api";
 
 export const notificationKeys = {
   all: ["notifications"] as const,
+  reminders: ["notifications", "reminders"] as const,
 };
 
 export function useNotifications() {
@@ -10,6 +11,14 @@ export function useNotifications() {
     queryKey: notificationKeys.all,
     queryFn: notificationsApi.fetchNotifications,
     refetchInterval: 30000, // Poll every 30 seconds
+  });
+}
+
+export function useReminders() {
+  return useQuery({
+    queryKey: notificationKeys.reminders,
+    queryFn: notificationsApi.fetchReminders,
+    refetchInterval: 60000, // Poll every minute
   });
 }
 

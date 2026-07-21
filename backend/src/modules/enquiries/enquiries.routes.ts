@@ -5,6 +5,7 @@ import { requireRole } from "../../middleware/rbac";
 import { validateBody } from "../../middleware/validate";
 import {
   changeStatusSchema,
+  bookingDetailsSchema,
   reassignSchema,
   testDriveSchema,
   updateTestDriveSchema,
@@ -19,6 +20,7 @@ import {
 import {
   getEnquiryHandler,
   changeStatusHandler,
+  updateBookingHandler,
   reassignHandler,
   testDriveHandler,
   updateTestDriveHandler,
@@ -40,6 +42,7 @@ router.get("/:enquiryId", asyncHandler(getEnquiryHandler));
 
 router.patch("/:enquiryId/status", validateBody(changeStatusSchema), asyncHandler(changeStatusHandler));
 router.patch("/:enquiryId/details", validateBody(enquiryDetailsSchema), asyncHandler(updateDetailsHandler));
+router.patch("/:enquiryId/booking", validateBody(bookingDetailsSchema), asyncHandler(updateBookingHandler));
 
 router.patch(
   "/:enquiryId/reassign",

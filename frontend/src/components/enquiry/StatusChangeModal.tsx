@@ -5,15 +5,15 @@ import { useState, useEffect } from "react";
 import { ArrowRight, CalendarClock, Trophy, XCircle } from "lucide-react";
 import clsx from "clsx";
 import { Modal } from "../common/Modal";
-import { Select, Textarea } from "../common/Input";
+import { Input, Select, Textarea } from "../common/Input";
 import { Switch } from "../common/Switch";
 import { Button } from "../common/Button";
 import { StatusBadge } from "../common/StatusBadge";
 import { statusChangeFormSchema } from "../../schemas/enquiry.schema";
 import type { StatusChangeFormValues } from "../../schemas/enquiry.schema";
 import { ALLOWED_TRANSITIONS, LOSS_REASONS, STATUS_LABELS } from "../../types";
-import type { EnquiryStatus } from "../../types";
-import { useChangeStatus } from "../../hooks/useEnquiry";
+import type { EnquiryStatus, Enquiry } from "../../types";
+import { useChangeStatus, useUpdateBookingDetails, useUpdateEnquiryDetails } from "../../hooks/useEnquiry";
 import { useBranchStaff } from "../../hooks/useUsers";
 
 /** A compact Yes/No pair for the finance checklist. */
@@ -45,11 +45,10 @@ function YesNo({ label, checked, onChange }: { label: string; checked: boolean; 
 }
 
 // The date-stamped milestones and the label shown on their date picker.
-const DATE_MILESTONES: Partial<Record<EnquiryStatus, { field: "bookedAt" | "retailDoneAt" | "rtoDoneAt" | "deliveredAt"; label: string }>> = {
-  BOOKED: { field: "bookedAt", label: "Booking date" },
+const DATE_MILESTONES: Partial<Record<EnquiryStatus, { field: "retailDoneAt" | "rtoDoneAt" | "deliveredAt"; label: string }>> = {
   RETAIL_DONE: { field: "retailDoneAt", label: "Retail date" },
   RTO_DONE: { field: "rtoDoneAt", label: "RTO date" },
-  DELIVERED: { field: "deliveredAt", label: "Delivery date" },
+  DELIVERED: { field: "deliveredAt", label: "Vehicle delivery date" },
 };
 
 interface StatusChangeModalProps {
@@ -61,6 +60,10 @@ interface StatusChangeModalProps {
   initialTargetStatus?: EnquiryStatus;
   /** Whether the enquiry has at least one completed test drive — required before Booking. */
   hasCompletedTestDrive?: boolean;
+  /** Consultant already assigned to the enquiry — prefills the consultant dropdown. */
+  currentConsultantId?: string;
+  /** Full enquiry — used to render the Booking Details card inside the modal at the Booked stage. */
+  enquiry?: Enquiry;
 }
 
 export function StatusChangeModal({
@@ -71,9 +74,16 @@ export function StatusChangeModal({
   onClose,
   initialTargetStatus,
   hasCompletedTestDrive,
+  currentConsultantId,
+  enquiry,
 }: StatusChangeModalProps) {
   const [outcome, setOutcome] = useState<"WON" | "LOST">("WON");
+  // CR/ARM must tick this off — confirming every test drive on the Test Drives card is marked
+  // Done — before the enquiry can move to Booked.
+  const [testDrivesConfirmed, setTestDrivesConfirmed] = useState(false);
   const changeStatus = useChangeStatus(enquiryId);
+  const updateBooking = useUpdateBookingDetails(enquiryId);
+  const updateDetails = useUpdateEnquiryDetails(enquiryId);
   const { data: consultants, isLoading: consultantsLoading } = useBranchStaff(branchId, "CONSULTANT");
   const allowedNext = ALLOWED_TRANSITIONS[currentStatus];
   const noConsultants = !consultantsLoading && (consultants?.length ?? 0) === 0;
@@ -95,11 +105,21 @@ export function StatusChangeModal({
     if (isOpen) {
       reset({
         toStatus: initialTargetStatus && allowedNext.includes(initialTargetStatus) ? initialTargetStatus : allowedNext[0],
-        financeRequired: false,
+        consultantId: currentConsultantId,
+        // Prefill the booking-details fields (shown at the Booked stage) from the enquiry.
+        bookedAt: enquiry?.bookedAt ?? undefined,
+        financeRequired: enquiry?.financeRequired ?? false,
+        financeDocumentCollected: enquiry?.financeDocumentCollected ?? undefined,
+        financeLoanApproved: enquiry?.financeLoanApproved ?? undefined,
+        financeDoReceived: enquiry?.financeDoReceived ?? undefined,
+        // Delivery-stage customer details, prefilled from the lead.
+        dob: enquiry?.lead?.dob ? enquiry.lead.dob.slice(0, 10) : undefined,
+        profession: enquiry?.lead?.profession ?? undefined,
       });
       setOutcome("WON");
+      setTestDrivesConfirmed(false);
     }
-  }, [isOpen, initialTargetStatus, allowedNext, reset]);
+  }, [isOpen, initialTargetStatus, allowedNext, currentConsultantId, enquiry, reset]);
 
   const toStatus = watch("toStatus");
   const financeRequired = watch("financeRequired");
@@ -111,13 +131,57 @@ export function StatusChangeModal({
       setError("consultantId", { message: "Assign a consultant before fixing the appointment" });
       return;
     }
+    // A consultant must be chosen when logging the first test drive (server enforces this too).
+    if (values.toStatus === "TEST_DRIVE" && !values.consultantId) {
+      setError("consultantId", { message: "Select a consultant for the test drive" });
+      return;
+    }
     // A test drive must be marked Done (via the Test Drives card) before the enquiry can be
     // booked — server enforces this too.
     if (values.toStatus === "BOOKED" && !hasCompletedTestDrive) {
       setError("toStatus", { message: "Mark a test drive as Done (Test Drives card) before booking." });
       return;
     }
+    // CR/ARM confirmation gate: they must tick the toggle affirming all test drives are Done.
+    if (values.toStatus === "BOOKED" && !testDrivesConfirmed) {
+      setError("toStatus", { message: "Confirm all test drives are marked as Done before booking." });
+      return;
+    }
+    // Delivery requires the details used for post-sale celebrations (birthday / anniversary):
+    // vehicle delivery date + customer DOB + customer job. All three are mandatory.
+    if (values.toStatus === "DELIVERED") {
+      if (!values.deliveredAt) {
+        setError("deliveredAt", { message: "Vehicle delivery date is required" });
+        return;
+      }
+      if (!values.dob) {
+        setError("dob", { message: "Customer date of birth is required" });
+        return;
+      }
+      if (!values.profession?.trim()) {
+        setError("profession", { message: "Customer job is required" });
+        return;
+      }
+    }
     const toIso = (v?: string) => (v ? new Date(v).toISOString() : undefined);
+    // Delivery-stage customer details are saved on the lead (DOB + job) before the status move.
+    if (values.toStatus === "DELIVERED") {
+      await updateDetails.mutateAsync({
+        dob: values.dob ? new Date(values.dob).toISOString() : undefined,
+        profession: values.profession?.trim(),
+      });
+    }
+    // At the Booked stage the popup also edits booking details — save those first (same one
+    // "Update status" click), then apply the status move.
+    if (currentStatus === "BOOKED") {
+      await updateBooking.mutateAsync({
+        bookedAt: toIso(values.bookedAt),
+        financeRequired: values.financeRequired,
+        financeDocumentCollected: values.financeRequired ? !!values.financeDocumentCollected : undefined,
+        financeLoanApproved: values.financeRequired ? !!values.financeLoanApproved : undefined,
+        financeDoReceived: values.financeRequired ? !!values.financeDoReceived : undefined,
+      });
+    }
     await changeStatus.mutateAsync({
       toStatus: values.toStatus,
       note: values.note,
@@ -125,19 +189,10 @@ export function StatusChangeModal({
       followUpDueAt: toIso(values.followUpDueAt),
       appointmentAt: toIso(values.appointmentAt),
       consultantId: values.consultantId,
-      bookedAt: toIso(values.bookedAt),
+      testDriveScheduledAt: toIso(values.testDriveScheduledAt),
       retailDoneAt: toIso(values.retailDoneAt),
       rtoDoneAt: toIso(values.rtoDoneAt),
       deliveredAt: toIso(values.deliveredAt),
-      // Finance answers only travel with the Booked transition.
-      ...(values.toStatus === "BOOKED"
-        ? {
-            financeRequired: values.financeRequired,
-            financeDocumentCollected: values.financeRequired ? !!values.financeDocumentCollected : undefined,
-            financeLoanApproved: values.financeRequired ? !!values.financeLoanApproved : undefined,
-            financeDoReceived: values.financeRequired ? !!values.financeDoReceived : undefined,
-          }
-        : {}),
     });
     reset();
     setOutcome("WON");
@@ -176,11 +231,72 @@ export function StatusChangeModal({
           ))}
         </Select>
 
+        {/* Booking details (date + finance) — editable inline at the Booked stage; saved on the
+            same "Update status" click before the status move is applied. */}
+        {currentStatus === "BOOKED" && (
+          <>
+            <Controller
+              control={control}
+              name="bookedAt"
+              render={({ field }) => (
+                <DatePickerField label="Booking date" value={field.value} onChange={field.onChange} />
+              )}
+            />
+            <div className="flex flex-col gap-3 rounded-xl border border-emerald-200 bg-emerald-50/60 p-3 dark:border-emerald-500/25 dark:bg-emerald-500/10">
+              <Switch
+                checked={!!financeRequired}
+                onChange={(v) => setValue("financeRequired", v)}
+                label="Finance needed"
+                description="Turn on if the customer is financing this purchase."
+              />
+              {financeRequired && (
+                <div className="flex flex-col gap-2 border-t border-emerald-200 pt-3 dark:border-emerald-500/25">
+                  <YesNo label="Documents collected" checked={!!watch("financeDocumentCollected")} onChange={(v) => setValue("financeDocumentCollected", v)} />
+                  <YesNo label="Loan approved" checked={!!watch("financeLoanApproved")} onChange={(v) => setValue("financeLoanApproved", v)} />
+                  <YesNo label="DO received" checked={!!watch("financeDoReceived")} onChange={(v) => setValue("financeDoReceived", v)} />
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
         {toStatus === "TEST_DRIVE" && (
-          <p className="rounded-lg border border-teal-200 bg-teal-50/60 px-3 py-2 text-xs font-medium text-teal-700 dark:border-teal-500/25 dark:bg-teal-500/10 dark:text-teal-300">
-            The appointment's date/time and consultant carry straight over as the first test drive. Log
-            each additional drive and mark one Done from the Test Drives card below.
-          </p>
+          <div className="flex flex-col gap-3 rounded-xl border border-teal-200 bg-teal-50/60 p-3 dark:border-teal-500/25 dark:bg-teal-500/10">
+            <p className="flex items-center gap-1.5 text-xs font-semibold text-teal-700 dark:text-teal-300">
+              <CalendarClock size={13} /> Schedule the test drive
+            </p>
+            <Controller
+              control={control}
+              name="testDriveScheduledAt"
+              render={({ field }) => (
+                <DateTimePicker
+                  label="Test drive date & time"
+                  value={field.value}
+                  onChange={field.onChange}
+                  error={errors.testDriveScheduledAt?.message}
+                />
+              )}
+            />
+            <Select
+              label="Consultant"
+              required
+              disabled={consultantsLoading || noConsultants}
+              error={errors.consultantId?.message}
+              {...register("consultantId")}
+            >
+              <option value="">
+                {consultantsLoading ? "Loading consultants…" : noConsultants ? "No consultants in this branch" : "Select consultant"}
+              </option>
+              {consultants?.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </Select>
+            <p className="text-xs font-medium text-teal-600 dark:text-teal-400">
+              This logs the first test drive. Log each additional drive and mark one Done from the Test Drives card below.
+            </p>
+          </div>
         )}
 
         {/* Can't book until a test drive is marked Done on the Test Drives card */}
@@ -190,33 +306,54 @@ export function StatusChangeModal({
           </p>
         )}
 
-        {/* Date for the later milestones (Booked / Retail / RTO / Delivered) */}
-        {dateMilestone && (toStatus !== "BOOKED" || hasCompletedTestDrive) && (
+        {/* CR/ARM confirmation: all test drives on the Test Drives card are marked Done */}
+        {toStatus === "BOOKED" && hasCompletedTestDrive && (
+          <div className="rounded-xl border border-teal-200 bg-teal-50/60 p-3 dark:border-teal-500/25 dark:bg-teal-500/10">
+            <Switch
+              checked={testDrivesConfirmed}
+              onChange={setTestDrivesConfirmed}
+              label="All test drives marked as Done"
+              description="Confirm every test drive on the Test Drives card is marked Done before booking."
+            />
+          </div>
+        )}
+
+        {/* Date for the later milestones (Retail / RTO / Delivered). Booking date + finance
+            are captured on the Booked stage's Booking Details card, not here. */}
+        {dateMilestone && (
           <Controller
             control={control}
             name={dateMilestone.field}
             render={({ field }) => (
-              <DatePickerField label={dateMilestone.label} value={field.value} onChange={field.onChange} />
+              <DatePickerField
+                label={dateMilestone.label}
+                value={field.value}
+                onChange={field.onChange}
+                error={errors[dateMilestone.field]?.message}
+              />
             )}
           />
         )}
 
-        {/* Booking-phase finance: toggle + three Yes/No checks */}
-        {toStatus === "BOOKED" && hasCompletedTestDrive && (
-          <div className="flex flex-col gap-3 rounded-xl border border-emerald-200 bg-emerald-50/60 p-3 dark:border-emerald-500/25 dark:bg-emerald-500/10">
-            <Switch
-              checked={!!financeRequired}
-              onChange={(v) => setValue("financeRequired", v)}
-              label="Finance needed"
-              description="Turn on if the customer is financing this purchase."
+        {/* Delivery: mandatory customer details for post-sale birthday/anniversary celebrations. */}
+        {toStatus === "DELIVERED" && (
+          <div className="flex flex-col gap-3 rounded-xl border border-violet-200 bg-violet-50/60 p-3 dark:border-violet-500/25 dark:bg-violet-500/10">
+            <p className="text-xs font-semibold text-violet-700 dark:text-violet-300">
+              Customer details — used for birthday &amp; anniversary celebrations.
+            </p>
+            <Controller
+              control={control}
+              name="dob"
+              render={({ field }) => (
+                <DatePickerField
+                  label="Customer date of birth"
+                  value={field.value}
+                  onChange={field.onChange}
+                  error={errors.dob?.message}
+                />
+              )}
             />
-            {financeRequired && (
-              <div className="flex flex-col gap-2 border-t border-emerald-200 pt-3 dark:border-emerald-500/25">
-                <YesNo label="Documents collected" checked={!!watch("financeDocumentCollected")} onChange={(v) => setValue("financeDocumentCollected", v)} />
-                <YesNo label="Loan approved" checked={!!watch("financeLoanApproved")} onChange={(v) => setValue("financeLoanApproved", v)} />
-                <YesNo label="DO received" checked={!!watch("financeDoReceived")} onChange={(v) => setValue("financeDoReceived", v)} />
-              </div>
-            )}
+            <Input label="Customer job" error={errors.profession?.message} {...register("profession")} />
           </div>
         )}
 

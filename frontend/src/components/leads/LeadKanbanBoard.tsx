@@ -395,6 +395,8 @@ export function LeadKanbanBoard({ enquiries }: { enquiries: Enquiry[] }) {
             setModalEnquiry(null);
           }}
           initialTargetStatus={targetStatus}
+          currentConsultantId={modalEnquiry.consultantId ?? undefined}
+          enquiry={modalEnquiry}
         />
       )}
     </DndContext>

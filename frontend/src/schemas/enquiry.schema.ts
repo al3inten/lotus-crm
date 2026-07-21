@@ -8,11 +8,17 @@ export const statusChangeFormSchema = z.object({
   followUpDueAt: z.string().optional(),
   appointmentAt: z.string().optional(),
   consultantId: z.string().optional(),
+  // Test Drive: scheduled date/time for the first drive.
+  testDriveScheduledAt: z.string().optional(),
   // Later-stage milestone dates.
   bookedAt: z.string().optional(),
   retailDoneAt: z.string().optional(),
   rtoDoneAt: z.string().optional(),
   deliveredAt: z.string().optional(),
+  // Delivery-stage customer details (mandatory when delivering) — used for birthday/anniversary
+  // celebrations after the sale.
+  dob: z.string().optional(),
+  profession: z.string().optional(),
   // Booking-phase finance.
   financeRequired: z.boolean().optional(),
   financeDocumentCollected: z.boolean().optional(),
@@ -28,6 +34,7 @@ export const testDriveFormSchema = z.object({
   variant: z.string().optional(),
   scheduledAt: z.string().optional(),
   completedAt: z.string().optional(),
+  address: z.string().optional(),
   rating: z.preprocess(
     (val) => (val === "" || val === undefined ? undefined : val),
     z.coerce.number().int().min(1).max(5).optional()
@@ -43,6 +50,7 @@ export interface TestDriveFormInput {
   variant?: string;
   scheduledAt?: string;
   completedAt?: string;
+  address?: string;
   rating?: unknown;
   comments?: string;
 }

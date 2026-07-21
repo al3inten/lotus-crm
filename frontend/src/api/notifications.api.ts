@@ -1,8 +1,13 @@
 import { axiosClient } from "./axiosClient";
-import type { AppNotification } from "../types";
+import type { AppNotification, Reminder } from "../types";
 
 export async function fetchNotifications(): Promise<AppNotification[]> {
   const { data } = await axiosClient.get<AppNotification[]>("/notifications");
+  return data;
+}
+
+export async function fetchReminders(): Promise<Reminder[]> {
+  const { data } = await axiosClient.get<Reminder[]>("/notifications/reminders");
   return data;
 }
 

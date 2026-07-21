@@ -1,7 +1,7 @@
 import { prisma } from "../../lib/prisma";
 import { NotFoundError, ValidationError } from "../../lib/errors";
 import { ALLOWED_TRANSITIONS, CONSULTANT_REQUIRED_AT_STATUS, TRANSACTION_OPTIONS } from "../../config/constants";
-import { ChangeStatusInput, ReassignInput, EnquiryDetailsInput } from "./enquiries.schema";
+import { ChangeStatusInput, ReassignInput, EnquiryDetailsInput, BookingDetailsInput } from "./enquiries.schema";
 
 export async function getEnquiry(enquiryId: string) {
   const enquiry = await prisma.enquiry.findUnique({
@@ -48,17 +48,24 @@ export async function changeStatus(enquiryId: string, input: ChangeStatusInput, 
     // otherwise "now"), so the pipeline and reports can show when each stage happened.
     const stampNow = (explicit?: string) => (explicit ? new Date(explicit) : new Date());
 
-    // Moving to Test Drive logs the first drive automatically, carrying over the date/time
-    // and consultant already fixed for the appointment — nothing extra to ask here. Further
-    // drives (and marking one Done) happen from the Test Drives card.
-    if (input.toStatus === "TEST_DRIVE" && enquiry.consultantId) {
+    // Moving to Test Drive logs the first drive automatically. The CR now picks the drive's
+    // date/time and the consultant conducting it; if either is omitted we fall back to the
+    // appointment's date and the already-assigned consultant. Further drives (and marking one
+    // Done) happen from the Test Drives card.
+    if (input.toStatus === "TEST_DRIVE") {
+      const conductedById = input.consultantId || enquiry.consultantId;
+      if (!conductedById) {
+        throw new ValidationError("Select a consultant when moving to Test Drive.");
+      }
       await tx.testDriveFeedback.create({
         data: {
           enquiryId,
-          conductedById: enquiry.consultantId,
+          conductedById,
           carModel: enquiry.carModel,
           variant: enquiry.variant,
-          scheduledAt: enquiry.appointmentAt ?? new Date(),
+          scheduledAt: input.testDriveScheduledAt
+            ? new Date(input.testDriveScheduledAt)
+            : enquiry.appointmentAt ?? new Date(),
         },
       });
     }
@@ -73,6 +80,21 @@ export async function changeStatus(enquiryId: string, input: ChangeStatusInput, 
         throw new ValidationError(
           "Mark at least one test drive as Done before moving to Booked."
         );
+      }
+    }
+
+    // Delivery requires the details needed for post-sale relationship touches (birthday /
+    // anniversary celebrations): the vehicle delivery date and the customer's DOB and job.
+    if (input.toStatus === "DELIVERED") {
+      if (!input.deliveredAt) {
+        throw new ValidationError("Vehicle delivery date is required to complete delivery.");
+      }
+      const lead = await tx.lead.findUnique({ where: { id: enquiry.leadId } });
+      if (!lead?.dob) {
+        throw new ValidationError("Customer date of birth is required to complete delivery.");
+      }
+      if (!lead?.profession) {
+        throw new ValidationError("Customer job is required to complete delivery.");
       }
     }
 
@@ -92,21 +114,13 @@ export async function changeStatus(enquiryId: string, input: ChangeStatusInput, 
         // "" too, unlike ??, which would otherwise null out the FK and violate the constraint).
         consultantId: input.consultantId || enquiry.consultantId,
 
-        // ── Later-stage milestone dates ──
+        // ── Later-stage milestone dates ── reaching BOOKED stamps the date to "now" as a
+        // sensible default; the booking date and finance details are then captured/edited on
+        // the Booked stage via updateBookingDetails, not here on the transition.
         bookedAt: input.toStatus === "BOOKED" ? stampNow(input.bookedAt) : enquiry.bookedAt,
         retailDoneAt: input.toStatus === "RETAIL_DONE" ? stampNow(input.retailDoneAt) : enquiry.retailDoneAt,
         rtoDoneAt: input.toStatus === "RTO_DONE" ? stampNow(input.rtoDoneAt) : enquiry.rtoDoneAt,
         deliveredAt: input.toStatus === "DELIVERED" ? stampNow(input.deliveredAt) : enquiry.deliveredAt,
-
-        // ── Booking-phase finance ── captured when moving to BOOKED. If finance isn't
-        // required, the three checks are cleared so stale Yes/No answers don't linger.
-        financeRequired: input.toStatus === "BOOKED" && input.financeRequired !== undefined ? input.financeRequired : enquiry.financeRequired,
-        financeDocumentCollected:
-          input.toStatus === "BOOKED" ? (input.financeRequired ? input.financeDocumentCollected ?? null : null) : enquiry.financeDocumentCollected,
-        financeLoanApproved:
-          input.toStatus === "BOOKED" ? (input.financeRequired ? input.financeLoanApproved ?? null : null) : enquiry.financeLoanApproved,
-        financeDoReceived:
-          input.toStatus === "BOOKED" ? (input.financeRequired ? input.financeDoReceived ?? null : null) : enquiry.financeDoReceived,
       },
     });
 
@@ -173,6 +187,30 @@ export async function updateEnquiryDetails(enquiryId: string, input: EnquiryDeta
       include: { lead: true },
     });
   }, TRANSACTION_OPTIONS);
+}
+
+// Booking-stage details, edited while the enquiry sits at BOOKED: the booking date plus the
+// finance toggle and its three Yes/No checks. When finance isn't required the three checks are
+// cleared so stale Yes/No answers don't linger (same rule the old transition modal applied).
+export async function updateBookingDetails(enquiryId: string, input: BookingDetailsInput) {
+  const enquiry = await prisma.enquiry.findUnique({ where: { id: enquiryId } });
+  if (!enquiry) throw new NotFoundError("Enquiry not found");
+  if (enquiry.status !== "BOOKED") {
+    throw new ValidationError("Booking details can only be set while the enquiry is Booked.");
+  }
+
+  const financeRequired = input.financeRequired ?? enquiry.financeRequired;
+
+  return prisma.enquiry.update({
+    where: { id: enquiryId },
+    data: {
+      bookedAt: input.bookedAt ? new Date(input.bookedAt) : enquiry.bookedAt,
+      financeRequired,
+      financeDocumentCollected: financeRequired ? input.financeDocumentCollected ?? null : null,
+      financeLoanApproved: financeRequired ? input.financeLoanApproved ?? null : null,
+      financeDoReceived: financeRequired ? input.financeDoReceived ?? null : null,
+    },
+  });
 }
 
 export async function reassign(enquiryId: string, input: ReassignInput, reassignedById: string) {

@@ -18,6 +18,7 @@ export async function addTestDrive(enquiryId: string, input: TestDriveInput) {
       scheduledAt: input.scheduledAt ? new Date(input.scheduledAt) : undefined,
       // completedAt present ⇒ the drive is Done; absent ⇒ it's just scheduled ("Not done").
       completedAt: input.completedAt ? new Date(input.completedAt) : undefined,
+      address: input.address,
       rating: input.rating,
       comments: input.comments,
     },
@@ -37,6 +38,7 @@ export async function updateTestDrive(enquiryId: string, testDriveId: string, in
     where: { id: testDriveId },
     data: {
       completedAt: input.completedAt ? new Date(input.completedAt) : testDrive.completedAt,
+      address: input.address ?? testDrive.address,
       rating: input.rating ?? testDrive.rating,
       comments: input.comments ?? testDrive.comments,
     },

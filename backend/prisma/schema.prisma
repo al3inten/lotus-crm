@@ -595,6 +595,9 @@ model TestDriveFeedback {
   variant       String?
   scheduledAt   DateTime?
   completedAt   DateTime?
+  // Where the drive takes place (customer's address / pickup point). Free-text, optional, and
+  // editable at any time — before or after the drive is completed.
+  address       String?
   // The consultant's feedback form, stored structurally in the DB (not an uploaded file):
   // an overall rating plus written comments.
   rating        Int?

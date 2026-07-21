@@ -25,6 +25,8 @@ export interface ChangeStatusPayload {
   followUpDueAt?: string;
   appointmentAt?: string;
   consultantId?: string;
+  // Test Drive: scheduled date/time for the first drive.
+  testDriveScheduledAt?: string;
   // Later-stage milestone dates.
   bookedAt?: string;
   retailDoneAt?: string;
@@ -47,6 +49,18 @@ export async function updateEnquiryDetails(enquiryId: string, payload: LeadEnric
   return data;
 }
 
+export interface BookingDetailsPayload {
+  bookedAt?: string;
+  financeRequired?: boolean;
+  financeDocumentCollected?: boolean;
+  financeLoanApproved?: boolean;
+  financeDoReceived?: boolean;
+}
+export async function updateBookingDetails(enquiryId: string, payload: BookingDetailsPayload): Promise<Enquiry> {
+  const { data } = await axiosClient.patch<Enquiry>(`/enquiries/${enquiryId}/booking`, payload);
+  return data;
+}
+
 export async function reassignEnquiry(enquiryId: string, toUserId: string, reason?: string): Promise<Enquiry> {
   const { data } = await axiosClient.patch<Enquiry>(`/enquiries/${enquiryId}/reassign`, { toUserId, reason });
   return data;
@@ -58,6 +72,7 @@ export interface TestDrivePayload {
   variant?: string;
   scheduledAt?: string;
   completedAt?: string;
+  address?: string;
   rating?: number;
   comments?: string;
 }
@@ -68,6 +83,7 @@ export async function saveTestDrive(enquiryId: string, payload: TestDrivePayload
 
 export interface UpdateTestDrivePayload {
   completedAt?: string;
+  address?: string;
   rating?: number;
   comments?: string;
 }
