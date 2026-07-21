@@ -261,6 +261,33 @@ const DIMENSION_FIELD: Record<BreakdownDimension, keyof Prisma.EnquiryGroupByOut
 // High-cardinality free-text dimensions are capped so the chart stays readable; the
 // rest (enums, booleans, FK ids) have naturally bounded cardinality.
 const BREAKDOWN_ROW_CAP = 20;
+// A stacked bar reads fine with a handful of series; beyond that the rest collapse into
+// "Other" rather than turning every row into an unreadable rainbow.
+const SPLIT_SERIES_CAP = 6;
+
+/** Resolves raw group-by keys to display labels for a dimension — shared by the 1D and
+ * 2D breakdowns so id→name lookups (assignedCr, branch) and boolean labels stay in sync. */
+async function buildLabelResolver(
+  dimension: BreakdownDimension,
+  keys: (string | null)[]
+): Promise<(key: string | null) => string> {
+  if (dimension === "assignedCr") {
+    const ids = keys.filter((k): k is string => !!k);
+    const users = await prisma.user.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } });
+    const nameMap = new Map(users.map((u) => [u.id, u.name]));
+    return (key) => (key ? nameMap.get(key) ?? "Unknown" : "Unassigned");
+  }
+  if (dimension === "branch") {
+    const ids = keys.filter((k): k is string => !!k);
+    const branchRows = await prisma.branch.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } });
+    const nameMap = new Map(branchRows.map((b) => [b.id, b.name]));
+    return (key) => (key ? nameMap.get(key) ?? "Unknown" : "—");
+  }
+  if (dimension === "financeRequired") {
+    return (key) => (key === "true" ? "Finance required" : key === "false" ? "No finance" : "Not specified");
+  }
+  return (key) => key ?? "—";
+}
 
 /**
  * Generic "group enquiries by any dimension" powering the Reports Chart Builder.
@@ -296,20 +323,7 @@ export async function getBreakdown(query: BreakdownQuery, branchFilter?: { branc
   for (const row of lost) lostMap.set(rawKey(row), row._count);
 
   // For FK dimensions, resolve ids → display names.
-  let labelFor: (key: string | null) => string = (key) => key ?? "—";
-  if (query.dimension === "assignedCr") {
-    const ids = totals.map(rawKey).filter((k): k is string => !!k);
-    const users = await prisma.user.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } });
-    const nameMap = new Map(users.map((u) => [u.id, u.name]));
-    labelFor = (key) => (key ? nameMap.get(key) ?? "Unknown" : "Unassigned");
-  } else if (query.dimension === "branch") {
-    const ids = totals.map(rawKey).filter((k): k is string => !!k);
-    const branches = await prisma.branch.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } });
-    const nameMap = new Map(branches.map((b) => [b.id, b.name]));
-    labelFor = (key) => (key ? nameMap.get(key) ?? "Unknown" : "—");
-  } else if (query.dimension === "financeRequired") {
-    labelFor = (key) => (key === "true" ? "Finance required" : key === "false" ? "No finance" : "Not specified");
-  }
+  const labelFor = await buildLabelResolver(query.dimension, totals.map(rawKey));
 
   const rows = totals.map((row) => {
     const key = rawKey(row);
@@ -327,6 +341,170 @@ export async function getBreakdown(query: BreakdownQuery, branchFilter?: { branc
 
   rows.sort((a, b) => b.total - a.total);
   return rows.slice(0, BREAKDOWN_ROW_CAP);
+}
+
+/**
+ * Two-dimension breakdown for the Chart Builder's "Split by" stacked view — e.g. Lead
+ * Source × Status, so a manager can see not just "how many from Meta Ads" but "how many
+ * from Meta Ads are still stuck at New vs. actually Booked". Counts only (no
+ * converted/lost/rate matrices per cell — that's a lot of near-empty combinations for
+ * marginal value); the primary dimension keeps its own total for sorting/labeling.
+ */
+export async function getBreakdown2D(
+  query: BreakdownQuery & { splitBy: BreakdownDimension },
+  branchFilter?: { branchId: string }
+) {
+  const where = buildWhere(query, branchFilter);
+  const field1 = DIMENSION_FIELD[query.dimension];
+  const field2 = DIMENSION_FIELD[query.splitBy];
+
+  type GroupRow = Record<string, unknown> & { _count: number };
+  const raw = (await prisma.enquiry.groupBy({
+    by: [field1, field2] as Prisma.EnquiryScalarFieldEnum[],
+    where,
+    _count: true,
+  })) as unknown as GroupRow[];
+
+  const key1Of = (row: GroupRow) => {
+    const v = row[field1 as string];
+    return v == null ? null : String(v);
+  };
+  const key2Of = (row: GroupRow) => {
+    const v = row[field2 as string];
+    return v == null ? null : String(v);
+  };
+
+  // Rank split values by overall volume so the legend/stack order highlights what
+  // actually matters; everything past the cap folds into "Other".
+  const splitTotals = new Map<string | null, number>();
+  for (const row of raw) {
+    const k2 = key2Of(row);
+    splitTotals.set(k2, (splitTotals.get(k2) ?? 0) + row._count);
+  }
+  const topSplitKeys = [...splitTotals.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, SPLIT_SERIES_CAP)
+    .map(([k]) => k);
+  const hasOverflow = splitTotals.size > topSplitKeys.length;
+  const OTHER_KEY = "__other__";
+
+  const [labelFor1, labelFor2] = await Promise.all([
+    buildLabelResolver(query.dimension, raw.map(key1Of)),
+    buildLabelResolver(query.splitBy, topSplitKeys),
+  ]);
+
+  const primaryTotals = new Map<string | null, number>();
+  const primaryBySplit = new Map<string | null, Record<string, number>>();
+  for (const row of raw) {
+    const k1 = key1Of(row);
+    const k2raw = key2Of(row);
+    const k2 = topSplitKeys.includes(k2raw) ? k2raw : OTHER_KEY;
+    primaryTotals.set(k1, (primaryTotals.get(k1) ?? 0) + row._count);
+    const bucket = primaryBySplit.get(k1) ?? {};
+    const bucketKey = k2 ?? "__null__";
+    bucket[bucketKey] = (bucket[bucketKey] ?? 0) + row._count;
+    primaryBySplit.set(k1, bucket);
+  }
+
+  const rows = [...primaryTotals.entries()]
+    .map(([key, total]) => ({
+      key: key ?? "__null__",
+      label: labelFor1(key),
+      total,
+      bySplit: primaryBySplit.get(key) ?? {},
+    }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, BREAKDOWN_ROW_CAP);
+
+  const series = [
+    ...topSplitKeys.map((k) => ({ key: k ?? "__null__", label: labelFor2(k) })),
+    ...(hasOverflow ? [{ key: OTHER_KEY, label: "Other" }] : []),
+  ];
+
+  return { dimension: query.dimension, splitBy: query.splitBy, series, rows };
+}
+
+const VEHICLE_ROW_CAP = 30;
+// A booking has happened once the enquiry reaches Booked or any later stage.
+const BOOKED_OR_LATER: EnquiryStatus[] = ["BOOKED", "RETAIL_DONE", "RTO_DONE", "DELIVERED"];
+
+/**
+ * Per-vehicle-model "model mix" report — the dealership-standard view of which cars
+ * actually convert vs. which just attract enquiries. Joins test drive and quotation
+ * activity onto each model so a CR/manager can see, e.g., "Creta gets driven a lot but
+ * rarely quoted" or "Venue has the best test-drive → booking conversion".
+ */
+export async function getVehiclePerformance(query: ReportQuery, branchFilter?: { branchId: string }) {
+  const where = buildWhere(query, branchFilter);
+
+  const [totals, booked, converted, testDrives, quotations] = await Promise.all([
+    prisma.enquiry.groupBy({ by: ["carModel"], where, _count: true }),
+    prisma.enquiry.groupBy({ by: ["carModel"], where: { ...where, status: { in: BOOKED_OR_LATER } }, _count: true }),
+    prisma.enquiry.groupBy({ by: ["carModel"], where: { ...where, status: { in: CONVERTED_STATUSES } }, _count: true }),
+    prisma.testDriveFeedback.findMany({
+      where: { enquiry: where },
+      select: { rating: true, completedAt: true, enquiry: { select: { carModel: true } } },
+    }),
+    prisma.quotation.findMany({
+      where: { enquiry: where },
+      select: { discount: true, onRoadPrice: true, enquiry: { select: { carModel: true } } },
+    }),
+  ]);
+
+  const bookedMap = new Map(booked.map((r) => [r.carModel, r._count]));
+  const convertedMap = new Map(converted.map((r) => [r.carModel, r._count]));
+
+  const testDriveStats = new Map<string, { count: number; completed: number; ratingSum: number; ratingCount: number }>();
+  for (const td of testDrives) {
+    const model = td.enquiry.carModel;
+    const stat = testDriveStats.get(model) ?? { count: 0, completed: 0, ratingSum: 0, ratingCount: 0 };
+    stat.count += 1;
+    if (td.completedAt) stat.completed += 1;
+    if (td.rating != null) {
+      stat.ratingSum += td.rating;
+      stat.ratingCount += 1;
+    }
+    testDriveStats.set(model, stat);
+  }
+
+  const quoteStats = new Map<string, { count: number; discountPctSum: number; discountCount: number }>();
+  for (const q of quotations) {
+    const model = q.enquiry.carModel;
+    const stat = quoteStats.get(model) ?? { count: 0, discountPctSum: 0, discountCount: 0 };
+    stat.count += 1;
+    const onRoad = q.onRoadPrice ? Number(q.onRoadPrice) : 0;
+    const discount = q.discount ? Number(q.discount) : 0;
+    if (onRoad > 0 && discount > 0) {
+      stat.discountPctSum += (discount / onRoad) * 100;
+      stat.discountCount += 1;
+    }
+    quoteStats.set(model, stat);
+  }
+
+  const rows = totals.map((row) => {
+    const model = row.carModel;
+    const total = row._count;
+    const bookedCount = bookedMap.get(model) ?? 0;
+    const td = testDriveStats.get(model);
+    const q = quoteStats.get(model);
+
+    return {
+      carModel: model,
+      enquiries: total,
+      booked: bookedCount,
+      delivered: convertedMap.get(model) ?? 0,
+      conversionRate: total > 0 ? Number(((bookedCount / total) * 100).toFixed(1)) : 0,
+      testDrives: td?.count ?? 0,
+      testDriveCompletionRate: td && td.count > 0 ? Number(((td.completed / td.count) * 100).toFixed(1)) : 0,
+      avgTestDriveRating: td && td.ratingCount > 0 ? Number((td.ratingSum / td.ratingCount).toFixed(1)) : null,
+      testDriveToBookingRate: td && td.count > 0 ? Number(((bookedCount / td.count) * 100).toFixed(1)) : 0,
+      quotations: q?.count ?? 0,
+      avgDiscountPercent: q && q.discountCount > 0 ? Number((q.discountPctSum / q.discountCount).toFixed(1)) : null,
+    };
+  });
+
+  rows.sort((a, b) => b.enquiries - a.enquiries);
+  return rows.slice(0, VEHICLE_ROW_CAP);
 }
 
 /** Flat CSV of enquiries matching the filters — for sharing outside the CRM. */

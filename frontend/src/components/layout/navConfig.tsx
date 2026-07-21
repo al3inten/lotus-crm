@@ -75,6 +75,7 @@ export const NAV_ITEMS: NavItem[] = [
   { to: "/media-library", label: "Media Library", short: "Media", icon: Clapperboard, module: "media-library", group: "ENGAGE", roles: ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"] },
 
   { to: "/reports", label: "Reports", icon: BarChart3, module: "reports", group: "INSIGHTS", roles: ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"] },
+  { to: "/reports/vehicle-performance", label: "Vehicle Performance", short: "Vehicles", icon: CarFront, module: "reports", group: "INSIGHTS", roles: ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"] },
 
   { to: "/ai-agents", label: "AI Agents", short: "Agents", icon: Bot, module: "ai-agents", group: "AUTOMATION", roles: ["SUPER_ADMIN", "ADMIN"] },
 

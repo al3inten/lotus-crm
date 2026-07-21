@@ -20,12 +20,19 @@ export function TestDriveForm({
   existing,
   defaultCarModel,
   defaultVariant,
+  hideHistory = false,
+  onSaved,
 }: {
   enquiryId: string;
   branchId: string;
   existing?: TestDriveFeedback[];
   defaultCarModel: string;
   defaultVariant?: string | null;
+  /** Skip the header, ready-to-book banner and drive list — the form only. Used when a
+   *  caller (e.g. the Activity tab's compact card) already renders those itself and just
+   *  wants to embed the "add another test drive" form inline. */
+  hideHistory?: boolean;
+  onSaved?: () => void;
 }) {
   const saveTestDrive = useSaveTestDrive(enquiryId);
   const { data: consultants, isLoading: consultantsLoading } = useBranchStaff(branchId, "CONSULTANT");
@@ -34,7 +41,9 @@ export function TestDriveForm({
   const noConsultants = !consultantsLoading && (consultants?.length ?? 0) === 0;
   const hasDone = previousDrives.some((d) => !!d.completedAt);
 
-  const [adding, setAdding] = useState(previousDrives.length === 0);
+  // When embedded via `hideHistory`, the caller already gates visibility of this form —
+  // so skip the internal collapse/expand toggle and always show it.
+  const [adding, setAdding] = useState(hideHistory || previousDrives.length === 0);
   const [carChoice, setCarChoice] = useState<"same" | "different">("same");
   const [markDone, setMarkDone] = useState(false);
 
@@ -67,7 +76,8 @@ export function TestDriveForm({
     reset({ conductedById: "", carModel: defaultCarModel, variant: defaultVariant ?? "", scheduledAt: "", completedAt: "", rating: undefined, comments: "" });
     setMarkDone(false);
     setCarChoice("same");
-    if (previousDrives.length > 0) setAdding(false);
+    if (!hideHistory && previousDrives.length > 0) setAdding(false);
+    onSaved?.();
   };
 
   const onSubmit = async (values: TestDriveFormValues) => {
@@ -84,41 +94,45 @@ export function TestDriveForm({
   };
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-50 text-teal-600 dark:bg-teal-500/15 dark:text-teal-400">
-            <Car size={16} />
-          </span>
-          <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-            Test Drives {previousDrives.length > 0 && <span className="text-slate-400">· {previousDrives.length}</span>}
-          </h3>
-        </div>
-        {!adding && (
-          <button
-            type="button"
-            onClick={() => setAdding(true)}
-            className="inline-flex items-center gap-1 rounded-lg bg-teal-600 px-2.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-teal-700"
+    <div className={hideHistory ? "flex flex-col gap-3" : "flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"}>
+      {!hideHistory && (
+        <>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-50 text-teal-600 dark:bg-teal-500/15 dark:text-teal-400">
+                <Car size={16} />
+              </span>
+              <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                Test Drives {previousDrives.length > 0 && <span className="text-slate-400">· {previousDrives.length}</span>}
+              </h3>
+            </div>
+            {!adding && (
+              <button
+                type="button"
+                onClick={() => setAdding(true)}
+                className="inline-flex items-center gap-1 rounded-lg bg-teal-600 px-2.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-teal-700"
+              >
+                <Plus size={14} /> Add test drive
+              </button>
+            )}
+          </div>
+
+          {/* Ready-to-book indicator (a completed test drive is required before Booking). */}
+          <p
+            className={clsx(
+              "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium",
+              hasDone
+                ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300"
+                : "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300"
+            )}
           >
-            <Plus size={14} /> Add test drive
-          </button>
-        )}
-      </div>
+            {hasDone ? <Check size={13} /> : <Clock size={13} />}
+            {hasDone ? "Test drive completed — ready to move to Booked." : "No test drive completed yet — mark one Done to enable Booking."}
+          </p>
+        </>
+      )}
 
-      {/* Ready-to-book indicator (a completed test drive is required before Booking). */}
-      <p
-        className={clsx(
-          "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium",
-          hasDone
-            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300"
-            : "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300"
-        )}
-      >
-        {hasDone ? <Check size={13} /> : <Clock size={13} />}
-        {hasDone ? "Test drive completed — ready to move to Booked." : "No test drive completed yet — mark one Done to enable Booking."}
-      </p>
-
-      {previousDrives.length > 0 && (
+      {!hideHistory && previousDrives.length > 0 && (
         <ul className="flex flex-col gap-2">
           {previousDrives.map((drive, index) => (
             <TestDriveRow key={drive.id} enquiryId={enquiryId} drive={drive} number={previousDrives.length - index} />
@@ -127,17 +141,19 @@ export function TestDriveForm({
       )}
 
       {adding && (
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3 border-t border-slate-100 pt-3 dark:border-slate-800">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold text-slate-500">
-              {previousDrives.length > 0 ? "Add another test drive" : "Fix a test drive"}
-            </p>
-            {previousDrives.length > 0 && (
-              <button type="button" onClick={closeForm} aria-label="Cancel" className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                <X size={15} />
-              </button>
-            )}
-          </div>
+        <form onSubmit={handleSubmit(onSubmit)} className={hideHistory ? "flex flex-col gap-3" : "flex flex-col gap-3 border-t border-slate-100 pt-3 dark:border-slate-800"}>
+          {!hideHistory && (
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-slate-500">
+                {previousDrives.length > 0 ? "Add another test drive" : "Fix a test drive"}
+              </p>
+              {previousDrives.length > 0 && (
+                <button type="button" onClick={closeForm} aria-label="Cancel" className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                  <X size={15} />
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Same car or different car */}
           <div>

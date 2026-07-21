@@ -14,6 +14,11 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   ChevronRight,
+  AlarmClock,
+  CalendarClock,
+  CalendarDays,
+  Phone,
+  MessageCircle,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -23,6 +28,7 @@ import {
   useSourcePerformanceReport,
 } from "../hooks/useReports";
 import { useLeads, useReminders } from "../hooks/useLeads";
+import { useUpcomingFollowUps } from "../hooks/useFollowUps";
 import { Card } from "../components/common/Card";
 import { TrendChart } from "../components/reports/TrendChart";
 import { HBarList } from "../components/reports/HBarList";
@@ -291,6 +297,134 @@ function ActionRequiredList({ data }: { data: ReturnType<typeof useReminders>["d
   );
 }
 
+/* ── CR reminder ledger — overdue / today / this week, sourced server-side
+   from the follow-ups module so it's scoped to the logged-in CR automatically ── */
+
+function ReminderStrip({ stats }: { stats: { overdue: number; today: number; thisWeek: number } | undefined }) {
+  return (
+    <div
+      className={clsx(
+        SURFACE,
+        "grid grid-cols-3 divide-x divide-slate-200/70 overflow-hidden dark:divide-white/[0.07]"
+      )}
+    >
+      <StatCell label="Overdue" value={stats?.overdue ?? 0} icon={<AlarmClock strokeWidth={1.75} />} upIsGood={false} />
+      <StatCell label="Due today" value={stats?.today ?? 0} icon={<CalendarClock strokeWidth={1.75} />} />
+      <StatCell label="Due this week" value={stats?.thisWeek ?? 0} icon={<CalendarDays strokeWidth={1.75} />} />
+    </div>
+  );
+}
+
+/* Richer follow-up reminder list — includes a due-bucket badge, the last
+   remark left on the enquiry, and one-tap Call / WhatsApp so a CR can act
+   without leaving the dashboard. */
+function UpcomingFollowUpsCard({ data, isLoading }: { data: ReturnType<typeof useUpcomingFollowUps>["data"]; isLoading: boolean }) {
+  const items = data?.items ?? [];
+
+  return (
+    <Card padded={false} className={clsx(SURFACE, "overflow-hidden")}>
+      <div className={clsx("flex items-center justify-between border-b px-5 py-4", HAIRLINE)}>
+        <div className="flex items-center gap-2">
+          <PhoneOutgoing size={14} strokeWidth={1.75} className="text-slate-400 dark:text-slate-500" />
+          <h2 className="text-[13px] font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+            Upcoming follow-ups
+          </h2>
+        </div>
+        <Link
+          to="/follow-ups"
+          className="group inline-flex items-center gap-0.5 rounded-md text-[12px] font-medium text-slate-500 transition-colors hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 dark:text-slate-400 dark:hover:text-slate-100"
+        >
+          All follow-ups
+          <ChevronRight size={13} className="opacity-60 transition-transform duration-200 group-hover:translate-x-0.5" />
+        </Link>
+      </div>
+
+      {isLoading ? (
+        <div className="divide-y divide-slate-100 dark:divide-white/[0.05]">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3 px-5 py-3.5">
+              <Skeleton className="h-8 w-8 rounded-full" />
+              <div className="flex-1 space-y-1.5">
+                <Skeleton className="h-3.5 w-1/3" />
+                <Skeleton className="h-3 w-1/2" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : items.length === 0 ? (
+        <div className="px-5 py-12 text-center">
+          <p className="text-[13px] font-medium text-slate-900 dark:text-slate-200">You're all caught up</p>
+          <p className="mt-1 text-[12px] text-slate-500 dark:text-slate-400">No follow-ups due this week.</p>
+        </div>
+      ) : (
+        <div className="divide-y divide-slate-100 dark:divide-white/[0.05]">
+          {items.slice(0, 6).map((item) => {
+            const due = new Date(item.followUpDueAt);
+            const now = new Date();
+            const sameDay = due.toDateString() === now.toDateString();
+            const isOverdue = due < now && !sameDay;
+            const phoneDigits = item.phoneRaw?.replace(/\D/g, "") ?? "";
+            return (
+              <div
+                key={item.enquiryId}
+                className="group flex items-center gap-3 px-5 py-3 transition-colors hover:bg-slate-50/60 dark:hover:bg-white/[0.02]"
+              >
+                <Link to={`/leads/${item.leadId}`} className="flex min-w-0 flex-1 items-center gap-3">
+                  <Avatar name={item.leadName} size="sm" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13px] font-medium text-slate-900 dark:text-slate-200">
+                      {item.leadName}
+                    </p>
+                    <p className="truncate text-[12px] text-slate-500 dark:text-slate-400">
+                      {item.carModel}
+                      {item.lastFollowUp?.remark ? ` · ${item.lastFollowUp.remark}` : ""}
+                    </p>
+                  </div>
+                  <span
+                    className={clsx(
+                      "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                      isOverdue
+                        ? "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400"
+                        : sameDay
+                          ? "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400"
+                          : "bg-slate-100 text-slate-600 dark:bg-white/[0.06] dark:text-slate-300"
+                    )}
+                  >
+                    {isOverdue ? "Overdue" : sameDay ? "Today" : due.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                  </span>
+                </Link>
+                <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                  <a
+                    href={`tel:${item.phoneRaw}`}
+                    aria-label={`Call ${item.leadName}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-emerald-50 hover:text-emerald-600 dark:text-slate-500 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-400"
+                  >
+                    <Phone size={14} />
+                  </a>
+                  <a
+                    href={phoneDigits ? `https://wa.me/${phoneDigits}` : undefined}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label={`WhatsApp ${item.leadName}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className={clsx(
+                      "flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-emerald-50 hover:text-emerald-600 dark:text-slate-500 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-400",
+                      !phoneDigits && "pointer-events-none opacity-30"
+                    )}
+                  >
+                    <MessageCircle size={14} />
+                  </a>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </Card>
+  );
+}
+
 /* ── Pipeline rows (shared between both role views) ─────────────────────── */
 
 function PipelineRows({ data }: { data: ReturnType<typeof useLeads>["data"] }) {
@@ -373,12 +507,21 @@ export function DashboardPage() {
   const { data: trend } = useTrendReport({ granularity: "week" }, canSeeStats);
   const { data: sources } = useSourcePerformanceReport({}, canSeeStats);
   const { data: recentLeads } = useLeads({ page: 1, pageSize: 6 });
+  const { data: upcomingFollowUps, isLoading: followUpsLoading } = useUpcomingFollowUps({
+    timeframe: "week",
+    pageSize: 8,
+    sortBy: "dueDate",
+    order: "asc",
+  });
 
   const visibleActions = QUICK_ACTIONS.filter((a) => !a.roles || (user && a.roles.includes(user.role)));
   const maxSource = Math.max(1, ...(sources ?? []).map((s) => s.total));
   const conversionRate = yoy?.currentPeriod.conversionRate ?? 0;
   const statsLoading = canSeeStats && !summary;
   const firstName = user?.name?.split(" ")[0];
+  const dueNowCount = canSeeStats
+    ? actionItems.length
+    : (upcomingFollowUps?.stats.overdue ?? 0) + (upcomingFollowUps?.stats.today ?? 0);
 
   return (
     <motion.div
@@ -400,17 +543,15 @@ export function DashboardPage() {
             {greeting()}
             {firstName ? `, ${firstName}` : ""}
           </h1>
-          {canSeeStats && (
-            <p className="flex items-center gap-2 text-[13px] text-slate-500 dark:text-slate-400">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              </span>
-              {actionItems.length > 0
-                ? `${actionItems.length} follow-up${actionItems.length === 1 ? "" : "s"} need attention today`
-                : "Pipeline is up to date D-CRM"}
-            </p>
-          )}
+          <p className="flex items-center gap-2 text-[13px] text-slate-500 dark:text-slate-400">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            </span>
+            {dueNowCount > 0
+              ? `${dueNowCount} follow-up${dueNowCount === 1 ? "" : "s"} need attention today`
+              : "Pipeline is up to date D-CRM"}
+          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -586,22 +727,28 @@ export function DashboardPage() {
           </div>
         </>
       ) : (
-        /* ── Focused view for non-stat roles ── */
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        /* ── Focused view for CR / consultant roles ── */
+        <>
           <motion.div variants={variants.item}>
-            <ActionRequiredList data={actionItems} />
+            <ReminderStrip stats={upcomingFollowUps?.stats} />
           </motion.div>
-          <motion.div variants={variants.item}>
-            <Card padded={false} className={clsx(SURFACE, "overflow-hidden")}>
-              <div className={clsx("border-b px-5 py-4", HAIRLINE)}>
-                <SectionHeader title="Your recent leads" to="/leads" cta="All leads" />
-              </div>
-              <div className="divide-y divide-slate-100 dark:divide-white/[0.05]">
-                <PipelineRows data={recentLeads} />
-              </div>
-            </Card>
-          </motion.div>
-        </div>
+
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[60fr_40fr] lg:items-start">
+            <motion.div variants={variants.item}>
+              <UpcomingFollowUpsCard data={upcomingFollowUps} isLoading={followUpsLoading} />
+            </motion.div>
+            <motion.div variants={variants.item}>
+              <Card padded={false} className={clsx(SURFACE, "overflow-hidden")}>
+                <div className={clsx("border-b px-5 py-4", HAIRLINE)}>
+                  <SectionHeader title="Your recent leads" to="/leads" cta="All leads" />
+                </div>
+                <div className="divide-y divide-slate-100 dark:divide-white/[0.05]">
+                  <PipelineRows data={recentLeads} />
+                </div>
+              </Card>
+            </motion.div>
+          </div>
+        </>
       )}
     </motion.div>
   );

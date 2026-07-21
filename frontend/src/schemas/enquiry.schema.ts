@@ -28,7 +28,10 @@ export const testDriveFormSchema = z.object({
   variant: z.string().optional(),
   scheduledAt: z.string().optional(),
   completedAt: z.string().optional(),
-  rating: z.coerce.number().int().min(1).max(5).optional(),
+  rating: z.preprocess(
+    (val) => (val === "" || val === undefined ? undefined : val),
+    z.coerce.number().int().min(1).max(5).optional()
+  ),
   comments: z.string().optional(),
 });
 export type TestDriveFormValues = z.infer<typeof testDriveFormSchema>;
@@ -39,6 +42,22 @@ export interface TestDriveFormInput {
   carModel: string;
   variant?: string;
   scheduledAt?: string;
+  completedAt?: string;
+  rating?: unknown;
+  comments?: string;
+}
+
+// Follow-up edit once the drive has happened: mark it complete and capture rating/feedback.
+export const testDriveEditFormSchema = z.object({
+  completedAt: z.string().optional(),
+  rating: z.preprocess(
+    (val) => (val === "" || val === undefined ? undefined : val),
+    z.coerce.number().int().min(1).max(5).optional()
+  ),
+  comments: z.string().optional(),
+});
+export type TestDriveEditFormValues = z.infer<typeof testDriveEditFormSchema>;
+export interface TestDriveEditFormInput {
   completedAt?: string;
   rating?: unknown;
   comments?: string;

@@ -116,6 +116,20 @@ export interface LostReasonRow {
   percent: number;
 }
 
+export interface VehiclePerformanceRow {
+  carModel: string;
+  enquiries: number;
+  booked: number;
+  delivered: number;
+  conversionRate: number;
+  testDrives: number;
+  testDriveCompletionRate: number;
+  avgTestDriveRating: number | null;
+  testDriveToBookingRate: number;
+  quotations: number;
+  avgDiscountPercent: number | null;
+}
+
 export async function fetchYoy(filters: ReportFilters): Promise<YoyReport> {
   const { data } = await axiosClient.get<YoyReport>("/reports/yoy", { params: filters });
   return data;
@@ -143,6 +157,11 @@ export async function fetchSourcePerformance(filters: ReportFilters): Promise<So
 
 export async function fetchLostReasons(filters: ReportFilters): Promise<LostReasonRow[]> {
   const { data } = await axiosClient.get<LostReasonRow[]>("/reports/lost-reasons", { params: filters });
+  return data;
+}
+
+export async function fetchVehiclePerformance(filters: ReportFilters): Promise<VehiclePerformanceRow[]> {
+  const { data } = await axiosClient.get<VehiclePerformanceRow[]>("/reports/vehicle-performance", { params: filters });
   return data;
 }
 
@@ -181,6 +200,33 @@ export async function fetchBreakdown(
   filters: ReportFilters & { dimension: BreakdownDimension }
 ): Promise<BreakdownRow[]> {
   const { data } = await axiosClient.get<BreakdownRow[]>("/reports/breakdown", { params: filters });
+  return data;
+}
+
+export interface Breakdown2DSeries {
+  key: string;
+  label: string;
+}
+
+export interface Breakdown2DRow {
+  key: string;
+  label: string;
+  total: number;
+  /** Count per split-series key (see `series`), keyed by `Breakdown2DSeries.key`. */
+  bySplit: Record<string, number>;
+}
+
+export interface Breakdown2DResult {
+  dimension: BreakdownDimension;
+  splitBy: BreakdownDimension;
+  series: Breakdown2DSeries[];
+  rows: Breakdown2DRow[];
+}
+
+export async function fetchBreakdown2D(
+  filters: ReportFilters & { dimension: BreakdownDimension; splitBy: BreakdownDimension }
+): Promise<Breakdown2DResult> {
+  const { data } = await axiosClient.get<Breakdown2DResult>("/reports/breakdown", { params: filters });
   return data;
 }
 

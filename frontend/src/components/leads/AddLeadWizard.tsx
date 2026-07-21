@@ -15,6 +15,9 @@ import { Card, CardHeader } from "../common/Card";
 import { addLeadFormSchema, normaliseEmail } from "../../schemas/lead.schema";
 import type { AddLeadFormValues, AddLeadFormInput } from "../../schemas/lead.schema";
 import { useCreateWalkInLead, useSaveDraft, useUpdateDraft, useDeleteDraft, useLeadLookup } from "../../hooks/useLeads";
+import { usePincodeLookup, usePostOfficeSearch, rankSuggestions } from "../../hooks/useLocationLookup";
+import { TypeaheadInput } from "../common/TypeaheadInput";
+import type { TypeaheadOption } from "../common/TypeaheadInput";
 import { usePushRepeatEnquiryAlert } from "../../hooks/useNotifications";
 import { useUpdateEnquiryDetails } from "../../hooks/useEnquiry";
 import { useBranches } from "../../hooks/useBranches";
@@ -238,6 +241,43 @@ export function AddLeadWizard({
   const phone = watch("phone") || "";
   const { data: lookupResult, isFetching: lookupLoading } = useLeadLookup(phone);
   const isComplete = mode === "complete";
+
+  // Location assistance (India Post public API, no key needed) — works whichever field the
+  // CR fills in first:
+  //  • Pincode typed → auto-fill City + suggest Area options.
+  //  • Area or City typed → suggest matching Pincode (and each other) options.
+  const pincode = watch("pincode") || "";
+  const areaText = watch("area") || "";
+  const cityText = watch("location") || "";
+  const { data: pincodeInfo } = usePincodeLookup(pincode);
+  const { data: areaMatches } = usePostOfficeSearch(areaText);
+  const { data: cityMatches } = usePostOfficeSearch(cityText);
+
+  const autofilledPincodeRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (pincodeInfo && pincode !== autofilledPincodeRef.current && !isComplete) {
+      if (pincodeInfo.city) setValue("location", pincodeInfo.city);
+      autofilledPincodeRef.current = pincode;
+    }
+  }, [pincodeInfo, pincode, isComplete, setValue]);
+
+  const toOptions = (values: string[]): TypeaheadOption[] => [...new Set(values)].map((v) => ({ value: v, label: v }));
+
+  // Ranked against whatever the CR has already typed in that field (or, for Pincode, the
+  // Area/City text driving the search) — exact/prefix matches surface first, capped to a
+  // short list instead of dumping every match the API returns.
+  const pincodeSuggestions = rankSuggestions(
+    toOptions([...(areaMatches ?? []), ...(cityMatches ?? [])].map((m) => m.pincode)),
+    pincode
+  );
+  const areaSuggestions = rankSuggestions(
+    toOptions([...(pincodeInfo?.areas ?? []), ...(cityMatches ?? []).map((m) => m.name)]),
+    areaText
+  );
+  const citySuggestions = rankSuggestions(
+    toOptions([...(areaMatches ?? []), ...(cityMatches ?? [])].map((m) => m.city)),
+    cityText
+  );
 
   useEffect(() => {
     if (lookupResult && phone && phone !== autofilledPhone && !isComplete) {
@@ -717,9 +757,53 @@ export function AddLeadWizard({
                       )}
                     />
                     <Input label="Profession" error={fieldError("profession")} {...register("profession")} />
-                    <Input label="Pincode" required error={fieldError("pincode")} {...register("pincode")} />
-                    <Input label="Area" required placeholder="e.g. Peelamedu" error={fieldError("area")} {...register("area")} />
-                    <Input label="City" required disabled={isComplete} error={fieldError("location")} {...register("location")} />
+                    <Controller
+                      control={control}
+                      name="location"
+                      render={({ field }) => (
+                        <TypeaheadInput
+                          label="City"
+                          required
+                          disabled={isComplete}
+                          error={fieldError("location")}
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          suggestions={citySuggestions}
+                        />
+                      )}
+                    />
+                    <Controller
+                      control={control}
+                      name="area"
+                      render={({ field }) => (
+                        <TypeaheadInput
+                          label="Area"
+                          required
+                          placeholder="e.g. Peelamedu"
+                          error={fieldError("area")}
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          suggestions={areaSuggestions}
+                        />
+                      )}
+                    />
+                    <Controller
+                      control={control}
+                      name="pincode"
+                      render={({ field }) => (
+                        <TypeaheadInput
+                          label="Pincode"
+                          required
+                          error={fieldError("pincode")}
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          suggestions={pincodeSuggestions}
+                        />
+                      )}
+                    />
                     <div className="sm:col-span-2">
                       <Textarea label="Address" rows={2} error={fieldError("address")} {...register("address")} />
                     </div>
