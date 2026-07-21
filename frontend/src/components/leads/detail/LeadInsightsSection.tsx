@@ -1,9 +1,11 @@
 import clsx from "clsx";
+import { motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
 import { ScoreRing } from "./ScoreRing";
 import { INSIGHT_TONE } from "./leadUtils";
 import type { Insight } from "./leadUtils";
 import type { Enquiry } from "../../../types";
+import { fadeUp } from "../../../lib/motion";
 
 interface LeadInsightsSectionProps {
   enquiry: Enquiry;
@@ -15,7 +17,10 @@ export function LeadInsightsSection({ enquiry, leadScore, insights }: LeadInsigh
   if (!enquiry || enquiry.status === "CLOSED") return null;
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-blue-100/80 bg-gradient-to-br from-blue-50/80 via-white to-white p-3.5 sm:flex-row sm:items-center sm:gap-5 dark:border-blue-500/15 dark:from-blue-500/10 dark:via-slate-900/40 dark:to-slate-900/40">
+    <motion.div
+      variants={fadeUp}
+      className="flex flex-col gap-3 rounded-2xl border border-blue-100/80 bg-gradient-to-br from-blue-50/80 via-white to-white p-3.5 sm:flex-row sm:items-center sm:gap-5 dark:border-blue-500/15 dark:from-blue-500/10 dark:via-slate-900/40 dark:to-slate-900/40"
+    >
       <div className="flex items-center gap-2.5 shrink-0">
         <ScoreRing score={leadScore} />
         <h2 className="flex items-center gap-1.5 text-sm font-semibold text-slate-900 dark:text-white">
@@ -33,6 +38,6 @@ export function LeadInsightsSection({ enquiry, leadScore, insights }: LeadInsigh
           </li>
         ))}
       </ul>
-    </div>
+    </motion.div>
   );
 }

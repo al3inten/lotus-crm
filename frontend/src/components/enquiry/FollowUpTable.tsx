@@ -11,6 +11,7 @@ export function FollowUpTable({
   onViewAll,
   /** Skip the Card/CardHeader chrome — use inside a Modal that already has its own title. */
   hideHeader = false,
+  glow = true,
 }: {
   followUps: FollowUp[];
   onAddClick: () => void;
@@ -19,6 +20,7 @@ export function FollowUpTable({
   limit?: number;
   onViewAll?: () => void;
   hideHeader?: boolean;
+  glow?: boolean;
 }) {
   const visible = limit ? followUps.slice(0, limit) : followUps;
   const hasMore = limit != null && followUps.length > limit;
@@ -82,7 +84,7 @@ export function FollowUpTable({
   }
 
   return (
-    <Card padded={false} className="flex h-[420px] flex-col overflow-hidden">
+    <Card padded={false} glow={glow} className="flex flex-col overflow-hidden">
       <div className="p-4 pb-3">
         <CardHeader
           icon={<Calendar size={18} />}
@@ -105,7 +107,7 @@ export function FollowUpTable({
           }
         />
       </div>
-      <div className="flex-1 overflow-y-auto px-4 pb-4 [scrollbar-width:thin]">{table}</div>
+      <div className="max-h-[360px] overflow-y-auto px-4 pb-4 [scrollbar-width:thin]">{table}</div>
     </Card>
   );
 }

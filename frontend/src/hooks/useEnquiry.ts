@@ -4,6 +4,7 @@ import * as enquiriesApi from "../api/enquiries.api";
 export const enquiryKeys = {
   detail: (enquiryId: string) => ["enquiries", enquiryId] as const,
   comments: (enquiryId: string) => ["enquiries", enquiryId, "comments"] as const,
+  notes: (enquiryId: string) => ["enquiries", enquiryId, "notes"] as const,
 };
 
 export function useEnquiry(enquiryId: string | undefined) {
@@ -43,6 +44,14 @@ export function useUpdateBookingDetails(enquiryId: string) {
   const invalidate = useInvalidateEnquiry(enquiryId);
   return useMutation({
     mutationFn: (payload: enquiriesApi.BookingDetailsPayload) => enquiriesApi.updateBookingDetails(enquiryId, payload),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateKeyDate(enquiryId: string) {
+  const invalidate = useInvalidateEnquiry(enquiryId);
+  return useMutation({
+    mutationFn: (payload: enquiriesApi.UpdateKeyDatePayload) => enquiriesApi.updateKeyDate(enquiryId, payload),
     onSuccess: invalidate,
   });
 }
@@ -127,6 +136,24 @@ export function useAddComment(enquiryId: string) {
     mutationFn: (payload: enquiriesApi.CommentPayload) => enquiriesApi.addComment(enquiryId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: enquiryKeys.comments(enquiryId) });
+    },
+  });
+}
+
+export function useNotes(enquiryId: string | undefined) {
+  return useQuery({
+    queryKey: enquiryKeys.notes(enquiryId ?? ""),
+    queryFn: () => enquiriesApi.getNotes(enquiryId!),
+    enabled: !!enquiryId,
+  });
+}
+
+export function useAddNote(enquiryId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: enquiriesApi.NotePayload) => enquiriesApi.addNote(enquiryId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: enquiryKeys.notes(enquiryId) });
     },
   });
 }

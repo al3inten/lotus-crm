@@ -141,16 +141,16 @@ export function LeadHeroHeader({
         <nav className="flex items-center gap-1.5 text-sm">
           <Link
             to="/leads"
-            className="flex items-center gap-1.5 font-medium text-slate-500 transition-colors hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 rounded dark:text-slate-400 dark:hover:text-white"
+            className="flex items-center gap-1.5 rounded-md px-1.5 py-0.5 -ml-1.5 font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:text-slate-400 dark:hover:bg-white/[0.06] dark:hover:text-white"
           >
             <ArrowLeft size={15} />
             Leads
           </Link>
           <span className="text-slate-300 dark:text-slate-600">/</span>
-          <span className="font-medium text-slate-900 dark:text-white">{lead.name}</span>
+          <span className="truncate font-medium text-slate-900 dark:text-white">{lead.name}</span>
         </nav>
         {ageDays !== null && (
-          <span className="hidden items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400 sm:flex">
+          <span className="hidden items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-500 shadow-sm dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-400 sm:flex">
             <CalendarClock size={13} />
             {ageDays <= 0 ? "Enquired today" : `${ageDays} days in pipeline`}
           </span>
@@ -160,12 +160,12 @@ export function LeadHeroHeader({
       {/* ── Record card ── */}
       <div className="overflow-visible rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
         {/* Identity + actions */}
-        <div className="flex flex-col gap-5 p-5 sm:p-6 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex min-w-0 items-center gap-4">
-            <Avatar name={lead.name} size="xl" />
+        <div className="flex flex-col gap-3.5 p-4 sm:px-5 sm:py-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex min-w-0 items-center gap-3">
+            <Avatar name={lead.name} size="lg" />
             <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <h1 className="truncate text-xl font-semibold text-slate-900 dark:text-white sm:text-2xl">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="truncate text-base font-semibold text-slate-900 dark:text-white sm:text-lg">
                   {lead.name}
                 </h1>
                 {enquiry && <StatusBadge status={enquiry.status} lossReason={enquiry.lossReason} />}
@@ -176,7 +176,7 @@ export function LeadHeroHeader({
                 )}
               </div>
               {enquiry && (
-                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                   <Tag icon={<Hash size={12} />}>
                     <span className="tabular-nums">{enquiry.id.slice(-6).toUpperCase()}</span>
                   </Tag>
@@ -187,7 +187,7 @@ export function LeadHeroHeader({
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 lg:shrink-0 lg:justify-end">
+          <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-slate-100 bg-slate-50/60 p-1 dark:border-slate-800/60 dark:bg-slate-800/30 lg:shrink-0 lg:justify-end">
             <ActionButton icon={<Phone size={16} />} label="Call" href={`tel:${lead.phoneRaw}`} tone="call" disabled={!lead.phoneRaw} />
             <ActionButton
               icon={<MessageCircle size={16} />}
@@ -210,7 +210,7 @@ export function LeadHeroHeader({
                 type="button"
                 onClick={() => setShowCustomerView(true)}
                 title="Customer view"
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-white"
+                className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition-all hover:-translate-y-0.5 hover:bg-white hover:text-slate-900 hover:shadow-md active:scale-95 active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-white"
               >
                 <Eye size={16} />
               </button>
@@ -221,10 +221,10 @@ export function LeadHeroHeader({
                   type="button"
                   onClick={() => setAssignOpen((o) => !o)}
                   disabled={!enquiry}
-                  className="flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                  className="flex h-9 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold text-slate-700 transition-all hover:-translate-y-0.5 hover:bg-white hover:shadow-md active:scale-95 active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:pointer-events-none disabled:opacity-40 dark:text-slate-300 dark:hover:bg-slate-700"
                 >
                   <UserPlus size={15} />
-                  Assign
+                  <span className="hidden md:inline">Assign</span>
                   <ChevronDown size={14} className={clsx("text-slate-400 transition-transform", assignOpen && "rotate-180")} />
                 </button>
                 {assignOpen && enquiry && (
@@ -259,9 +259,11 @@ export function LeadHeroHeader({
 
         {/* Missing details banner */}
         {completeDetailsNeeded && (
-          <div className="flex flex-col gap-3 border-t border-amber-200/70 bg-amber-50 px-5 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 dark:border-amber-500/20 dark:bg-amber-500/10">
-            <p className="flex items-center gap-2 text-sm font-medium text-amber-800 dark:text-amber-300">
-              <ClipboardEdit size={15} className="shrink-0" />
+          <div className="flex flex-col gap-2.5 border-t border-amber-200/70 bg-amber-50 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-5 dark:border-amber-500/20 dark:bg-amber-500/10">
+            <p className="flex items-center gap-2.5 text-sm font-medium text-amber-800 dark:text-amber-300">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
+                <ClipboardEdit size={14} />
+              </span>
               Some enquiry details are missing — complete them to improve routing.
             </p>
             <Button size="sm" icon={<ClipboardEdit size={13} />} onClick={() => setShowDetailsWizard(true)}>
@@ -272,71 +274,81 @@ export function LeadHeroHeader({
 
         {/* Key info band */}
         {enquiry && (
-          <div className="border-t border-slate-200 bg-slate-50/70 px-5 py-5 dark:border-slate-800 dark:bg-slate-800/30 sm:px-6 rounded-b-xl">
-            <div className="grid grid-cols-2 gap-x-6 gap-y-5 text-sm sm:grid-cols-3 lg:grid-cols-5">
-              <InfoField
-                icon={<Phone size={14} />}
-                label="Mobile"
-                value={
-                  <span className="group flex items-center gap-2">
-                    <span className="tabular-nums">{lead.phoneRaw}</span>
-                    <span className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-                      <a
-                        href={`tel:${lead.phoneRaw}`}
-                        title="Call"
-                        className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-blue-600 transition-colors hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-800 dark:text-blue-400 dark:hover:bg-slate-700"
-                      >
-                        <Phone size={12} />
-                      </a>
-                      {phoneDigits && (
-                        <a
-                          href={`https://wa.me/${phoneDigits}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          title="WhatsApp"
-                          className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-emerald-600 transition-colors hover:bg-emerald-50 dark:border-slate-700 dark:bg-slate-800 dark:text-emerald-400 dark:hover:bg-slate-700"
-                        >
-                          <MessageCircle size={12} />
-                        </a>
-                      )}
-                      <CopyButton value={lead.phoneRaw} label="Copy phone number" />
-                    </span>
-                  </span>
-                }
-              />
-              <InfoField
-                icon={<Mail size={14} />}
-                label="Email"
-                value={
-                  <span className="group flex items-center gap-2">
-                    <span className="truncate">{lead.email || "—"}</span>
-                    {lead.email && (
+          <div className="border-t border-slate-200 bg-slate-50/70 px-4 py-3.5 dark:border-slate-800 dark:bg-slate-800/30 sm:px-5 rounded-b-xl">
+            <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3 lg:grid-cols-5">
+              <div className="rounded-lg border border-slate-200/70 bg-white p-2.5 dark:border-slate-700/50 dark:bg-slate-900/40">
+                <InfoField
+                  icon={<Phone size={14} />}
+                  label="Mobile"
+                  value={
+                    <span className="group flex items-center gap-2">
+                      <span className="tabular-nums">{lead.phoneRaw}</span>
                       <span className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
                         <a
-                          href={`mailto:${lead.email}`}
-                          title="Send email"
+                          href={`tel:${lead.phoneRaw}`}
+                          title="Call"
                           className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-blue-600 transition-colors hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-800 dark:text-blue-400 dark:hover:bg-slate-700"
                         >
-                          <Mail size={12} />
+                          <Phone size={12} />
                         </a>
-                        <CopyButton value={lead.email} label="Copy email" />
+                        {phoneDigits && (
+                          <a
+                            href={`https://wa.me/${phoneDigits}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            title="WhatsApp"
+                            className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-emerald-600 transition-colors hover:bg-emerald-50 dark:border-slate-700 dark:bg-slate-800 dark:text-emerald-400 dark:hover:bg-slate-700"
+                          >
+                            <MessageCircle size={12} />
+                          </a>
+                        )}
+                        <CopyButton value={lead.phoneRaw} label="Copy phone number" />
                       </span>
-                    )}
-                  </span>
-                }
-              />
-              <InfoField icon={<Car size={14} />} label="Vehicle" value={enquiry.carModel} />
-              <InfoField
-                icon={<RefreshCw size={14} />}
-                label="Exchange"
-                value={
-                  enquiry.exchangeCarModel
-                    ? `${enquiry.exchangeCarModel}${enquiry.exchangeCarYear ? ` · ${enquiry.exchangeCarYear}` : ""}`
-                    : "No exchange vehicle"
-                }
-              />
-              <InfoField icon={<UserCircle2 size={14} />} label="Sales CR" value={enquiry.assignedCr?.name ?? "Unassigned"} />
-              <div>
+                    </span>
+                  }
+                />
+              </div>
+              <div className="rounded-lg border border-slate-200/70 bg-white p-2.5 dark:border-slate-700/50 dark:bg-slate-900/40">
+                <InfoField
+                  icon={<Mail size={14} />}
+                  label="Email"
+                  value={
+                    <span className="group flex items-center gap-2">
+                      <span className="truncate">{lead.email || "—"}</span>
+                      {lead.email && (
+                        <span className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                          <a
+                            href={`mailto:${lead.email}`}
+                            title="Send email"
+                            className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-blue-600 transition-colors hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-800 dark:text-blue-400 dark:hover:bg-slate-700"
+                          >
+                            <Mail size={12} />
+                          </a>
+                          <CopyButton value={lead.email} label="Copy email" />
+                        </span>
+                      )}
+                    </span>
+                  }
+                />
+              </div>
+              <div className="rounded-lg border border-slate-200/70 bg-white p-2.5 dark:border-slate-700/50 dark:bg-slate-900/40">
+                <InfoField icon={<Car size={14} />} label="Vehicle" value={enquiry.carModel} />
+              </div>
+              <div className="rounded-lg border border-slate-200/70 bg-white p-2.5 dark:border-slate-700/50 dark:bg-slate-900/40">
+                <InfoField
+                  icon={<RefreshCw size={14} />}
+                  label="Exchange"
+                  value={
+                    enquiry.exchangeCarModel
+                      ? `${enquiry.exchangeCarModel}${enquiry.exchangeCarYear ? ` · ${enquiry.exchangeCarYear}` : ""}`
+                      : "No exchange vehicle"
+                  }
+                />
+              </div>
+              <div className="rounded-lg border border-slate-200/70 bg-white p-2.5 dark:border-slate-700/50 dark:bg-slate-900/40">
+                <InfoField icon={<UserCircle2 size={14} />} label="Sales CR" value={enquiry.assignedCr?.name ?? "Unassigned"} />
+              </div>
+              <div className="rounded-lg border border-slate-200/70 bg-white p-2.5 dark:border-slate-700/50 dark:bg-slate-900/40">
                 <p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400">
                   <UserCircle2 size={14} /> Consultant
                 </p>
@@ -394,7 +406,7 @@ export function LeadHeroHeader({
             </div>
 
             {(lead.profession || enquiry.location) && (
-              <div className="mt-5 flex flex-wrap items-center gap-1.5 border-t border-slate-200/70 pt-4 dark:border-slate-700/50">
+              <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-slate-200/70 pt-3 dark:border-slate-700/50">
                 {lead.profession && <Tag icon={<Briefcase size={12} />}>{lead.profession}</Tag>}
                 {enquiry.location && <Tag icon={<MapPin size={12} />}>{enquiry.location}</Tag>}
               </div>
