@@ -10,6 +10,8 @@ import type {
   FinanceStatus,
   DeliveryDetails,
   Comment,
+  EnquiryNote,
+  DateFieldKey,
 } from "../types";
 import type { LeadEnrichmentPayload } from "./leads.api";
 
@@ -58,6 +60,16 @@ export interface BookingDetailsPayload {
 }
 export async function updateBookingDetails(enquiryId: string, payload: BookingDetailsPayload): Promise<Enquiry> {
   const { data } = await axiosClient.patch<Enquiry>(`/enquiries/${enquiryId}/booking`, payload);
+  return data;
+}
+
+export interface UpdateKeyDatePayload {
+  field: DateFieldKey;
+  date: string;
+  reason: string;
+}
+export async function updateKeyDate(enquiryId: string, payload: UpdateKeyDatePayload): Promise<Enquiry> {
+  const { data } = await axiosClient.patch<Enquiry>(`/enquiries/${enquiryId}/key-dates`, payload);
   return data;
 }
 
@@ -185,5 +197,20 @@ export async function addComment(enquiryId: string, payload: CommentPayload): Pr
 
 export async function getComments(enquiryId: string): Promise<Comment[]> {
   const { data } = await axiosClient.get<Comment[]>(`/enquiries/${enquiryId}/comments`);
+  return data;
+}
+
+export interface NotePayload {
+  body: string;
+}
+
+/** Private notes — the server always scopes GET to the caller's own notes only. */
+export async function addNote(enquiryId: string, payload: NotePayload): Promise<EnquiryNote> {
+  const { data } = await axiosClient.post<EnquiryNote>(`/enquiries/${enquiryId}/notes`, payload);
+  return data;
+}
+
+export async function getNotes(enquiryId: string): Promise<EnquiryNote[]> {
+  const { data } = await axiosClient.get<EnquiryNote[]>(`/enquiries/${enquiryId}/notes`);
   return data;
 }

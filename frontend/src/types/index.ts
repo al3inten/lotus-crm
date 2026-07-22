@@ -276,6 +276,24 @@ export interface EnquiryStatusHistoryEntry {
   changedBy?: { id: string; name: string };
 }
 
+export const DATE_FIELD_KEYS = [
+  "APPOINTMENT_AT",
+  "TEST_DRIVE_SCHEDULED_AT",
+  "BOOKED_AT",
+  "RETAIL_DONE_AT",
+] as const;
+export type DateFieldKey = (typeof DATE_FIELD_KEYS)[number];
+
+export interface DateChangeHistoryEntry {
+  id: string;
+  field: DateFieldKey;
+  oldValue?: string | null;
+  newValue: string;
+  reason: string;
+  createdAt: string;
+  changedBy?: { id: string; name: string };
+}
+
 export interface Enquiry {
   id: string;
   leadId: string;
@@ -329,6 +347,7 @@ export interface Enquiry {
   financeApplication?: FinanceApplication | null;
   deliveryDetails?: DeliveryDetails | null;
   followUps?: FollowUp[];
+  dateChangeHistory?: DateChangeHistoryEntry[];
 }
 
 export const FOLLOW_UP_TYPES = ["CALL", "WHATSAPP", "VISIT", "EMAIL"] as const;
@@ -356,6 +375,17 @@ export interface Comment {
   body: string;
   createdAt: string;
   updatedAt: string;
+}
+
+// Private per-author scratchpad note — unlike Comment, only ever visible to the person
+// who wrote it, so there's no `user` list to render other than "me".
+export interface EnquiryNote {
+  id: string;
+  enquiryId: string;
+  authorId: string;
+  author: { id: string; name: string };
+  body: string;
+  createdAt: string;
 }
 
 export interface AppNotification {

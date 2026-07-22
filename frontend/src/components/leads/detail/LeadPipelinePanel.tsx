@@ -6,13 +6,10 @@ import { Card } from "../../common/Card";
 import { Button } from "../../common/Button";
 import { StatusChangeModal } from "../../enquiry/StatusChangeModal";
 import { PipelineStepper } from "../../enquiry/PipelineStepper";
-import { TestDriveForm } from "../../enquiry/TestDriveForm";
-import { BookingDetailsForm } from "../../enquiry/BookingDetailsForm";
-import { QuotationForm } from "../../enquiry/QuotationForm";
-import { ExchangeForm } from "../../enquiry/ExchangeForm";
 import { QuickActions } from "../../enquiry/QuickActions";
 
 import { LeadActivityTab } from "./LeadActivityTab";
+import { LeadFormsTab } from "./LeadFormsTab";
 import { LeadDetailsTab } from "./LeadDetailsTab";
 import {
   type DetailTab,
@@ -50,7 +47,10 @@ export function LeadPipelinePanel({
   setShowTimelineModal,
   setShowContactHistoryModal,
   setShowCallHistoryModal,
-  onUpdateNotes,
+  consultants,
+  canReassign,
+  onUpdateConsultant,
+  isUpdatingConsultant,
 }: {
   lead: LeadWithHistory;
   enquiry: Enquiry;
@@ -70,7 +70,10 @@ export function LeadPipelinePanel({
   setShowTimelineModal: (v: boolean) => void;
   setShowContactHistoryModal: (v: boolean) => void;
   setShowCallHistoryModal: (v: boolean) => void;
-  onUpdateNotes: (newRemarks: string) => void;
+  consultants?: { id: string; name: string }[];
+  canReassign: boolean;
+  onUpdateConsultant: (consultantId: string) => void;
+  isUpdatingConsultant: boolean;
 }) {
   const moodStyle = MOOD_STYLES[moodOf(enquiry)];
 
@@ -227,39 +230,15 @@ export function LeadPipelinePanel({
       </div>
 
       {activeTab === "forms" && hasForms && (
-        <div className="flex flex-col gap-4">
-          {/* 2×2 grid — Row 1: Test Drive | Booking Details, Row 2: Exchange | Quotation.
-              Equal-sized cards (stretch to the tallest in each row). All shown at every stage;
-              each editable only from its stage onward. */}
-          <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2 [&>*]:h-full">
-            <TestDriveForm
-              enquiryId={enquiry.id}
-              branchId={enquiry.branchId}
-              existing={enquiry.testDriveFeedbacks}
-              defaultCarModel={enquiry.carModel}
-              defaultVariant={enquiry.variant}
-              editable={testDriveEditable}
-              lockedHint={lockedHint("Appointment Fixed")}
-            />
-            <BookingDetailsForm enquiry={enquiry} editable={bookingEditable} lockedHint={lockedHint("Booked")} />
-            <ExchangeForm
-              enquiryId={enquiry.id}
-              branchId={enquiry.branchId}
-              existing={enquiry.exchangeEvaluation}
-              editable={exchangeEditable}
-              lockedHint={lockedHint("Booked")}
-            />
-            {showQuotation && (
-              <QuotationForm
-                enquiryId={enquiry.id}
-                branchId={enquiry.branchId}
-                existing={enquiry.quotation}
-                editable={quotationEditable}
-                lockedHint={lockedHint("Test Drive")}
-              />
-            )}
-          </div>
-        </div>
+        <LeadFormsTab
+          enquiry={enquiry}
+          testDriveEditable={testDriveEditable}
+          bookingEditable={bookingEditable}
+          exchangeEditable={exchangeEditable}
+          quotationEditable={quotationEditable}
+          showQuotation={showQuotation}
+          lockedHint={lockedHint}
+        />
       )}
 
       {activeTab === "activity" && (
@@ -268,7 +247,10 @@ export function LeadPipelinePanel({
           openFollowUp={openFollowUp}
           setShowFollowUpsModal={setShowFollowUpsModal}
           setShowTimelineModal={setShowTimelineModal}
-          onUpdateNotes={onUpdateNotes}
+          consultants={consultants}
+          canReassign={canReassign}
+          onUpdateConsultant={onUpdateConsultant}
+          isUpdatingConsultant={isUpdatingConsultant}
         />
       )}
 

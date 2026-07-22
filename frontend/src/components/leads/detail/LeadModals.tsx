@@ -121,7 +121,12 @@ export function LeadModals({
 
       {enquiry && (
         <Modal isOpen={showTimelineModal} onClose={() => setShowTimelineModal(false)} title="Activity Timeline" maxWidth="max-w-2xl">
-          <UnifiedTimeline enquiryId={enquiry.id} statusHistory={enquiry.statusHistory || []} followUps={enquiry.followUps || []} />
+          <UnifiedTimeline
+            enquiryId={enquiry.id}
+            statusHistory={enquiry.statusHistory || []}
+            followUps={enquiry.followUps || []}
+            dateChangeHistory={enquiry.dateChangeHistory || []}
+          />
         </Modal>
       )}
 

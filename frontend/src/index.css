@@ -18,6 +18,19 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Neutralizes Chrome/Brave/Safari's forced white autofill background so glass-style
+   inputs (e.g. the login form over a photo backdrop) don't flash opaque white with
+   invisible white-on-white text once a saved credential fills them. */
+.glass-input:-webkit-autofill,
+.glass-input:-webkit-autofill:hover,
+.glass-input:-webkit-autofill:focus,
+.glass-input:-webkit-autofill:active {
+  -webkit-text-fill-color: #fff;
+  caret-color: #fff;
+  transition: background-color 9999s ease-in-out 0s;
+  box-shadow: 0 0 0 1000px rgba(2, 6, 23, 0.4) inset;
+}
+
 html,
 body,
 #root {
@@ -205,6 +218,33 @@ body {
 }
 @media (prefers-reduced-motion: reduce) {
   .animate-marquee { animation: none; }
+}
+
+/* Shimmer sweep for loading skeletons — a soft highlight band that sweeps left to
+   right, layered under the existing pulse so skeletons read as "actively loading"
+   rather than static gray blocks. */
+@keyframes shimmer-sweep {
+  from { background-position: -150% 0; }
+  to   { background-position: 150% 0; }
+}
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.skeleton-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  background-size: 60% 100%;
+  animation: shimmer-sweep 1.6s ease-in-out infinite;
+}
+.dark .skeleton-shimmer::after {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+  background-size: 60% 100%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer::after { animation: none; }
 }
 
 /* Mouse-tracked spotlight highlight for interactive cards. JS only ever writes the

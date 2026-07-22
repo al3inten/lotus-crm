@@ -5,9 +5,13 @@ interface CardProps extends HTMLAttributes<HTMLDivElement> {
   /** Adds a lift-on-hover treatment for clickable cards. */
   interactive?: boolean;
   padded?: boolean;
+  /** The soft blue corner blur. Off by default in dense, multi-card layouts (e.g. the
+   * Activity tab) where several cards sit close together and the blurs bleed into each
+   * other, reading as a stray gradient smear across the page. */
+  glow?: boolean;
 }
 
-export function Card({ interactive, padded = true, className, children, ...props }: CardProps) {
+export function Card({ interactive, padded = true, glow = true, className, children, ...props }: CardProps) {
   return (
     <div
       className={clsx(
@@ -23,9 +27,11 @@ export function Card({ interactive, padded = true, className, children, ...props
     >
       {/* Optional subtle glassmorphism accent in the corner — clipped to its own layer
           rather than the whole card, so dropdowns/popovers in children aren't cut off. */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
-        <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-blue-500/10 blur-[40px] dark:bg-blue-500/20" />
-      </div>
+      {glow && (
+        <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
+          <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-blue-500/10 blur-[40px] dark:bg-blue-500/20" />
+        </div>
+      )}
 
       <div className="relative z-10">
         {children}
