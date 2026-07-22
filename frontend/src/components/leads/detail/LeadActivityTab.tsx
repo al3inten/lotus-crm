@@ -123,33 +123,46 @@ export function LeadActivityTab({
                         )}
                       </button>
 
-                      <div className="px-4 pb-3">
-                        <div className="flex flex-col gap-1 text-slate-500 dark:text-slate-400">
-                          {drive.carModel && (
-                            <span className="flex items-center gap-1.5">
-                              <Car size={12} className="shrink-0 text-slate-400" />
-                              {drive.carModel}
-                              {drive.variant && ` · ${drive.variant}`}
-                            </span>
-                          )}
-                          {drive.conductedBy && (
-                            <span className="flex items-center gap-1.5">
-                              <User2 size={12} className="shrink-0 text-slate-400" />
-                              {drive.conductedBy.name}
-                            </span>
+                      {/* Details are collapsed by default — the row expands on click. */}
+                      {isEditing && (
+                        <div className="px-4 pb-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex flex-col gap-1 text-slate-500 dark:text-slate-400">
+                              {drive.carModel && (
+                                <span className="flex items-center gap-1.5">
+                                  <Car size={12} className="shrink-0 text-slate-400" />
+                                  {drive.carModel}
+                                  {drive.variant && ` · ${drive.variant}`}
+                                </span>
+                              )}
+                              {drive.conductedBy && (
+                                <span className="flex items-center gap-1.5">
+                                  <User2 size={12} className="shrink-0 text-slate-400" />
+                                  {drive.conductedBy.name}
+                                </span>
+                              )}
+                            </div>
+                            {/* Rating + completed date, aligned right. */}
+                            <div className="flex shrink-0 flex-col items-end gap-1 text-right">
+                              {drive.rating != null && (
+                                <span className="flex items-center gap-0.5 font-medium text-amber-600 dark:text-amber-400">
+                                  <Star size={11} className="fill-current" /> {drive.rating}/5
+                                </span>
+                              )}
+                              {(drive.completedAt || drive.scheduledAt) && (
+                                <span className="text-[11px] text-slate-400 dark:text-slate-500">
+                                  {drive.completedAt
+                                    ? `Completed ${new Date(drive.completedAt).toLocaleDateString()}`
+                                    : `Scheduled ${new Date(drive.scheduledAt!).toLocaleDateString()}`}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          {drive.comments && (
+                            <p className="mt-1.5 line-clamp-2 text-slate-500 dark:text-slate-400">{drive.comments}</p>
                           )}
                         </div>
-                        {drive.comments && (
-                          <p className="mt-1.5 line-clamp-2 text-slate-500 dark:text-slate-400">{drive.comments}</p>
-                        )}
-                        {(drive.completedAt || drive.scheduledAt) && (
-                          <p className="mt-1.5 text-[11px] text-slate-400 dark:text-slate-500">
-                            {drive.completedAt
-                              ? `Completed ${new Date(drive.completedAt).toLocaleDateString()}`
-                              : `Scheduled ${new Date(drive.scheduledAt!).toLocaleDateString()}`}
-                          </p>
-                        )}
-                      </div>
+                      )}
 
                       {isEditing && (
                         <div className="border-t border-slate-100 bg-slate-50/60 p-4 dark:border-slate-800/60 dark:bg-slate-900/20">
