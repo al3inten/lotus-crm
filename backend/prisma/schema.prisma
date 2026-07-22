@@ -363,6 +363,8 @@ model User {
   leadDrafts              LeadDraft[]
   comments                Comment[]
   notifications           Notification[]
+  dateChanges             DateChangeHistory[]    @relation("DateChangedBy")
+  privateNotes            EnquiryNote[]          @relation("NoteAuthor")
 
   @@index([branchId, role])
   @@map("users")
@@ -495,6 +497,8 @@ model Enquiry {
   financeApplication FinanceApplication?
   deliveryDetails    DeliveryDetails?
   outboundCallTasks  OutboundCallTask[]
+  dateChangeHistory  DateChangeHistory[]
+  privateNotes       EnquiryNote[]
 
   @@index([branchId, status])
   @@index([assignedCrId])
@@ -918,6 +922,45 @@ model Notification {
 
   @@index([userId, isRead])
   @@map("notifications")
+}
+
+// Audit trail for edits to an enquiry's key milestone dates (appointment/booked/retail).
+// `field` stores the client's DateFieldKey (e.g. "APPOINTMENT_AT"); a reason is always required.
+enum DateFieldKey {
+  APPOINTMENT_AT
+  TEST_DRIVE_SCHEDULED_AT
+  BOOKED_AT
+  RETAIL_DONE_AT
+}
+
+model DateChangeHistory {
+  id          String   @id @default(cuid())
+  enquiryId   String
+  enquiry     Enquiry  @relation(fields: [enquiryId], references: [id])
+  field       DateFieldKey
+  oldValue    DateTime?
+  newValue    DateTime
+  reason      String
+  changedById String
+  changedBy   User     @relation("DateChangedBy", fields: [changedById], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@index([enquiryId, createdAt])
+  @@map("date_change_history")
+}
+
+// A private, per-author scratchpad note on an enquiry — only ever visible to its author.
+model EnquiryNote {
+  id        String   @id @default(cuid())
+  enquiryId String
+  enquiry   Enquiry  @relation(fields: [enquiryId], references: [id])
+  authorId  String
+  author    User     @relation("NoteAuthor", fields: [authorId], references: [id])
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([enquiryId, authorId, createdAt])
+  @@map("enquiry_notes")
 }
 
 model SystemSettings {

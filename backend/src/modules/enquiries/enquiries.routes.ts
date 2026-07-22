@@ -6,6 +6,8 @@ import { validateBody } from "../../middleware/validate";
 import {
   changeStatusSchema,
   bookingDetailsSchema,
+  keyDateSchema,
+  noteSchema,
   reassignSchema,
   testDriveSchema,
   updateTestDriveSchema,
@@ -21,6 +23,9 @@ import {
   getEnquiryHandler,
   changeStatusHandler,
   updateBookingHandler,
+  updateKeyDateHandler,
+  addNoteHandler,
+  getNotesHandler,
   reassignHandler,
   testDriveHandler,
   updateTestDriveHandler,
@@ -43,6 +48,9 @@ router.get("/:enquiryId", asyncHandler(getEnquiryHandler));
 router.patch("/:enquiryId/status", validateBody(changeStatusSchema), asyncHandler(changeStatusHandler));
 router.patch("/:enquiryId/details", validateBody(enquiryDetailsSchema), asyncHandler(updateDetailsHandler));
 router.patch("/:enquiryId/booking", validateBody(bookingDetailsSchema), asyncHandler(updateBookingHandler));
+router.patch("/:enquiryId/key-dates", validateBody(keyDateSchema), asyncHandler(updateKeyDateHandler));
+router.get("/:enquiryId/notes", asyncHandler(getNotesHandler));
+router.post("/:enquiryId/notes", validateBody(noteSchema), asyncHandler(addNoteHandler));
 
 router.patch(
   "/:enquiryId/reassign",

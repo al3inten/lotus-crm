@@ -29,6 +29,24 @@ export async function updateBookingHandler(req: Request, res: Response) {
   res.json(enquiry);
 }
 
+export async function updateKeyDateHandler(req: Request, res: Response) {
+  if (!req.user) throw new UnauthorizedError();
+  const enquiry = await enquiriesService.updateKeyDate(req.params.enquiryId, req.body, req.user.id);
+  res.json(enquiry);
+}
+
+export async function addNoteHandler(req: Request, res: Response) {
+  if (!req.user) throw new UnauthorizedError();
+  const note = await enquiriesService.addNote(req.params.enquiryId, req.user.id, req.body.body);
+  res.status(201).json(note);
+}
+
+export async function getNotesHandler(req: Request, res: Response) {
+  if (!req.user) throw new UnauthorizedError();
+  const notes = await enquiriesService.getNotes(req.params.enquiryId, req.user.id);
+  res.json(notes);
+}
+
 export async function reassignHandler(req: Request, res: Response) {
   if (!req.user) throw new UnauthorizedError();
   const enquiry = await enquiriesService.reassign(req.params.enquiryId, req.body, req.user.id);

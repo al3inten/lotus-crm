@@ -60,6 +60,18 @@ export const bookingDetailsSchema = z.object({
   financeDoReceived: z.boolean().optional(),
 });
 
+// Editing a key milestone date always requires a reason (kept as an audit trail).
+export const keyDateSchema = z.object({
+  field: z.enum(["APPOINTMENT_AT", "TEST_DRIVE_SCHEDULED_AT", "BOOKED_AT", "RETAIL_DONE_AT"]),
+  date: z.string().datetime(),
+  reason: z.string().min(1, "A reason is required"),
+});
+
+// Private per-author note on an enquiry.
+export const noteSchema = z.object({
+  body: z.string().min(1),
+});
+
 export const reassignSchema = z.object({
   toUserId: z.string().min(1),
   reason: z.string().optional(),
@@ -140,6 +152,8 @@ export const createCommentSchema = z.object({
 export type EnquiryDetailsInput = z.infer<typeof enquiryDetailsSchema>;
 export type ChangeStatusInput = z.infer<typeof changeStatusSchema>;
 export type BookingDetailsInput = z.infer<typeof bookingDetailsSchema>;
+export type KeyDateInput = z.infer<typeof keyDateSchema>;
+export type NoteInput = z.infer<typeof noteSchema>;
 export type ReassignInput = z.infer<typeof reassignSchema>;
 export type TestDriveInput = z.infer<typeof testDriveSchema>;
 export type UpdateTestDriveInput = z.infer<typeof updateTestDriveSchema>;

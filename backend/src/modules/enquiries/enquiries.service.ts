@@ -1,7 +1,7 @@
 import { prisma } from "../../lib/prisma";
 import { NotFoundError, ValidationError } from "../../lib/errors";
 import { ALLOWED_TRANSITIONS, CONSULTANT_REQUIRED_AT_STATUS, TRANSACTION_OPTIONS } from "../../config/constants";
-import { ChangeStatusInput, ReassignInput, EnquiryDetailsInput, BookingDetailsInput } from "./enquiries.schema";
+import { ChangeStatusInput, ReassignInput, EnquiryDetailsInput, BookingDetailsInput, KeyDateInput } from "./enquiries.schema";
 
 export async function getEnquiry(enquiryId: string) {
   const enquiry = await prisma.enquiry.findUnique({
@@ -18,10 +18,61 @@ export async function getEnquiry(enquiryId: string) {
       financeApplication: true,
       deliveryDetails: true,
       followUps: { orderBy: { createdAt: "desc" }, include: { createdBy: { select: { id: true, name: true } } } },
+      dateChangeHistory: { orderBy: { createdAt: "desc" }, include: { changedBy: { select: { id: true, name: true } } } },
     },
   });
   if (!enquiry) throw new NotFoundError("Enquiry not found");
   return enquiry;
+}
+
+// Maps the client's DateFieldKey to the Enquiry column it edits.
+const KEY_DATE_COLUMN: Record<KeyDateInput["field"], "appointmentAt" | "bookedAt" | "retailDoneAt"> = {
+  APPOINTMENT_AT: "appointmentAt",
+  BOOKED_AT: "bookedAt",
+  RETAIL_DONE_AT: "retailDoneAt",
+  // Test-drive scheduling lives on the TestDriveFeedback rows, not the enquiry — not editable here.
+  TEST_DRIVE_SCHEDULED_AT: "appointmentAt",
+};
+
+/** Edit a key milestone date, recording an audit entry (old → new, with reason). */
+export async function updateKeyDate(enquiryId: string, input: KeyDateInput, changedById: string) {
+  if (input.field === "TEST_DRIVE_SCHEDULED_AT") {
+    throw new ValidationError("Test drive dates are edited from the Test Drives tab, not here.");
+  }
+  const column = KEY_DATE_COLUMN[input.field];
+  return prisma.$transaction(async (tx) => {
+    const enquiry = await tx.enquiry.findUnique({ where: { id: enquiryId } });
+    if (!enquiry) throw new NotFoundError("Enquiry not found");
+
+    const oldValue = enquiry[column] as Date | null;
+    const newValue = new Date(input.date);
+
+    await tx.enquiry.update({ where: { id: enquiryId }, data: { [column]: newValue } });
+    await tx.dateChangeHistory.create({
+      data: { enquiryId, field: input.field, oldValue, newValue, reason: input.reason, changedById },
+    });
+
+    return getEnquiry(enquiryId);
+  }, TRANSACTION_OPTIONS);
+}
+
+/** A private note visible only to its author. */
+export async function addNote(enquiryId: string, authorId: string, body: string) {
+  const enquiry = await prisma.enquiry.findUnique({ where: { id: enquiryId }, select: { id: true } });
+  if (!enquiry) throw new NotFoundError("Enquiry not found");
+  return prisma.enquiryNote.create({
+    data: { enquiryId, authorId, body },
+    include: { author: { select: { id: true, name: true } } },
+  });
+}
+
+/** Returns only the caller's own notes for the enquiry. */
+export async function getNotes(enquiryId: string, authorId: string) {
+  return prisma.enquiryNote.findMany({
+    where: { enquiryId, authorId },
+    orderBy: { createdAt: "desc" },
+    include: { author: { select: { id: true, name: true } } },
+  });
 }
 
 export async function changeStatus(enquiryId: string, input: ChangeStatusInput, changedById: string) {
