@@ -29,5 +29,7 @@ ENV NODE_ENV=production
 ENV PORT=4000
 EXPOSE 4000
 
-# Apply migrations, seed (non-fatal if already seeded), then start.
-CMD ["sh", "-c", "npx prisma migrate deploy && (npx prisma db seed || echo 'seed skipped') && node dist/server.js"]
+# Sync the schema to the (fresh) database, seed (non-fatal if already seeded), then start.
+# `db push` is used instead of `migrate deploy` so a brand-new container DB matches
+# schema.prisma exactly, without depending on migration-history completeness.
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss --skip-generate && (npx prisma db seed || echo 'seed skipped') && node dist/server.js"]

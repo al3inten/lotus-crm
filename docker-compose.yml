@@ -1,3 +1,5 @@
+
+
 # Self-contained stack for local Docker or a Coolify "Docker Compose" deployment.
 # Its own Postgres — completely independent of the Vercel/Render test deployment.
 # In Coolify, set the env vars (JWT_SECRET, MASTER_ENCRYPTION_KEY, POSTGRES_PASSWORD) in the
