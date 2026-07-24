@@ -21,6 +21,7 @@ WORKDIR /app
 
 # node_modules (with the generated Prisma client + tsx for seeding), build output, prisma dir.
 COPY package*.json ./
+COPY container-start.js ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
@@ -29,9 +30,7 @@ ENV NODE_ENV=production
 ENV PORT=4000
 EXPOSE 4000
 
-# Sync the schema to the database, seed (idempotent upserts), then start.
-# `db push` (not `migrate deploy`) so a fresh DB matches schema.prisma exactly without
-# depending on migration-history completeness. NO --accept-data-loss: additive changes apply,
-# but a destructive schema change aborts startup rather than silently dropping data. The data
-# itself lives in the persistent `db_data` volume and survives every redeploy.
-CMD ["sh", "-c", "npx prisma db push --skip-generate && (npx prisma db seed || echo 'seed skipped') && node dist/server.js"]
+# Startup wrapper: non-destructive schema sync, seed ONLY on first boot (empty DB), then start.
+# Seeding once — not every redeploy — avoids resetting demo-user edits. Data persists in the
+# db_data volume regardless. See container-start.js.
+CMD ["node", "container-start.js"]
