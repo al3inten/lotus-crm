@@ -18,6 +18,8 @@ interface Step3VehicleInterestProps {
   fieldError: (name: keyof AddLeadFormInput) => string | undefined;
   setValue: (name: keyof AddLeadFormInput, value: unknown) => void;
   isComplete: boolean;
+  /** Supervisors only — the API rejects the flag from anyone else. */
+  canForceNew: boolean;
   selectedModelName: string | undefined;
   modelOptions: SelectOption[];
   variantOptionsList: SelectOption[];
@@ -32,6 +34,7 @@ export function Step3VehicleInterest({
   fieldError,
   setValue,
   isComplete,
+  canForceNew,
   selectedModelName,
   modelOptions,
   variantOptionsList,
@@ -101,6 +104,18 @@ export function Step3VehicleInterest({
             </option>
           ))}
         </Select>
+
+        {/* Sits on the last required step, next to the Save button, so the duplicate block
+            can be cleared right where it bites. Overriding it is a supervisor call — the
+            API enforces the same rule regardless of this checkbox. */}
+        {!isComplete && canForceNew && (
+          <div className="sm:col-span-2 mt-1 border-t border-slate-100 pt-4 dark:border-slate-800">
+            <label className="inline-flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm text-amber-700 dark:border-amber-800/50 dark:bg-amber-900/20 dark:text-amber-400">
+              <input type="checkbox" {...register("forceNew")} className="rounded border-amber-300 text-amber-600 focus:ring-amber-500" />
+              <span className="font-medium">Force new enquiry</span>
+            </label>
+          </div>
+        )}
       </div>
     </Card>
   );

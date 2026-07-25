@@ -7,6 +7,7 @@ import * as exchangeService from "./exchange.service";
 import * as financeService from "./finance.service";
 import * as deliveryService from "./delivery.service";
 import * as commentsService from "./comments.service";
+import * as notesService from "./notes.service";
 
 export async function getEnquiryHandler(req: Request, res: Response) {
   const enquiry = await enquiriesService.getEnquiry(req.params.enquiryId);
@@ -33,18 +34,6 @@ export async function updateKeyDateHandler(req: Request, res: Response) {
   if (!req.user) throw new UnauthorizedError();
   const enquiry = await enquiriesService.updateKeyDate(req.params.enquiryId, req.body, req.user.id);
   res.json(enquiry);
-}
-
-export async function addNoteHandler(req: Request, res: Response) {
-  if (!req.user) throw new UnauthorizedError();
-  const note = await enquiriesService.addNote(req.params.enquiryId, req.user.id, req.body.body);
-  res.status(201).json(note);
-}
-
-export async function getNotesHandler(req: Request, res: Response) {
-  if (!req.user) throw new UnauthorizedError();
-  const notes = await enquiriesService.getNotes(req.params.enquiryId, req.user.id);
-  res.json(notes);
 }
 
 export async function reassignHandler(req: Request, res: Response) {
@@ -87,6 +76,18 @@ export async function addFollowUpHandler(req: Request, res: Response) {
   if (!req.user) throw new UnauthorizedError();
   const result = await enquiriesService.addFollowUp(req.params.enquiryId, req.body, req.user.id);
   res.status(201).json(result);
+}
+
+export async function getNotesHandler(req: Request, res: Response) {
+  if (!req.user) throw new UnauthorizedError();
+  const notes = await notesService.getNotes(req.params.enquiryId, req.user.id);
+  res.json(notes);
+}
+
+export async function addNoteHandler(req: Request, res: Response) {
+  if (!req.user) throw new UnauthorizedError();
+  const note = await notesService.addNote(req.params.enquiryId, req.user.id, req.body);
+  res.status(201).json(note);
 }
 
 export async function getCommentsHandler(req: Request, res: Response) {

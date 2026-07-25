@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Car, ChevronLeft, ChevronRight, FileSpreadsheet, Users, Loader2, LayoutGrid, Table2, Kanban, Plus, Upload } from "lucide-react";
+import { Car, ChevronLeft, ChevronRight, FileSpreadsheet, Users, Loader2, LayoutGrid, Table2, Kanban, Plus, Upload, UserSearch } from "lucide-react";
 import { motion } from "framer-motion";
 import clsx from "clsx";
 import { useLeads } from "../hooks/useLeads";
@@ -9,6 +9,7 @@ import { LeadTable } from "../components/leads/LeadTable";
 import { LeadCardGrid } from "../components/leads/LeadCardGrid";
 import { LeadKanbanBoard } from "../components/leads/LeadKanbanBoard";
 import { AddLeadWizard } from "../components/leads/AddLeadWizard";
+import { NewLeadPhoneGate } from "../components/leads/NewLeadPhoneGate";
 import { LeadDraftsButton } from "../components/leads/LeadDraftsButton";
 import { ImportLeadsModal } from "../components/leads/ImportLeadsModal";
 import { Button } from "../components/common/Button";
@@ -49,6 +50,10 @@ function getPageNumbers(current: number, total: number): (number | "ellipsis")[]
 export function LeadsPage() {
   const [filters, setFilters] = useState<LeadFiltersType>({ page: 1, pageSize: PAGE_SIZE });
   const [showAddLeadForm, setShowAddLeadForm] = useState(false);
+  const [showPhoneGate, setShowPhoneGate] = useState(false);
+  // Values the phone gate hands over: the number alone for a new customer, or the saved
+  // profile for a returning one. Kept separate from `resumeDraft` (draft resume skips the gate).
+  const [gateValues, setGateValues] = useState<Partial<AddLeadFormValues> | undefined>(undefined);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showSheetsSyncModal, setShowSheetsSyncModal] = useState(false);
   const [resumeDraft, setResumeDraft] = useState<LeadDraft | undefined>(undefined);
@@ -66,9 +71,19 @@ export function LeadsPage() {
 
   const goToPage = (p: number) => setFilters((f) => ({ ...f, page: Math.min(Math.max(1, p), totalPages) }));
 
+  // Straight into the blank intake form.
   const openAddLeadForm = () => {
     setResumeDraft(undefined);
+    setGateValues(undefined);
     setShowAddLeadForm(true);
+  };
+
+  // "Verify & Add" checks the mobile number first, so a returning customer's saved profile
+  // is carried into the form instead of being retyped.
+  const openVerifyFlow = () => {
+    setResumeDraft(undefined);
+    setGateValues(undefined);
+    setShowPhoneGate(true);
   };
 
   const ViewToggle = (
@@ -137,9 +152,13 @@ export function LeadsPage() {
             <LeadDraftsButton
               onResume={(draft) => {
                 setResumeDraft(draft);
+                setGateValues(undefined);
                 setShowAddLeadForm(true);
               }}
             />
+            <Button variant="secondary" icon={<UserSearch size={14} />} onClick={openVerifyFlow}>
+              Verify &amp; Add
+            </Button>
             <Button icon={<Plus size={16} />} onClick={openAddLeadForm}>
               Add Lead
             </Button>
@@ -256,11 +275,20 @@ export function LeadsPage() {
         </div>
       )}
 
+      <NewLeadPhoneGate
+        isOpen={showPhoneGate}
+        onClose={() => setShowPhoneGate(false)}
+        onContinue={(values) => {
+          setGateValues(values);
+          setShowPhoneGate(false);
+          setShowAddLeadForm(true);
+        }}
+      />
       <AddLeadWizard
         isOpen={showAddLeadForm}
         onClose={() => setShowAddLeadForm(false)}
         draftId={resumeDraft?.id}
-        initialValues={resumeDraft?.data as Partial<AddLeadFormValues> | undefined}
+        initialValues={(resumeDraft?.data as Partial<AddLeadFormValues> | undefined) ?? gateValues}
       />
       <ImportLeadsModal isOpen={showImportModal} onClose={() => setShowImportModal(false)} />
       <Modal isOpen={showSheetsSyncModal} onClose={() => setShowSheetsSyncModal(false)} title="Sync from Google Sheets" maxWidth="max-w-lg">

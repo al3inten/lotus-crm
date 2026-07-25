@@ -6,6 +6,9 @@ type LeadLookupResult = NonNullable<ReturnType<typeof useLeadLookup>["data"]>;
 interface RepeatEnquiryBannerProps {
   lookupResult: LeadLookupResult | null | undefined;
   isComplete: boolean;
+  /** Save is refused until "Force new enquiry" is ticked. */
+  isDuplicateBlocked: boolean;
+  canForceNew: boolean;
   alertResult: string | null;
   pushAlertPending: boolean;
   onNotify: () => void;
@@ -14,6 +17,8 @@ interface RepeatEnquiryBannerProps {
 export function RepeatEnquiryBanner({
   lookupResult,
   isComplete,
+  isDuplicateBlocked,
+  canForceNew,
   alertResult,
   pushAlertPending,
   onNotify,
@@ -27,14 +32,25 @@ export function RepeatEnquiryBanner({
           <Check size={16} /> Customer found! Existing details have been auto-filled.
         </p>
       </div>
+      {isDuplicateBlocked && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-3 dark:border-red-500/20 dark:bg-red-500/10">
+          <p className="text-sm text-red-800 dark:text-red-300">
+            <span className="font-bold">Duplicate enquiry blocked:</span> this mobile number already has{" "}
+            {lookupResult.enquiryCount} enquiry(ies) on record, so this form can't be saved as-is.{" "}
+            {canForceNew
+              ? 'Tick "Force new enquiry" in the Vehicle Interest step to deliberately start a separate enquiry.'
+              : "Ask a manager to override this, or continue working on the customer's existing enquiry."}
+          </p>
+        </div>
+      )}
       {lookupResult.hasActiveEnquiry && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 dark:border-amber-500/20 dark:bg-amber-500/10">
           <p className="text-sm text-amber-800 dark:text-amber-300">
             <span className="font-bold">Active enquiry detected:</span> this customer currently has an active
             enquiry in the{" "}
             <span className="font-semibold">{lookupResult.activeEnquiryStatus?.replaceAll("_", " ")}</span>{" "}
-            stage. Saving this form will attach this contact to their existing enquiry unless you check
-            "Force new enquiry" in step 1.
+            stage. Use "Notify CR &amp; manager" below to flag this contact on that enquiry instead of
+            creating a second one.
           </p>
           <div className="mt-2.5 flex flex-wrap items-center gap-2">
             {lookupResult.activeEnquiryId && (

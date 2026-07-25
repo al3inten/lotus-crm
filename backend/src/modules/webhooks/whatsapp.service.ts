@@ -51,7 +51,8 @@ export async function handleIncomingMessages(value: WhatsappChangeValue) {
           enquiryType: "OTHER",
           branchId: await resolveDefaultBranchId(),
         },
-        systemUserId
+        systemUserId,
+        { allowAttach: true }
       );
 
       conversation = await prisma.conversation.create({

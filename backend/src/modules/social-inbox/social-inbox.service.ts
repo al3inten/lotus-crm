@@ -47,7 +47,8 @@ export async function convertToLead(conversationId: string, input: ConvertConver
       location: input.location,
       branchId: input.branchId,
     },
-    convertedById
+    convertedById,
+    { allowAttach: true }
   );
 
   return prisma.conversation.update({

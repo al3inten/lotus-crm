@@ -26,6 +26,8 @@ export const leadEnrichmentSchema = z.object({
       "CTB",
       "CRM",
       "REFERRAL",
+      "CUSTOMER_REFERRAL",
+      "EMPLOYEE_REFERRAL",
       "INCOMING_CALL",
       "DEALER_ACTIVITY",
       "SC_OWN_SOURCE",

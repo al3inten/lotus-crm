@@ -99,11 +99,26 @@ export function LeadActivityTab({
   // Private per-author scratchpad — the server only ever returns the caller's own notes.
   const { data: notes = [], isLoading: notesLoading } = useNotes(enquiry.id);
   const addNote = useAddNote(enquiry.id);
+  const [noteError, setNoteError] = useState<string | null>(null);
   const submitNote = () => {
     const val = localNote.trim();
     if (!val) return;
-    addNote.mutate({ body: val });
+    setNoteError(null);
     setLocalNote("");
+    addNote.mutate(
+      { body: val },
+      {
+        // A failed note used to vanish silently — put the text back so nothing typed is lost,
+        // and say what went wrong.
+        onError: (err) => {
+          setLocalNote(val);
+          setNoteError(
+            (err as { response?: { data?: { error?: string } } }).response?.data?.error ??
+              "Could not save this note. Please try again."
+          );
+        },
+      }
+    );
   };
 
   // The timeline is the one pane with its own async fetch (comments) beyond the enquiry
@@ -406,6 +421,9 @@ export function LeadActivityTab({
                       {addNote.isPending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
                     </button>
                   </div>
+                  {noteError && (
+                    <p className="mt-2 text-xs font-medium text-red-600 dark:text-red-400">{noteError}</p>
+                  )}
                 </div>
               )}
             </motion.div>

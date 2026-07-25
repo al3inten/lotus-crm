@@ -235,6 +235,11 @@ export function AddLeadWizard({
   const { data: lookupResult, isFetching: lookupLoading } = useLeadLookup(phone);
   const isComplete = mode === "complete";
 
+  // Duplicate mobile → the save is blocked (not merely warned about) until "Force new
+  // enquiry" is ticked. The API enforces the same rule.
+  const forceNew = watch("forceNew");
+  const isDuplicateBlocked = !isComplete && !!lookupResult && lookupResult.enquiryCount > 0 && !forceNew;
+
   // Location assistance (India Post public API, no key needed) — works whichever field the
   // CR fills in first:
   //  • Pincode typed → auto-fill City + suggest Area options.
@@ -242,17 +247,20 @@ export function AddLeadWizard({
   const pincode = watch("pincode") || "";
   const areaText = watch("area") || "";
   const cityText = watch("location") || "";
-  const { data: pincodeInfo } = usePincodeLookup(pincode);
+  const { data: pincodeInfo, isFetching: pincodeLoading } = usePincodeLookup(pincode);
   const { data: areaMatches } = usePostOfficeSearch(areaText);
   const { data: cityMatches } = usePostOfficeSearch(cityText);
 
-  const autofilledPincodeRef = useRef<string | null>(null);
+  // Seeded with the pincode the form opened with so we don't clobber an already-saved
+  // city on open, but still autofill on any subsequent pincode edit — including in
+  // "complete"/edit mode, where the CR may correct a wrong pincode and expects City to update.
+  const autofilledPincodeRef = useRef<string | null>(initialValues?.pincode ?? null);
   useEffect(() => {
-    if (pincodeInfo && pincode !== autofilledPincodeRef.current && !isComplete) {
+    if (pincodeInfo && pincode !== autofilledPincodeRef.current) {
       if (pincodeInfo.city) setValue("location", pincodeInfo.city);
       autofilledPincodeRef.current = pincode;
     }
-  }, [pincodeInfo, pincode, isComplete, setValue]);
+  }, [pincodeInfo, pincode, setValue]);
 
   const toOptions = (values: string[]): TypeaheadOption[] => [...new Set(values)].map((v) => ({ value: v, label: v }));
 
@@ -280,7 +288,10 @@ export function AddLeadWizard({
       if (lookupResult.dob) setValue("dob", lookupResult.dob.slice(0, 10));
       if (lookupResult.profession) setValue("profession", lookupResult.profession);
       if (lookupResult.pincode) setValue("pincode", lookupResult.pincode);
+      if (lookupResult.area) setValue("area", lookupResult.area);
       if (lookupResult.address) setValue("address", lookupResult.address);
+      if (lookupResult.location) setValue("location", lookupResult.location);
+      if (lookupResult.department) setValue("department", lookupResult.department);
       setAutofilledPhone(phone);
     }
   }, [lookupResult, phone, autofilledPhone, setValue, isComplete]);
@@ -328,6 +339,8 @@ export function AddLeadWizard({
   };
 
   const buildEnrichmentPayload = (values: AddLeadFormValues): LeadEnrichmentPayload => ({
+    name: values.name || undefined,
+    location: values.location || undefined,
     alternateMobile: values.alternateMobile || undefined,
     dob: toIso(values.dob),
     profession: values.profession || undefined,
@@ -350,6 +363,15 @@ export function AddLeadWizard({
 
   const onSubmit = async (values: AddLeadFormValues, andAddAnother = false) => {
     setResultMessage(null);
+    if (isDuplicateBlocked) {
+      setSaveError(
+        `This mobile number already belongs to ${lookupResult?.name ?? "an existing customer"}. ` +
+          (canForceNew
+            ? 'Tick "Force new enquiry" in the Vehicle Interest step to save this as a separate enquiry.'
+            : "Ask a manager to save it as a new enquiry, or work on their existing enquiry instead.")
+      );
+      return;
+    }
     setPendingAction(andAddAnother ? "saveAndNew" : "save");
     setSaveError(null);
     try {
@@ -503,6 +525,12 @@ export function AddLeadWizard({
                   size="lg"
                   icon={<Check size={16} />}
                   isLoading={pendingAction === "save"}
+                  disabled={isDuplicateBlocked}
+                  title={
+                    isDuplicateBlocked
+                      ? 'Duplicate mobile number — tick "Force new enquiry" in the Vehicle Interest step to save'
+                      : undefined
+                  }
                   onClick={() => handleSubmit((values) => onSubmit(values, false), onInvalid)()}
                 >
                   {isComplete ? "Save Details" : "Save Enquiry"}
@@ -526,6 +554,8 @@ export function AddLeadWizard({
           <RepeatEnquiryBanner
             lookupResult={lookupResult}
             isComplete={isComplete}
+            isDuplicateBlocked={isDuplicateBlocked}
+            canForceNew={canForceNew}
             alertResult={alertResult}
             pushAlertPending={pushAlert.isPending}
             onNotify={notifyRepeatEnquiry}
@@ -604,7 +634,6 @@ export function AddLeadWizard({
                   isComplete={isComplete}
                   branches={branches}
                   crStaff={crStaff}
-                  canForceNew={canForceNew}
                   subsourceOptions={subsourceOptions}
                   sectionTitle={SECTIONS[0].title}
                   sectionIconClassName={SECTIONS[0].iconClassName}
@@ -619,6 +648,7 @@ export function AddLeadWizard({
                   fieldError={fieldError}
                   isComplete={isComplete}
                   lookupLoading={lookupLoading}
+                  cityLoading={pincodeLoading}
                   citySuggestions={citySuggestions}
                   areaSuggestions={areaSuggestions}
                   pincodeSuggestions={pincodeSuggestions}
@@ -635,6 +665,7 @@ export function AddLeadWizard({
                   fieldError={fieldError}
                   setValue={setValue}
                   isComplete={isComplete}
+                  canForceNew={canForceNew}
                   selectedModelName={selectedModelName}
                   modelOptions={modelOptions}
                   variantOptionsList={variantOptionsList}

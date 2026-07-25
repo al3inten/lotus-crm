@@ -1,3 +1,4 @@
+import { getIndiaPincode } from "india-pincode";
 import { prisma } from "../../lib/prisma";
 
 interface PostOfficeRecord {
@@ -7,18 +8,21 @@ interface PostOfficeRecord {
   state: string;
 }
 
-// India Post's public pincode directory — unofficial but the de-facto standard free source
-// for this data in the Indian dev ecosystem. Called only as a cache-miss fallback; results
-// are persisted to our own `post_offices` table so this external dependency shrinks over time.
-const UPSTREAM_BASE = "https://api.postalpincode.in";
+// Bundled offline dataset (165K+ post offices) — replaces the old live call to India Post's
+// public API. Lookups are synchronous/local; results are still persisted to our own
+// `post_offices` table so downstream callers keep hitting the cache first.
+const pin = getIndiaPincode();
 
-async function fetchFromUpstream(path: string): Promise<PostOfficeRecord[]> {
-  const res = await fetch(`${UPSTREAM_BASE}${path}`);
-  if (!res.ok) return [];
-  const data = (await res.json()) as Array<{ Status: string; PostOffice?: Array<{ Name: string; Pincode: string; District: string; State: string }> }>;
-  const record = data?.[0];
-  if (record?.Status !== "Success" || !record.PostOffice?.length) return [];
-  return record.PostOffice.map((o) => ({ pincode: o.Pincode, name: o.Name, city: o.District, state: o.State }));
+function fetchFromUpstream(pincode: string): PostOfficeRecord[] {
+  const result = pin.getByPincode(pincode);
+  if (!result.success || !result.data) return [];
+  return result.data.data.map((o) => ({ pincode: o.pincode, name: o.area, city: o.district, state: o.state }));
+}
+
+function searchUpstream(query: string): PostOfficeRecord[] {
+  const result = pin.search(query, { limit: 25 });
+  if (!result.success || !result.data) return [];
+  return result.data.data.map((o) => ({ pincode: o.pincode, name: o.area, city: o.district, state: o.state }));
 }
 
 async function cacheRecords(records: PostOfficeRecord[]) {
@@ -35,7 +39,7 @@ export async function lookupPincode(pincode: string) {
   let rows = await prisma.postOffice.findMany({ where: { pincode } });
 
   if (rows.length === 0) {
-    const fetched = await fetchFromUpstream(`/pincode/${pincode}`);
+    const fetched = fetchFromUpstream(pincode);
     await cacheRecords(fetched);
     rows = fetched.length ? await prisma.postOffice.findMany({ where: { pincode } }) : [];
   }
@@ -59,7 +63,7 @@ export async function searchByName(query: string) {
 
   if (cached.length >= 5) return cached;
 
-  const fetched = await fetchFromUpstream(`/postoffice/${encodeURIComponent(query)}`);
+  const fetched = searchUpstream(query);
   await cacheRecords(fetched);
   if (!fetched.length) return cached;
 

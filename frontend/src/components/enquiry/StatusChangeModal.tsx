@@ -350,6 +350,9 @@ export function StatusChangeModal({
                   value={field.value}
                   onChange={field.onChange}
                   error={errors.dob?.message}
+                  captionLayout="dropdown"
+                  startMonth={new Date(1940, 0)}
+                  endMonth={new Date()}
                 />
               )}
             />

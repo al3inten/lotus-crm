@@ -17,7 +17,6 @@ interface Step1EnquirySourceProps {
   isComplete: boolean;
   branches: ReturnType<typeof useBranches>["data"];
   crStaff: ReturnType<typeof useBranchStaff>["data"];
-  canForceNew: boolean;
   subsourceOptions: readonly string[];
   sectionTitle: string;
   sectionIconClassName: string;
@@ -31,7 +30,6 @@ export function Step1EnquirySource({
   isComplete,
   branches,
   crStaff,
-  canForceNew,
   subsourceOptions,
   sectionTitle,
   sectionIconClassName,
@@ -118,18 +116,10 @@ export function Step1EnquirySource({
         </Select>
 
         {!isComplete && (
-          <div className="sm:col-span-2 mt-1 flex flex-col justify-between gap-2 border-t border-slate-100 pt-4 dark:border-slate-800 sm:flex-row sm:items-center">
+          <div className="sm:col-span-2 mt-1 border-t border-slate-100 pt-4 dark:border-slate-800">
             <p className="text-xs text-slate-400 dark:text-slate-500">
               Enquiry date: {new Date().toLocaleDateString()}
             </p>
-            {/* Overriding the duplicate-customer block is a supervisor call —
-                the API enforces the same rule regardless of this checkbox. */}
-            {canForceNew && (
-              <label className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm text-amber-700 dark:border-amber-800/50 dark:bg-amber-900/20 dark:text-amber-400">
-                <input type="checkbox" {...register("forceNew")} className="rounded border-amber-300 text-amber-600 focus:ring-amber-500" />
-                <span className="font-medium">Force new enquiry</span>
-              </label>
-            )}
           </div>
         )}
       </div>
