@@ -1,7 +1,7 @@
 import { prisma } from "../../lib/prisma";
 import { NotFoundError, ValidationError } from "../../lib/errors";
 import { ALLOWED_TRANSITIONS, CONSULTANT_REQUIRED_AT_STATUS, TRANSACTION_OPTIONS } from "../../config/constants";
-import { ChangeStatusInput, ReassignInput, EnquiryDetailsInput, BookingDetailsInput } from "./enquiries.schema";
+import { ChangeStatusInput, ReassignInput, EnquiryDetailsInput, BookingDetailsInput, UpdateKeyDateInput } from "./enquiries.schema";
 
 export async function getEnquiry(enquiryId: string) {
   const enquiry = await prisma.enquiry.findUnique({
@@ -12,6 +12,7 @@ export async function getEnquiry(enquiryId: string) {
       assignedCr: { select: { id: true, name: true } },
       consultant: { select: { id: true, name: true } },
       statusHistory: { orderBy: { createdAt: "asc" }, include: { changedBy: { select: { id: true, name: true } } } },
+      dateChangeHistory: { orderBy: { createdAt: "desc" }, include: { changedBy: { select: { id: true, name: true } } } },
       testDriveFeedbacks: { orderBy: { createdAt: "desc" }, include: { conductedBy: { select: { id: true, name: true } } } },
       quotation: true,
       exchangeEvaluation: true,
@@ -151,6 +152,7 @@ export async function updateEnquiryDetails(enquiryId: string, input: EnquiryDeta
     await tx.lead.update({
       where: { id: enquiry.leadId },
       data: {
+        name: input.name,
         alternateMobile: input.alternateMobile,
         dob: input.dob ? new Date(input.dob) : undefined,
         profession: input.profession,
@@ -163,6 +165,7 @@ export async function updateEnquiryDetails(enquiryId: string, input: EnquiryDeta
     return tx.enquiry.update({
       where: { id: enquiryId },
       data: {
+        location: input.location,
         department: input.department,
         sourceCategory: input.sourceCategory,
         subsource: input.subsource,
@@ -211,6 +214,56 @@ export async function updateBookingDetails(enquiryId: string, input: BookingDeta
       financeDoReceived: financeRequired ? input.financeDoReceived ?? null : null,
     },
   });
+}
+
+/**
+ * Corrects a pipeline milestone date after the fact (a booking entered on the wrong day, an
+ * appointment that actually happened later, …). The enquiry keeps only the current value, so
+ * every edit also writes a DateChangeHistory row carrying the old value and the mandatory
+ * reason — that audit trail is the whole point of editing dates here rather than in the DB.
+ *
+ * TEST_DRIVE_SCHEDULED_AT lives on the most recent TestDriveFeedback rather than the enquiry.
+ */
+export async function updateKeyDate(enquiryId: string, input: UpdateKeyDateInput, changedById: string) {
+  await prisma.$transaction(async (tx) => {
+    const enquiry = await tx.enquiry.findUnique({ where: { id: enquiryId } });
+    if (!enquiry) throw new NotFoundError("Enquiry not found");
+
+    const newValue = new Date(input.date);
+    let oldValue: Date | null;
+
+    if (input.field === "TEST_DRIVE_SCHEDULED_AT") {
+      const testDrive = await tx.testDriveFeedback.findFirst({
+        where: { enquiryId },
+        orderBy: { createdAt: "desc" },
+      });
+      if (!testDrive) throw new ValidationError("This enquiry has no test drive to reschedule.");
+      oldValue = testDrive.scheduledAt;
+      await tx.testDriveFeedback.update({ where: { id: testDrive.id }, data: { scheduledAt: newValue } });
+    } else {
+      const column = {
+        APPOINTMENT_AT: "appointmentAt",
+        BOOKED_AT: "bookedAt",
+        RETAIL_DONE_AT: "retailDoneAt",
+      }[input.field] as "appointmentAt" | "bookedAt" | "retailDoneAt";
+
+      oldValue = enquiry[column];
+      await tx.enquiry.update({
+        where: { id: enquiryId },
+        // Setting an appointment date implies the appointment exists — otherwise the detail
+        // page would keep showing "not scheduled" next to a date the CR just entered.
+        data: { [column]: newValue, ...(column === "appointmentAt" ? { appointmentScheduled: true } : {}) },
+      });
+    }
+
+    await tx.dateChangeHistory.create({
+      data: { enquiryId, field: input.field, oldValue, newValue, reason: input.reason, changedById },
+    });
+  }, TRANSACTION_OPTIONS);
+
+  // Read back outside the transaction — getEnquiry uses the shared client, so calling it
+  // from inside would return the pre-commit state.
+  return getEnquiry(enquiryId);
 }
 
 export async function reassign(enquiryId: string, input: ReassignInput, reassignedById: string) {

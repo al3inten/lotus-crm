@@ -1,10 +1,23 @@
+import { parsePhoneNumberFromString } from "libphonenumber-js";
 import { ValidationError } from "../../lib/errors";
 
 /**
- * Canonicalizes an Indian phone number to a bare 10-digit string so
- * "9876543210", "+91 98765 43210", and "098765-43210" all dedupe to the same key.
+ * Canonicalizes a phone number into the dedupe key stored on Lead.phoneNormalized.
+ *
+ * Indian numbers keep their historical bare-10-digit form ("9876543210", "+91 98765 43210"
+ * and "098765-43210" all collapse to the same key) so every row already in the database
+ * still matches. Numbers from any other country normalize to their E.164 digits with the
+ * country code kept, which is what makes them distinguishable.
  */
 export function normalizePhone(raw: string): string {
+  const parsed = parsePhoneNumberFromString(raw, "IN");
+
+  if (parsed?.isValid()) {
+    return parsed.country === "IN" ? parsed.nationalNumber : parsed.number.replace(/^\+/, "");
+  }
+
+  // Fallback for loosely-formatted Indian numbers that libphonenumber rejects (e.g. test
+  // fixtures and older imported rows) — same rules this helper has always applied.
   let digits = raw.replace(/[^\d+]/g, "");
   digits = digits.replace(/^\+/, "");
 

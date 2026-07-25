@@ -61,7 +61,8 @@ export async function createLeadFromLeadgenId(pageAccessToken: string, leadgenId
       location,
       branchId: await resolveDefaultBranchId(),
     },
-    systemUserId
+    systemUserId,
+    { allowAttach: true }
   );
 }
 

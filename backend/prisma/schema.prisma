@@ -100,6 +100,8 @@ enum LeadSubsource {
   CTB
   CRM
   REFERRAL
+  CUSTOMER_REFERRAL
+  EMPLOYEE_REFERRAL
   INCOMING_CALL
   DEALER_ACTIVITY
   SC_OWN_SOURCE
@@ -346,6 +348,8 @@ model User {
   assignedEnquiries       Enquiry[]              @relation("AssignedCr")
   consultantEnquiries     Enquiry[]              @relation("AssignedConsultant")
   statusChanges           EnquiryStatusHistory[] @relation("ChangedBy")
+  dateChanges             DateChangeHistory[]    @relation("DateChangedBy")
+  enquiryNotes            EnquiryNote[]          @relation("NoteAuthor")
   followUps               FollowUp[]
   reassignmentsFrom       ReassignmentLog[]      @relation("ReassignFrom")
   reassignmentsTo         ReassignmentLog[]      @relation("ReassignTo")
@@ -486,6 +490,8 @@ model Enquiry {
   updatedAt DateTime @updatedAt
 
   statusHistory      EnquiryStatusHistory[]
+  dateChangeHistory  DateChangeHistory[]
+  notes              EnquiryNote[]
   comments           Comment[]
   followUps          FollowUp[]
   reassignmentLogs   ReassignmentLog[]
@@ -510,6 +516,47 @@ model Enquiry {
   @@index([source])
   @@index([enquiryCategory])
   @@map("enquiries")
+}
+
+/// A CR's private scratch note on an enquiry — visible only to whoever wrote it (the API
+/// always scopes reads to the caller), unlike Comment, which the whole team sees.
+model EnquiryNote {
+  id        String   @id @default(cuid())
+  enquiryId String
+  enquiry   Enquiry  @relation(fields: [enquiryId], references: [id])
+  authorId  String
+  author    User     @relation("NoteAuthor", fields: [authorId], references: [id])
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([enquiryId, authorId, createdAt])
+  @@map("enquiry_notes")
+}
+
+/// Corrections to a pipeline milestone date (appointment, booking, retail). Every edit
+/// carries a mandatory reason and is kept forever, so a date that moved can always be
+/// explained — the enquiry row itself only ever holds the current value.
+enum DateFieldKey {
+  APPOINTMENT_AT
+  TEST_DRIVE_SCHEDULED_AT
+  BOOKED_AT
+  RETAIL_DONE_AT
+}
+
+model DateChangeHistory {
+  id          String       @id @default(cuid())
+  enquiryId   String
+  enquiry     Enquiry      @relation(fields: [enquiryId], references: [id])
+  field       DateFieldKey
+  oldValue    DateTime?
+  newValue    DateTime
+  reason      String       @db.Text
+  changedById String
+  changedBy   User         @relation("DateChangedBy", fields: [changedById], references: [id])
+  createdAt   DateTime     @default(now())
+
+  @@index([enquiryId, createdAt])
+  @@map("date_change_history")
 }
 
 model EnquiryStatusHistory {

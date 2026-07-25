@@ -15,8 +15,8 @@ export function Calendar({ className, classNames, showOutsideDays = true, ...pro
       classNames={{
         months: "flex flex-col gap-4",
         month: "space-y-3",
-        month_caption: "flex items-center justify-center pt-1 relative",
-        caption_label: "text-sm font-semibold text-slate-900 dark:text-white",
+        month_caption: "flex items-center justify-center pt-1 relative group",
+        caption_label: "text-sm font-semibold text-slate-900 dark:text-white group-has-[select]:hidden",
         nav: "flex items-center gap-1 absolute inset-x-1 top-1 justify-between z-10",
         button_previous:
           "inline-flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:opacity-30 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white",
@@ -37,9 +37,9 @@ export function Calendar({ className, classNames, showOutsideDays = true, ...pro
         hidden: "invisible",
         range_middle:
           "[&>button]:rounded-none [&>button]:bg-blue-50 [&>button]:text-blue-900 dark:[&>button]:bg-blue-500/15 dark:[&>button]:text-blue-100",
-        dropdowns: "flex items-center gap-2",
+        dropdowns: "flex items-center justify-center gap-1.5 mt-0.5",
         dropdown:
-          "rounded-lg border border-slate-200 bg-white px-2 py-1 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white",
+          "h-7 rounded-lg border border-slate-200/80 bg-slate-50/50 px-2 py-0.5 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-100/70 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/25 dark:border-slate-800 dark:bg-slate-900/50 dark:hover:bg-slate-800/70 dark:text-slate-300 cursor-pointer",
         ...classNames,
       }}
       components={{

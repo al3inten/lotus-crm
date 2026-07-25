@@ -169,7 +169,12 @@ export function FollowUpsPage() {
             label={tf.label}
             value={stats?.[tf.statKey] ?? 0}
             active={filters.timeframe === tf.key && !filters.dueDate}
-            onClick={() => patch({ timeframe: tf.key, dueDate: undefined })}
+            onClick={() => {
+              patch({ timeframe: tf.key, dueDate: undefined });
+              requestAnimationFrame(() => {
+                document.getElementById("follow-up-list")?.scrollIntoView({ behavior: "smooth" });
+              });
+            }}
           />
         ))}
       </motion.div>
@@ -206,7 +211,7 @@ export function FollowUpsPage() {
       </motion.div>
 
       {/* ---------- RESULT SUMMARY ---------- */}
-      <div ref={listRef} className="scroll-mt-4" />
+      <div id="follow-up-list" ref={listRef} className="scroll-mt-4" />
       {!isLoading && data && (
         <div className="flex items-center justify-between gap-3 px-1 text-sm">
           <p className="text-slate-500 dark:text-slate-400">

@@ -75,7 +75,7 @@ export function BookingDetailsForm({
       </div>
 
       <fieldset disabled={!editable} className="m-0 flex flex-col gap-3 border-0 p-0 disabled:opacity-70">
-        <DatePickerField label="Booking date" value={bookedAt} onChange={setBookedAt} />
+        <DatePickerField label="Booking date" value={bookedAt} onChange={(v) => setBookedAt(v ?? "")} />
 
         <div className="flex flex-col gap-3 rounded-xl border border-emerald-200 bg-emerald-50/60 p-3 dark:border-emerald-500/25 dark:bg-emerald-500/10">
           <Switch

@@ -19,19 +19,45 @@ const TERMINAL_STATUSES: EnquiryStatus[] = ["RETAIL_DONE", "CLOSED"];
  * - Active enquiry exists: NO new enquiry. The touch attaches to the active journey,
  *   so the same person walking in today and submitting a Meta form tomorrow stays ONE
  *   enquiry with full contact history — never a duplicate row.
+ *
+ * `allowAttach` is for unattended ingestion (Meta/WhatsApp webhooks, CSV import, social
+ * inbox), where there's no operator to make a call and dropping the contact would lose
+ * it. Operator-facing intake leaves it off, so a known phone number hard-fails until the
+ * operator ticks "Force new enquiry" rather than silently folding into another enquiry.
  */
-export async function createOrAttachEnquiry(input: CreateEnquiryInput, createdById: string) {
+export async function createOrAttachEnquiry(
+  input: CreateEnquiryInput,
+  createdById: string,
+  { allowAttach = false }: { allowAttach?: boolean } = {}
+) {
   const phoneNormalized = normalizePhone(input.phone);
 
   const result = await prisma.$transaction(async (tx) => {
     const branch = await tx.branch.findUnique({ where: { id: input.branchId } });
     if (!branch) throw new NotFoundError("Branch not found");
 
+    const existingLead = await tx.lead.findUnique({ where: { phoneNormalized } });
+
+    // A repeat contact never overwrites a profile field the CRM already knows, but it must
+    // still fill in the blanks: pincode, area, DOB and the rest live only on the Lead (no
+    // Enquiry column holds them), so leaving `update` empty silently threw away everything
+    // the CR typed into Customer Details for a returning customer — and left the next
+    // intake with nothing to pre-fill.
+    const profileGapFill = existingLead
+      ? {
+          email: existingLead.email ?? input.email,
+          alternateMobile: existingLead.alternateMobile ?? input.alternateMobile,
+          dob: existingLead.dob ?? (input.dob ? new Date(input.dob) : undefined),
+          profession: existingLead.profession ?? input.profession,
+          pincode: existingLead.pincode ?? input.pincode,
+          area: existingLead.area ?? input.area,
+          address: existingLead.address ?? input.address,
+        }
+      : {};
+
     const lead = await tx.lead.upsert({
       where: { phoneNormalized },
-      // Repeat contacts never overwrite an already-completed profile — only a brand-new
-      // lead gets the enrichment fields from this submission.
-      update: {},
+      update: profileGapFill,
       create: {
         name: input.name,
         phoneRaw: input.phone,
@@ -54,18 +80,11 @@ export async function createOrAttachEnquiry(input: CreateEnquiryInput, createdBy
       orderBy: { createdAt: "desc" },
     });
 
-    // A known phone number never silently opens a second enquiry. With an active
-    // enquiry the contact attaches to it (below); with only closed/completed ones we
-    // stop and make the operator confirm via `forceNew`, so a genuine repeat buyer is
-    // still possible but never accidental.
-    if (isRepeatLead && !activeEnquiry && !input.forceNew) {
-      throw new ConflictError(
-        `This customer already exists (${lead.name}) with ${priorEnquiryCount} previous ` +
-          `enquiry(s), all closed. Tick "Force new enquiry" to start a new one.`
-      );
-    }
-
-    if (activeEnquiry && !input.forceNew) {
+    // A known phone number never silently opens a second enquiry, and it never silently
+    // folds into an existing one either: the save is blocked outright until the operator
+    // confirms via `forceNew`, so a genuine repeat buyer is still possible but never
+    // accidental.
+    if (activeEnquiry && !input.forceNew && allowAttach) {
       await tx.leadTouch.create({
         data: {
           leadId: lead.id,
@@ -92,6 +111,16 @@ export async function createOrAttachEnquiry(input: CreateEnquiryInput, createdBy
         priorEnquiryCount,
         attachedToExisting: true,
       };
+    }
+
+    if (isRepeatLead && !input.forceNew) {
+      throw new ConflictError(
+        activeEnquiry
+          ? `This customer already exists (${lead.name}) with an active enquiry in the ` +
+            `${activeEnquiry.status.replaceAll("_", " ")} stage. Tick "Force new enquiry" to start another one.`
+          : `This customer already exists (${lead.name}) with ${priorEnquiryCount} previous ` +
+            `enquiry(s), all closed. Tick "Force new enquiry" to start a new one.`
+      );
     }
 
     let assignedCrId: string | null = null;
@@ -413,10 +442,22 @@ export async function lookupLeadByPhone(phone: string) {
         select: { id: true, status: true },
         take: 1,
       },
+      // Total (not just active) — the intake form blocks the save for any lead that
+      // already has an enquiry, matching the createWalkInLead rule above.
+      _count: { select: { enquiries: true } },
     },
   });
 
   if (!lead) return null;
+
+  // City and department live on the Enquiry, not the Lead — the most recent enquiry of
+  // any status carries the last such details we heard from this customer, so the intake
+  // form can pre-fill them instead of making the CR retype what the CRM already knows.
+  const lastEnquiry = await prisma.enquiry.findFirst({
+    where: { leadId: lead.id },
+    orderBy: { createdAt: "desc" },
+    select: { location: true, department: true },
+  });
 
   return {
     leadId: lead.id,
@@ -428,6 +469,9 @@ export async function lookupLeadByPhone(phone: string) {
     pincode: lead.pincode,
     area: lead.area,
     address: lead.address,
+    location: lastEnquiry?.location ?? null,
+    department: lastEnquiry?.department ?? null,
+    enquiryCount: lead._count.enquiries,
     hasActiveEnquiry: lead.enquiries.length > 0,
     activeEnquiryId: lead.enquiries[0]?.id ?? null,
     activeEnquiryStatus: lead.enquiries[0]?.status ?? null,

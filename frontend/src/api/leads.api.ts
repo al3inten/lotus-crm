@@ -35,6 +35,11 @@ export interface LeadLookupResult {
   pincode?: string | null;
   area?: string | null;
   address?: string | null;
+  /** City and department come from the customer's most recent enquiry. */
+  location?: string | null;
+  department?: Department | null;
+  /** Total enquiries (active + closed) already on this lead. */
+  enquiryCount: number;
   hasActiveEnquiry: boolean;
   activeEnquiryId?: string | null;
   activeEnquiryStatus?: string | null;
@@ -42,6 +47,8 @@ export interface LeadLookupResult {
 
 /** Offline-intake enrichment fields — all optional, shared by create and complete-details payloads. */
 export interface LeadEnrichmentPayload {
+  name?: string;
+  location?: string;
   alternateMobile?: string;
   dob?: string;
   profession?: string;

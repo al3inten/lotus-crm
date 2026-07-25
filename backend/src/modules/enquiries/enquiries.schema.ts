@@ -6,6 +6,8 @@ import { leadEnrichmentSchema } from "../leads/leads.schema";
 // field stays optional (already the case on leadEnrichmentSchema). `consultantId` is
 // additionally accepted so the showroom consultant can be reassigned from the detail page.
 export const enquiryDetailsSchema = leadEnrichmentSchema.extend({
+  name: z.string().optional(),
+  location: z.string().optional(),
   consultantId: z.string().optional(),
 });
 
@@ -123,6 +125,14 @@ export const deliveryDetailsSchema = z.object({
   notes: z.string().optional(),
 });
 
+// A milestone date correction. The reason is mandatory: the whole point of the audit row
+// is being able to explain later why a booking or retail date moved.
+export const updateKeyDateSchema = z.object({
+  field: z.enum(["APPOINTMENT_AT", "TEST_DRIVE_SCHEDULED_AT", "BOOKED_AT", "RETAIL_DONE_AT"]),
+  date: z.string().datetime(),
+  reason: z.string().trim().min(1, "A reason is required for this change"),
+});
+
 export const createFollowUpSchema = z.object({
   followUpDate: z.string().datetime(),
   followUpTime: z.string().optional(),
@@ -130,6 +140,11 @@ export const createFollowUpSchema = z.object({
   remark: z.string().min(1),
   nextFollowUpDate: z.string().datetime().optional(),
   nextFollowUpTime: z.string().optional(),
+});
+
+// Private note — body only; the author and enquiry come from the request context.
+export const createNoteSchema = z.object({
+  body: z.string().trim().min(1, "Note cannot be empty"),
 });
 
 export const createCommentSchema = z.object({
@@ -147,5 +162,7 @@ export type QuotationInput = z.infer<typeof quotationSchema>;
 export type ExchangeEvaluationInput = z.infer<typeof exchangeEvaluationSchema>;
 export type FinanceApplicationInput = z.infer<typeof financeApplicationSchema>;
 export type DeliveryDetailsInput = z.infer<typeof deliveryDetailsSchema>;
+export type UpdateKeyDateInput = z.infer<typeof updateKeyDateSchema>;
 export type CreateFollowUpInput = z.infer<typeof createFollowUpSchema>;
+export type CreateNoteInput = z.infer<typeof createNoteSchema>;
 export type CreateCommentInput = z.infer<typeof createCommentSchema>;

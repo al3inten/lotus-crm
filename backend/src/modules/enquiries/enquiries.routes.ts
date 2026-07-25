@@ -6,6 +6,7 @@ import { validateBody } from "../../middleware/validate";
 import {
   changeStatusSchema,
   bookingDetailsSchema,
+  updateKeyDateSchema,
   reassignSchema,
   testDriveSchema,
   updateTestDriveSchema,
@@ -16,11 +17,13 @@ import {
   enquiryDetailsSchema,
   createFollowUpSchema,
   createCommentSchema,
+  createNoteSchema,
 } from "./enquiries.schema";
 import {
   getEnquiryHandler,
   changeStatusHandler,
   updateBookingHandler,
+  updateKeyDateHandler,
   reassignHandler,
   testDriveHandler,
   updateTestDriveHandler,
@@ -32,6 +35,8 @@ import {
   addFollowUpHandler,
   getCommentsHandler,
   addCommentHandler,
+  getNotesHandler,
+  addNoteHandler,
 } from "./enquiries.controller";
 
 const router = Router();
@@ -43,6 +48,7 @@ router.get("/:enquiryId", asyncHandler(getEnquiryHandler));
 router.patch("/:enquiryId/status", validateBody(changeStatusSchema), asyncHandler(changeStatusHandler));
 router.patch("/:enquiryId/details", validateBody(enquiryDetailsSchema), asyncHandler(updateDetailsHandler));
 router.patch("/:enquiryId/booking", validateBody(bookingDetailsSchema), asyncHandler(updateBookingHandler));
+router.patch("/:enquiryId/key-dates", validateBody(updateKeyDateSchema), asyncHandler(updateKeyDateHandler));
 
 router.patch(
   "/:enquiryId/reassign",
@@ -60,5 +66,9 @@ router.post("/:enquiryId/delivery", validateBody(deliveryDetailsSchema), asyncHa
 router.post("/:enquiryId/follow-ups", validateBody(createFollowUpSchema), asyncHandler(addFollowUpHandler));
 router.get("/:enquiryId/comments", asyncHandler(getCommentsHandler));
 router.post("/:enquiryId/comments", validateBody(createCommentSchema), asyncHandler(addCommentHandler));
+
+// Private notes — reads are scoped to the caller inside the service, never by query param.
+router.get("/:enquiryId/notes", asyncHandler(getNotesHandler));
+router.post("/:enquiryId/notes", validateBody(createNoteSchema), asyncHandler(addNoteHandler));
 
 export default router;

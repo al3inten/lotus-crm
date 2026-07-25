@@ -165,7 +165,8 @@ export async function importRows(
           source,
           branchId,
         },
-        createdById
+        createdById,
+        { allowAttach: true }
       );
 
       results.push({ row: rowNumber, status: isRepeatLead ? "merged" : "created" });

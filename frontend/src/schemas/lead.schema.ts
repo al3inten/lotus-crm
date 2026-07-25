@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isValidPhoneNumber } from "libphonenumber-js";
 import { ENQUIRY_TYPES, LEAD_SOURCES, DEPARTMENTS, LEAD_SUBSOURCES, SOURCE_CATEGORIES, ENQUIRY_CATEGORIES } from "../types";
 
 /** z.coerce.number() turns a blank input ("") into 0, which then fails min()/nonnegative()
@@ -90,7 +91,12 @@ function requireExchangeFields(
 const walkInLeadBaseSchema = z
   .object({
     name: z.string().min(1, "Name is required"),
-    phone: z.string().regex(TEN_DIGITS, "Mobile number must be exactly 10 digits"),
+    // The intake field stores E.164 (country code included) and libphonenumber-js decides
+    // what's valid for that country, so overseas customers aren't forced into an Indian shape.
+    phone: z
+      .string()
+      .min(1, "Mobile number is required")
+      .refine((v) => isValidPhoneNumber(v), "Enter a valid mobile number for the selected country"),
     email: z
       .string()
       .min(1, "Email is required — type \"Nil\" if the customer doesn't have one")

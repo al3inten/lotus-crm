@@ -31,6 +31,9 @@ interface BaseProps {
   onChange: (value: string | undefined) => void;
   placeholder?: string;
   disabled?: boolean;
+  captionLayout?: "label" | "dropdown" | "dropdown-months" | "dropdown-years";
+  startMonth?: Date;
+  endMonth?: Date;
 }
 
 /** Shared shell: icon + trigger button + clear affordance inside a FieldWrapper. */
@@ -131,7 +134,18 @@ function TimeColumn({ selected, onSelect }: { selected: string | null; onSelect:
 }
 
 /** Date + time (12-hour, AM/PM). Value is an ISO string. */
-export function DateTimePicker({ label, error, required, value, onChange, placeholder, disabled }: BaseProps) {
+export function DateTimePicker({
+  label,
+  error,
+  required,
+  value,
+  onChange,
+  placeholder,
+  disabled,
+  captionLayout,
+  startMonth,
+  endMonth,
+}: BaseProps) {
   const selected = value && isValid(new Date(value)) ? new Date(value) : null;
 
   const commitDate = (date: Date | undefined) => {
@@ -162,7 +176,15 @@ export function DateTimePicker({ label, error, required, value, onChange, placeh
     >
       {(close) => (
         <div className="flex gap-2">
-          <Calendar mode="single" selected={selected ?? undefined} onSelect={commitDate} defaultMonth={selected ?? undefined} />
+          <Calendar
+            mode="single"
+            selected={selected ?? undefined}
+            onSelect={commitDate}
+            defaultMonth={selected ?? undefined}
+            captionLayout={captionLayout}
+            startMonth={startMonth}
+            endMonth={endMonth}
+          />
           <TimeColumn
             selected={selected ? format(selected, "HH:mm") : null}
             onSelect={(t) => {
@@ -177,7 +199,18 @@ export function DateTimePicker({ label, error, required, value, onChange, placeh
 }
 
 /** Date only (no time). Value is a `yyyy-MM-dd` string. */
-export function DatePickerField({ label, error, required, value, onChange, placeholder, disabled }: BaseProps) {
+export function DatePickerField({
+  label,
+  error,
+  required,
+  value,
+  onChange,
+  placeholder,
+  disabled,
+  captionLayout,
+  startMonth,
+  endMonth,
+}: BaseProps) {
   const parsed = value ? parse(value, "yyyy-MM-dd", new Date()) : null;
   const selected = parsed && isValid(parsed) ? parsed : null;
 
@@ -198,6 +231,9 @@ export function DatePickerField({ label, error, required, value, onChange, place
           mode="single"
           selected={selected ?? undefined}
           defaultMonth={selected ?? undefined}
+          captionLayout={captionLayout}
+          startMonth={startMonth}
+          endMonth={endMonth}
           onSelect={(d) => {
             onChange(d ? format(d, "yyyy-MM-dd") : undefined);
             close();

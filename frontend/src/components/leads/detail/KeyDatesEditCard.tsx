@@ -101,8 +101,17 @@ function EditSectionForm({
     if (!date) return setError("Pick a date.");
     if (!reason.trim()) return setError("A reason is required for this change.");
     setError(null);
-    await updateKeyDate.mutateAsync({ field: section.field, date, reason: reason.trim() });
-    onDone();
+    try {
+      await updateKeyDate.mutateAsync({ field: section.field, date, reason: reason.trim() });
+      onDone();
+    } catch (err) {
+      // Without this the rejection escaped as an unhandled promise: the form just sat there
+      // looking idle while the request had already failed.
+      setError(
+        (err as { response?: { data?: { error?: string } } }).response?.data?.error ??
+          "Could not update this date. Please try again."
+      );
+    }
   };
 
   return (
