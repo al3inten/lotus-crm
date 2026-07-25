@@ -1,15 +1,21 @@
 import clsx from "clsx";
+import { motion } from "framer-motion";
 
 const SKELETON =
-  "animate-pulse rounded-2xl border border-slate-200/70 bg-white dark:border-white/[0.07] dark:bg-[#0E1015]";
+  "skeleton-shimmer animate-pulse rounded-2xl border border-slate-200/70 bg-white dark:border-white/[0.07] dark:bg-[#0E1015]";
 
 const HAIRLINE = "border-slate-200/70 dark:border-white/[0.07]";
 
-const PULSE = "animate-pulse rounded-md bg-slate-100 dark:bg-white/[0.05]";
+const PULSE = "skeleton-shimmer animate-pulse rounded-md bg-slate-100 dark:bg-white/[0.05]";
 
 export function LeadDetailSkeleton() {
   return (
-    <div className="mx-auto flex w-full max-w-[1360px] flex-col gap-6 px-4 pb-16 sm:px-6 lg:px-8">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.25 }}
+      className="mx-auto flex w-full max-w-[1360px] flex-col gap-6 px-4 pb-16 sm:px-6 lg:px-8"
+    >
       <div className={clsx(SKELETON, "overflow-hidden")}>
         <div className="h-16 bg-slate-50 dark:bg-white/[0.02] sm:h-20" />
         <div className="px-5 pb-5">
@@ -42,6 +48,6 @@ export function LeadDetailSkeleton() {
         <div className={clsx(SKELETON, "h-64 lg:col-span-1")} />
         <div className={clsx(SKELETON, "h-64 lg:col-span-2")} />
       </div>
-    </div>
+    </motion.div>
   );
 }

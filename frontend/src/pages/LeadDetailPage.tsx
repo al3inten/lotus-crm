@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState, useMemo, useCallback } from "react";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import clsx from "clsx";
 import { AlertCircle, Car, Plus } from "lucide-react";
@@ -52,6 +52,8 @@ const SKELETON =
 
 const PULSE = "animate-pulse rounded-md bg-slate-100 dark:bg-white/[0.05]";
 
+const DETAIL_TABS: DetailTab[] = ["forms", "activity", "details"];
+
 export function LeadDetailPage() {
   const { leadId, enquiryId: enquiryIdParam } = useParams<{ leadId: string; enquiryId?: string }>();
   const { user } = useAuth();
@@ -69,10 +71,33 @@ export function LeadDetailPage() {
   const [showFollowUpForm, setShowFollowUpForm] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
   const [showNewEnquiry, setShowNewEnquiry] = useState(false);
-  const [activeTab, setActiveTab] = useState<DetailTab>("activity");
+
+  // The active tab lives in the URL (?tab=...) so a reload — or a shared/bookmarked link —
+  // lands back on the same view instead of resetting to the default.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const activeTab: DetailTab = DETAIL_TABS.includes(tabParam as DetailTab) ? (tabParam as DetailTab) : "activity";
+  const setActiveTab = useCallback(
+    (tab: DetailTab) => {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set("tab", tab);
+          // ?subtab only means anything inside the Activity tab — clear it on every switch
+          // so it never lingers into Pipeline & Forms / Details, and re-entering Activity
+          // always lands back on its default (Timeline) instead of resuming a stale one.
+          next.delete("subtab");
+          return next;
+        },
+        { replace: true }
+      );
+    },
+    [setSearchParams]
+  );
 
   const prevStatusRef = useRef<EnquiryStatus | null>(null);
   const tabDefaultedFor = useRef<string | null>(null);
+  const prevEnquiryIdRef = useRef<string | undefined>(undefined);
 
   const { data: lead, isLoading: leadLoading, isError: leadError, refetch: refetchLead } = useLeadHistory(leadId);
   const activeEnquiryId = enquiryIdParam ?? lead?.enquiries[0]?.id;
@@ -82,14 +107,16 @@ export function LeadDetailPage() {
 
   // Open straight to the forms tab (Test Drive / Quotation) when the enquiry is at the
   // appointment/test-drive stage — that's where the CR needs to act, so it shouldn't be
-  // hidden behind a tab. Runs once per enquiry, so it won't fight a manual tab switch.
+  // hidden behind a tab. Runs once per enquiry, so it won't fight a manual tab switch —
+  // and skips entirely when the URL already names a tab (a reload or shared link), so that
+  // choice isn't clobbered by this default.
   useEffect(() => {
     if (!enquiry || tabDefaultedFor.current === enquiry.id) return;
     tabDefaultedFor.current = enquiry.id;
-    if (enquiry.status === "APPOINTMENT_FIXED" || enquiry.status === "TEST_DRIVE") {
+    if (!tabParam && (enquiry.status === "APPOINTMENT_FIXED" || enquiry.status === "TEST_DRIVE")) {
       setActiveTab("forms");
     }
-  }, [enquiry]);
+  }, [enquiry, tabParam, setActiveTab]);
   const { data: crTeam } = useBranchStaff(enquiry?.branchId, "CR_TEAM");
   const { data: consultants } = useBranchStaff(enquiry?.branchId, "CONSULTANT");
   const { data: callLogs } = useCallLogsForLead(leadId);
@@ -105,9 +132,15 @@ export function LeadDetailPage() {
     prevStatusRef.current = status;
   }, [enquiry?.status]);
 
+  // Reset to the default tab when actually switching to a different enquiry (via the
+  // enquiries switcher) — but not on the initial mount, where activeEnquiryId "changing"
+  // from undefined to its first value would otherwise stomp the tab restored from the URL.
   useEffect(() => {
-    setActiveTab("activity");
-  }, [activeEnquiryId]);
+    if (prevEnquiryIdRef.current !== undefined && prevEnquiryIdRef.current !== activeEnquiryId) {
+      setActiveTab("activity");
+    }
+    prevEnquiryIdRef.current = activeEnquiryId;
+  }, [activeEnquiryId, setActiveTab]);
 
   const insights = useMemo(() => {
     if (!lead || !enquiry) return [];
@@ -120,7 +153,10 @@ export function LeadDetailPage() {
   }, [lead, enquiry]);
 
   /* ── Loading ── */
-  if (leadLoading) {
+  // Keep the full-page skeleton up until the enquiry has resolved too — otherwise the
+  // hero card renders alone above still-empty panels, which reads as a broken page.
+  const isInitialLoad = leadLoading || (!!activeEnquiryId && enquiryLoading && !enquiry);
+  if (isInitialLoad) {
     return <LeadDetailSkeleton />;
   }
 
@@ -283,7 +319,10 @@ export function LeadDetailPage() {
             setShowTimelineModal={setShowTimelineModal}
             setShowContactHistoryModal={setShowContactHistoryModal}
             setShowCallHistoryModal={setShowCallHistoryModal}
-            onUpdateNotes={(newRemarks) => updateDetails.mutate({ remarks: newRemarks })}
+            consultants={consultants}
+            canReassign={canReassign}
+            onUpdateConsultant={(consultantId) => updateDetails.mutate({ consultantId })}
+            isUpdatingConsultant={updateDetails.isPending}
           />
 
           <LeadModals
