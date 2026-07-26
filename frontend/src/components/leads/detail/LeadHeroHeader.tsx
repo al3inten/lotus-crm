@@ -180,7 +180,16 @@ export function LeadHeroHeader({
                   <Tag icon={<Hash size={12} />}>
                     <span className="tabular-nums">{enquiry.id.slice(-6).toUpperCase()}</span>
                   </Tag>
-                  <Tag icon={<Radio size={12} />}>{enquiry.source.replaceAll("_", " ")}</Tag>
+                  {/* The editable classification (Lead Source/Subsource from Edit) — not
+                      enquiry.source, which is the fixed intake channel set at creation and
+                      never changes here. Falls back to the intake channel until classified. */}
+                  <Tag icon={<Radio size={12} />}>
+                    {enquiry.sourceCategory
+                      ? `${enquiry.sourceCategory.replaceAll("_", " ")}${
+                          enquiry.subsource ? ` · ${enquiry.subsource.replaceAll("_", " ")}` : ""
+                        }`
+                      : enquiry.source.replaceAll("_", " ")}
+                  </Tag>
                   <Tag icon={<Building2 size={12} />}>{enquiry.branch.name}</Tag>
                 </div>
               )}
@@ -335,17 +344,9 @@ export function LeadHeroHeader({
                 <InfoField icon={<Car size={14} />} label="Vehicle" value={enquiry.carModel} />
               </div>
               <div className="rounded-lg border border-slate-200/70 bg-white p-2.5 dark:border-slate-700/50 dark:bg-slate-900/40">
-                <InfoField
-                  icon={<Radio size={14} />}
-                  label="Source"
-                  value={
-                    enquiry.sourceCategory
-                      ? `${enquiry.sourceCategory.replaceAll("_", " ")}${
-                          enquiry.subsource ? ` · ${enquiry.subsource.replaceAll("_", " ")}` : ""
-                        }`
-                      : "Not set"
-                  }
-                />
+                {/* The fixed channel this lead first arrived through — distinct from the
+                    editable Source/Subsource classification shown as the tag up top. */}
+                <InfoField icon={<Radio size={14} />} label="Intake Channel" value={enquiry.source.replaceAll("_", " ")} />
               </div>
               <div className="rounded-lg border border-slate-200/70 bg-white p-2.5 dark:border-slate-700/50 dark:bg-slate-900/40">
                 <InfoField

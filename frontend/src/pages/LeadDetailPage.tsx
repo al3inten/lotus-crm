@@ -349,7 +349,13 @@ export function LeadDetailPage() {
             onClose={() => setShowDetailsWizard(false)}
             mode="complete"
             enquiryId={enquiry.id}
-            contextLabel={`${enquiry.branch.name} · ${enquiry.source.replaceAll("_", " ")}`}
+            contextLabel={`${enquiry.branch.name} · ${
+              enquiry.sourceCategory
+                ? `${enquiry.sourceCategory.replaceAll("_", " ")}${
+                    enquiry.subsource ? ` · ${enquiry.subsource.replaceAll("_", " ")}` : ""
+                  }`
+                : enquiry.source.replaceAll("_", " ")
+            }`}
             initialValues={
               {
                 name: lead.name,
