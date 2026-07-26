@@ -344,11 +344,6 @@ export function LeadHeroHeader({
                 <InfoField icon={<Car size={14} />} label="Vehicle" value={enquiry.carModel} />
               </div>
               <div className="rounded-lg border border-slate-200/70 bg-white p-2.5 dark:border-slate-700/50 dark:bg-slate-900/40">
-                {/* The fixed channel this lead first arrived through — distinct from the
-                    editable Source/Subsource classification shown as the tag up top. */}
-                <InfoField icon={<Radio size={14} />} label="Intake Channel" value={enquiry.source.replaceAll("_", " ")} />
-              </div>
-              <div className="rounded-lg border border-slate-200/70 bg-white p-2.5 dark:border-slate-700/50 dark:bg-slate-900/40">
                 <InfoField
                   icon={<RefreshCw size={14} />}
                   label="Exchange"

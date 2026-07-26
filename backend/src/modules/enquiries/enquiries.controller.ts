@@ -21,7 +21,7 @@ export async function changeStatusHandler(req: Request, res: Response) {
 }
 
 export async function updateDetailsHandler(req: Request, res: Response) {
-  const enquiry = await enquiriesService.updateEnquiryDetails(req.params.enquiryId, req.body);
+  const enquiry = await enquiriesService.updateEnquiryDetails(req.params.enquiryId, req.body, req.user?.id);
   res.json(enquiry);
 }
 

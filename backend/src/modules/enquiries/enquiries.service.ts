@@ -139,15 +139,94 @@ export async function changeStatus(enquiryId: string, input: ChangeStatusInput, 
   }, TRANSACTION_OPTIONS);
 }
 
+// Human-readable labels + date-typed fields for the details-edit audit log below.
+const DETAILS_FIELD_LABELS: Record<string, string> = {
+  name: "Name",
+  alternateMobile: "Alternate mobile",
+  dob: "Date of birth",
+  profession: "Profession",
+  pincode: "Pincode",
+  area: "Area",
+  address: "Address",
+  location: "Location",
+  department: "Department",
+  sourceCategory: "Source",
+  subsource: "Subsource",
+  variant: "Variant",
+  enquiryCategory: "Enquiry category",
+  financeRequired: "Finance required",
+  financeRemarks: "Finance remarks",
+  appointmentScheduled: "Appointment scheduled",
+  appointmentAt: "Appointment date",
+  testDriveInterested: "Test drive interested",
+  testDriveCount: "Test drive count",
+  exchangeCarModel: "Exchange car model",
+  exchangeCarYear: "Exchange car year",
+  exchangeCarKms: "Exchange car kms",
+  exchangeCarOwners: "Exchange car owners",
+  exchangeCarRegNumber: "Exchange car reg. number",
+  calledDate: "Called date",
+  remarks: "Remarks",
+};
+const DETAILS_DATE_FIELDS = new Set(["dob", "appointmentAt", "calledDate"]);
+
+function formatDetailValue(field: string, value: unknown): string {
+  if (value === null || value === undefined || value === "") return "—";
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (DETAILS_DATE_FIELDS.has(field)) return new Date(value as string | Date).toLocaleDateString();
+  if (typeof value === "string") return value.replaceAll("_", " ");
+  return String(value);
+}
+
 // Fills in the rich intake fields for an enquiry that started lightweight (a digital lead),
 // once a CR is assigned and opens it — updates the parent Lead's profile fields and the
 // Enquiry's vehicle/appointment/exchange/assignment fields together. Only fields actually
 // present in the input are touched, so a CR completing "customer details" today doesn't
-// wipe out "exchange car" info someone else fills in tomorrow.
-export async function updateEnquiryDetails(enquiryId: string, input: EnquiryDetailsInput) {
+// wipe out "exchange car" info someone else fills in tomorrow. Any actual change is logged
+// as a comment (visible on the Activity Timeline) so edits are never silent.
+export async function updateEnquiryDetails(enquiryId: string, input: EnquiryDetailsInput, changedById?: string) {
   return prisma.$transaction(async (tx) => {
     const enquiry = await tx.enquiry.findUnique({ where: { id: enquiryId } });
     if (!enquiry) throw new NotFoundError("Enquiry not found");
+    const lead = await tx.lead.findUnique({ where: { id: enquiry.leadId } });
+
+    const changes: string[] = [];
+    const diff = (field: string, oldRaw: unknown, newVal: unknown) => {
+      if (newVal === undefined) return;
+      const isDate = DETAILS_DATE_FIELDS.has(field);
+      const oldComparable = isDate ? (oldRaw ? new Date(oldRaw as string | Date).toISOString() : null) : oldRaw ?? null;
+      const newComparable = isDate ? new Date(newVal as string).toISOString() : newVal;
+      if (oldComparable !== newComparable) {
+        changes.push(`${DETAILS_FIELD_LABELS[field] ?? field}: ${formatDetailValue(field, oldRaw)} → ${formatDetailValue(field, newVal)}`);
+      }
+    };
+
+    diff("name", lead?.name, input.name);
+    diff("alternateMobile", lead?.alternateMobile, input.alternateMobile);
+    diff("dob", lead?.dob, input.dob);
+    diff("profession", lead?.profession, input.profession);
+    diff("pincode", lead?.pincode, input.pincode);
+    diff("area", lead?.area, input.area);
+    diff("address", lead?.address, input.address);
+    diff("location", enquiry.location, input.location);
+    diff("department", enquiry.department, input.department);
+    diff("sourceCategory", enquiry.sourceCategory, input.sourceCategory);
+    diff("subsource", enquiry.subsource, input.subsource);
+    diff("variant", enquiry.variant, input.variant);
+    diff("enquiryCategory", enquiry.enquiryCategory, input.enquiryCategory);
+    diff("financeRequired", enquiry.financeRequired, input.financeRequired);
+    diff("financeRemarks", enquiry.financeRemarks, input.financeRemarks);
+    diff("appointmentScheduled", enquiry.appointmentScheduled, input.appointmentScheduled);
+    diff("appointmentAt", enquiry.appointmentAt, input.appointmentAt);
+    diff("testDriveInterested", enquiry.testDriveInterested, input.testDriveInterested);
+    diff("testDriveCount", enquiry.testDriveCount, input.testDriveCount);
+    diff("exchangeCarModel", enquiry.exchangeCarModel, input.exchangeCarModel);
+    diff("exchangeCarYear", enquiry.exchangeCarYear, input.exchangeCarYear);
+    diff("exchangeCarKms", enquiry.exchangeCarKms, input.exchangeCarKms);
+    diff("exchangeCarOwners", enquiry.exchangeCarOwners, input.exchangeCarOwners);
+    diff("exchangeCarRegNumber", enquiry.exchangeCarRegNumber, input.exchangeCarRegNumber);
+    diff("calledDate", enquiry.calledDate, input.calledDate);
+    diff("remarks", enquiry.remarks, input.remarks);
 
     await tx.lead.update({
       where: { id: enquiry.leadId },
@@ -162,7 +241,7 @@ export async function updateEnquiryDetails(enquiryId: string, input: EnquiryDeta
       },
     });
 
-    return tx.enquiry.update({
+    const updated = await tx.enquiry.update({
       where: { id: enquiryId },
       data: {
         location: input.location,
@@ -189,6 +268,18 @@ export async function updateEnquiryDetails(enquiryId: string, input: EnquiryDeta
       },
       include: { lead: true },
     });
+
+    if (changes.length > 0 && changedById) {
+      await tx.comment.create({
+        data: {
+          enquiryId,
+          userId: changedById,
+          body: `✏️ Updated details:\n${changes.map((c) => `• ${c}`).join("\n")}`,
+        },
+      });
+    }
+
+    return updated;
   }, TRANSACTION_OPTIONS);
 }
 

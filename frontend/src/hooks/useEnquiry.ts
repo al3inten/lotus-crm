@@ -33,10 +33,15 @@ export function useChangeStatus(enquiryId: string) {
 
 export function useUpdateEnquiryDetails(enquiryId: string) {
   const invalidate = useInvalidateEnquiry(enquiryId);
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: Parameters<typeof enquiriesApi.updateEnquiryDetails>[1]) =>
       enquiriesApi.updateEnquiryDetails(enquiryId, payload),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      invalidate();
+      // A details edit is logged as a comment (shows on the Activity Timeline) — refresh it too.
+      queryClient.invalidateQueries({ queryKey: enquiryKeys.comments(enquiryId) });
+    },
   });
 }
 

@@ -1,4 +1,4 @@
-import { Calendar, Phone, Mail, User, Clock, CheckCircle2, MessageSquare, CalendarClock } from "lucide-react";
+import { Calendar, Phone, Mail, User, Clock, CheckCircle2, MessageSquare, CalendarClock, Pencil } from "lucide-react";
 import type { EnquiryStatusHistoryEntry, FollowUp, Comment, DateChangeHistoryEntry } from "../../types";
 import { useComments } from "../../hooks/useEnquiry";
 import { CommentInput } from "./CommentInput";
@@ -96,23 +96,32 @@ export function UnifiedTimeline({
           );
         } else if (item.type === "comment") {
           const c = item.data;
-          
+          // Details-edit audits are logged as a comment (see enquiries.service.ts
+          // updateEnquiryDetails) with this prefix — render them distinctly from a real comment.
+          const isDetailsEdit = c.body.startsWith("✏️ Updated details:");
+          // The header already says "updated details" — drop that repeated first line from the body.
+          const displayBody = isDetailsEdit ? c.body.replace(/^✏️ Updated details:\n?/, "") : c.body;
+
           return (
             <motion.div variants={itemVariants} key={`comment-${c.id}`} className="relative pl-6">
               <span className="absolute -left-[13px] top-1 flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 ring-4 ring-white dark:bg-slate-800 dark:ring-slate-900">
-                <MessageSquare size={12} className="text-slate-600 dark:text-slate-400" />
+                {isDetailsEdit ? (
+                  <Pencil size={12} className="text-slate-600 dark:text-slate-400" />
+                ) : (
+                  <MessageSquare size={12} className="text-slate-600 dark:text-slate-400" />
+                )}
               </span>
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                 <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2 dark:text-slate-200">
-                  {c.user.name} <span className="font-normal text-xs text-gray-500">added a comment</span>
+                  {c.user.name} <span className="font-normal text-xs text-gray-500">{isDetailsEdit ? "updated details" : "added a comment"}</span>
                 </h3>
                 <span className="text-xs text-gray-500 mt-1 sm:mt-0 flex items-center gap-1.5 dark:text-slate-400">
                   <Clock size={12} /> {item.date.toLocaleString()}
                 </span>
               </div>
-              <div className="mt-2 text-sm text-gray-700 bg-gray-50 rounded-xl p-3 border border-gray-100 dark:bg-slate-800/50 dark:text-slate-300 dark:border-slate-800">
+              <div className="mt-2 whitespace-pre-line text-sm text-gray-700 bg-gray-50 rounded-xl p-3 border border-gray-100 dark:bg-slate-800/50 dark:text-slate-300 dark:border-slate-800">
                 {/* Simple bolding for @mentions */}
-                {c.body.split(/(@[\w\s]+?)(?=\s|$|[^\w\s])/).map((part, i) => {
+                {displayBody.split(/(@[\w\s]+?)(?=\s|$|[^\w\s])/).map((part, i) => {
                   if (part.startsWith('@')) {
                     return <span key={i} className="font-semibold text-blue-600 dark:text-blue-400">{part}</span>;
                   }
