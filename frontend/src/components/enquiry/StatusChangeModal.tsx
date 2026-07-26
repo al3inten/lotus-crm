@@ -44,9 +44,10 @@ function YesNo({ label, checked, onChange }: { label: string; checked: boolean; 
   );
 }
 
-// The date-stamped milestones and the label shown on their date picker.
-const DATE_MILESTONES: Partial<Record<EnquiryStatus, { field: "retailDoneAt" | "rtoDoneAt" | "deliveredAt"; label: string }>> = {
-  RETAIL_DONE: { field: "retailDoneAt", label: "Retail date" },
+// The date-stamped milestones and the label shown on their date picker. Retail date is
+// deliberately absent — like Booking date, it's only set/edited once the enquiry has actually
+// reached that stage (Retail Details card), not during the transition into it.
+const DATE_MILESTONES: Partial<Record<EnquiryStatus, { field: "rtoDoneAt" | "deliveredAt"; label: string }>> = {
   RTO_DONE: { field: "rtoDoneAt", label: "RTO date" },
   DELIVERED: { field: "deliveredAt", label: "Vehicle delivery date" },
 };

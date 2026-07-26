@@ -63,6 +63,14 @@ export async function updateBookingDetails(enquiryId: string, payload: BookingDe
   return data;
 }
 
+export interface RetailDetailsPayload {
+  retailDoneAt?: string;
+}
+export async function updateRetailDetails(enquiryId: string, payload: RetailDetailsPayload): Promise<Enquiry> {
+  const { data } = await axiosClient.patch<Enquiry>(`/enquiries/${enquiryId}/retail`, payload);
+  return data;
+}
+
 export interface UpdateKeyDatePayload {
   field: DateFieldKey;
   date: string;

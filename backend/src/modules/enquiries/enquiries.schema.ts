@@ -62,6 +62,12 @@ export const bookingDetailsSchema = z.object({
   financeDoReceived: z.boolean().optional(),
 });
 
+// Retail-stage details, captured once the enquiry has reached RETAIL_DONE (not during the
+// Booked -> Retail Done transition itself).
+export const retailDetailsSchema = z.object({
+  retailDoneAt: z.string().datetime().optional(),
+});
+
 export const reassignSchema = z.object({
   toUserId: z.string().min(1),
   reason: z.string().optional(),
@@ -155,6 +161,7 @@ export const createCommentSchema = z.object({
 export type EnquiryDetailsInput = z.infer<typeof enquiryDetailsSchema>;
 export type ChangeStatusInput = z.infer<typeof changeStatusSchema>;
 export type BookingDetailsInput = z.infer<typeof bookingDetailsSchema>;
+export type RetailDetailsInput = z.infer<typeof retailDetailsSchema>;
 export type ReassignInput = z.infer<typeof reassignSchema>;
 export type TestDriveInput = z.infer<typeof testDriveSchema>;
 export type UpdateTestDriveInput = z.infer<typeof updateTestDriveSchema>;

@@ -30,6 +30,21 @@ export const MANUAL_SOURCES: LeadSource[] = ["WALK_IN", "MANUAL_OTHER", "REFERRA
 
 export const CONSULTANT_REQUIRED_AT_STATUS: EnquiryStatus = "APPOINTMENT_FIXED";
 
+// Forward-pipeline rank — lets "stage-onward" edits (e.g. Booking/Retail details) check
+// "has this enquiry reached at least X" instead of "is it exactly at X right now", so those
+// details stay editable at later stages too instead of locking the moment the enquiry moves on.
+export const STAGE_RANK: Record<EnquiryStatus, number> = {
+  NEW: 0,
+  UNDER_FOLLOW_UP: 0,
+  APPOINTMENT_FIXED: 1,
+  TEST_DRIVE: 2,
+  BOOKED: 3,
+  RETAIL_DONE: 4,
+  RTO_DONE: 5,
+  DELIVERED: 6,
+  CLOSED: -1,
+};
+
 // Module keys a RoleDefinition can toggle on/off — these are the sidebar/dashboard
 // sections of the frontend. Keep in sync with frontend/src/types (MODULES).
 export const MODULE_KEYS = [

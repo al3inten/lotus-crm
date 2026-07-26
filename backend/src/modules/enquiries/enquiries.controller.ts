@@ -30,6 +30,11 @@ export async function updateBookingHandler(req: Request, res: Response) {
   res.json(enquiry);
 }
 
+export async function updateRetailHandler(req: Request, res: Response) {
+  const enquiry = await enquiriesService.updateRetailDetails(req.params.enquiryId, req.body);
+  res.json(enquiry);
+}
+
 export async function updateKeyDateHandler(req: Request, res: Response) {
   if (!req.user) throw new UnauthorizedError();
   const enquiry = await enquiriesService.updateKeyDate(req.params.enquiryId, req.body, req.user.id);

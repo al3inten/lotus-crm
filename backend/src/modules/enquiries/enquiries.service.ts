@@ -1,7 +1,7 @@
 import { prisma } from "../../lib/prisma";
 import { NotFoundError, ValidationError } from "../../lib/errors";
-import { ALLOWED_TRANSITIONS, CONSULTANT_REQUIRED_AT_STATUS, TRANSACTION_OPTIONS } from "../../config/constants";
-import { ChangeStatusInput, ReassignInput, EnquiryDetailsInput, BookingDetailsInput, UpdateKeyDateInput } from "./enquiries.schema";
+import { ALLOWED_TRANSITIONS, CONSULTANT_REQUIRED_AT_STATUS, STAGE_RANK, TRANSACTION_OPTIONS } from "../../config/constants";
+import { ChangeStatusInput, ReassignInput, EnquiryDetailsInput, BookingDetailsInput, RetailDetailsInput, UpdateKeyDateInput } from "./enquiries.schema";
 
 export async function getEnquiry(enquiryId: string) {
   const enquiry = await prisma.enquiry.findUnique({
@@ -299,14 +299,14 @@ export async function updateEnquiryDetails(enquiryId: string, input: EnquiryDeta
   }, TRANSACTION_OPTIONS);
 }
 
-// Booking-stage details, edited while the enquiry sits at BOOKED: the booking date plus the
-// finance toggle and its three Yes/No checks. When finance isn't required the three checks are
-// cleared so stale Yes/No answers don't linger (same rule the old transition modal applied).
+// Booking-stage details, edited once the enquiry has reached BOOKED (and still editable at any
+// later stage): the booking date plus the finance toggle and its three Yes/No checks. When
+// finance isn't required the three checks are cleared so stale Yes/No answers don't linger.
 export async function updateBookingDetails(enquiryId: string, input: BookingDetailsInput) {
   const enquiry = await prisma.enquiry.findUnique({ where: { id: enquiryId } });
   if (!enquiry) throw new NotFoundError("Enquiry not found");
-  if (enquiry.status !== "BOOKED") {
-    throw new ValidationError("Booking details can only be set while the enquiry is Booked.");
+  if (enquiry.status === "CLOSED" || STAGE_RANK[enquiry.status] < STAGE_RANK.BOOKED) {
+    throw new ValidationError("Booking details can only be set once the enquiry has reached Booked.");
   }
 
   const financeRequired = input.financeRequired ?? enquiry.financeRequired;
@@ -319,6 +319,24 @@ export async function updateBookingDetails(enquiryId: string, input: BookingDeta
       financeDocumentCollected: financeRequired ? input.financeDocumentCollected ?? null : null,
       financeLoanApproved: financeRequired ? input.financeLoanApproved ?? null : null,
       financeDoReceived: financeRequired ? input.financeDoReceived ?? null : null,
+    },
+  });
+}
+
+// Retail-stage details, edited once the enquiry has reached RETAIL_DONE (and still editable at
+// any later stage) — just the retail completion date. The Booked -> Retail Done transition
+// itself only stamps this to "now" as a default; the actual date is set/corrected here.
+export async function updateRetailDetails(enquiryId: string, input: RetailDetailsInput) {
+  const enquiry = await prisma.enquiry.findUnique({ where: { id: enquiryId } });
+  if (!enquiry) throw new NotFoundError("Enquiry not found");
+  if (enquiry.status === "CLOSED" || STAGE_RANK[enquiry.status] < STAGE_RANK.RETAIL_DONE) {
+    throw new ValidationError("Retail details can only be set once the enquiry has reached Retail Done.");
+  }
+
+  return prisma.enquiry.update({
+    where: { id: enquiryId },
+    data: {
+      retailDoneAt: input.retailDoneAt ? new Date(input.retailDoneAt) : enquiry.retailDoneAt,
     },
   });
 }
