@@ -147,6 +147,18 @@ export function StatusChangeModal({
       setError("toStatus", { message: "Confirm all test drives are marked as Done before booking." });
       return;
     }
+    // Leaving Booked for Retail Done requires the finance checklist to be fully resolved when
+    // finance was needed — a status change alone must not skip past outstanding paperwork.
+    if (currentStatus === "BOOKED" && values.toStatus === "RETAIL_DONE" && values.financeRequired) {
+      const financeComplete =
+        !!values.financeDocumentCollected && !!values.financeLoanApproved && !!values.financeDoReceived;
+      if (!financeComplete) {
+        setError("toStatus", {
+          message: "Complete the finance checklist (Documents collected, Loan approved, DO received) before moving to Retail Done.",
+        });
+        return;
+      }
+    }
     // Delivery requires the details used for post-sale celebrations (birthday / anniversary):
     // vehicle delivery date + customer DOB + customer job. All three are mandatory.
     if (values.toStatus === "DELIVERED") {
@@ -259,6 +271,16 @@ export function StatusChangeModal({
             </div>
           </>
         )}
+
+        {/* Can't advance to Retail Done until the finance checklist is fully resolved. */}
+        {currentStatus === "BOOKED" &&
+          toStatus === "RETAIL_DONE" &&
+          financeRequired &&
+          !(watch("financeDocumentCollected") && watch("financeLoanApproved") && watch("financeDoReceived")) && (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 dark:border-amber-500/25 dark:bg-amber-500/10 dark:text-amber-300">
+              Mark Documents collected, Loan approved, and DO received as Yes before moving to Retail Done.
+            </p>
+          )}
 
         {toStatus === "TEST_DRIVE" && (
           <div className="flex flex-col gap-3 rounded-xl border border-teal-200 bg-teal-50/60 p-3 dark:border-teal-500/25 dark:bg-teal-500/10">

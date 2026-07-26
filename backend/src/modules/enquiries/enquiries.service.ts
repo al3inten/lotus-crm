@@ -84,6 +84,22 @@ export async function changeStatus(enquiryId: string, input: ChangeStatusInput, 
       }
     }
 
+    // Leaving Booked for Retail Done requires the finance checklist to be fully resolved when
+    // finance was needed — a status change alone must not skip past outstanding paperwork.
+    // (The finance fields are saved via updateBookingDetails just before this call, so the
+    // enquiry fetched above already reflects whatever the CR just set.)
+    if (enquiry.status === "BOOKED" && input.toStatus === "RETAIL_DONE" && enquiry.financeRequired) {
+      const financeComplete =
+        enquiry.financeDocumentCollected === true &&
+        enquiry.financeLoanApproved === true &&
+        enquiry.financeDoReceived === true;
+      if (!financeComplete) {
+        throw new ValidationError(
+          "Complete the finance checklist (Documents collected, Loan approved, DO received) before moving to Retail Done."
+        );
+      }
+    }
+
     // Delivery requires the details needed for post-sale relationship touches (birthday /
     // anniversary celebrations): the vehicle delivery date and the customer's DOB and job.
     if (input.toStatus === "DELIVERED") {
