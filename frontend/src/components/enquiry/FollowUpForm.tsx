@@ -1,5 +1,6 @@
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { CalendarClock } from "lucide-react";
 import { Select, Textarea } from "../common/Input";
 import { DatePickerField, TimePicker } from "../common/DateTimePicker";
 import { Button } from "../common/Button";
@@ -36,9 +37,12 @@ export function FollowUpForm({ enquiryId, initialType = "CALL", onSuccess, onCan
   });
 
   const onSubmit = async (values: FollowUpFormValues) => {
+    // This follow-up is being logged right now — the date/time isn't user-editable, so stamp
+    // the actual moment of saving rather than trusting whatever was in the form at mount.
+    const now = new Date();
     await saveFollowUp.mutateAsync({
-      followUpDate: new Date(values.followUpDate).toISOString(),
-      followUpTime: values.followUpTime || undefined,
+      followUpDate: now.toISOString(),
+      followUpTime: format(now, "HH:mm"),
       type: values.type,
       remark: values.remark,
       nextFollowUpDate: values.nextFollowUpDate ? new Date(values.nextFollowUpDate).toISOString() : undefined,
@@ -50,22 +54,14 @@ export function FollowUpForm({ enquiryId, initialType = "CALL", onSuccess, onCan
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+      {/* This follow-up is being logged now — the date/time isn't editable (see onSubmit,
+          which stamps the actual save moment), only shown for confirmation. */}
+      <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300">
+        <CalendarClock size={15} className="shrink-0 text-slate-400" />
+        Logging this follow-up for <span className="font-medium">{format(new Date(), "d MMM yyyy, h:mm a")}</span>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Controller
-          control={control}
-          name="followUpDate"
-          render={({ field }) => (
-            <DatePickerField label="Date" value={field.value} onChange={field.onChange} error={errors.followUpDate?.message} />
-          )}
-        />
-        <Controller
-          control={control}
-          name="followUpTime"
-          render={({ field }) => (
-            <TimePicker label="Time (optional)" value={field.value} onChange={field.onChange} error={errors.followUpTime?.message} />
-          )}
-        />
-        
         <Select label="Type" error={errors.type?.message} {...register("type")}>
           {FOLLOW_UP_TYPES.map((type) => (
             <option key={type} value={type}>
