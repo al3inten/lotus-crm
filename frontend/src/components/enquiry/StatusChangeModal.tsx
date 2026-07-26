@@ -13,7 +13,7 @@ import { statusChangeFormSchema } from "../../schemas/enquiry.schema";
 import type { StatusChangeFormValues } from "../../schemas/enquiry.schema";
 import { ALLOWED_TRANSITIONS, LOSS_REASONS, STATUS_LABELS } from "../../types";
 import type { EnquiryStatus, Enquiry } from "../../types";
-import { useChangeStatus, useUpdateBookingDetails, useUpdateEnquiryDetails } from "../../hooks/useEnquiry";
+import { useChangeStatus, useUpdateBookingDetails, useUpdateRetailDetails, useUpdateEnquiryDetails } from "../../hooks/useEnquiry";
 import { useBranchStaff } from "../../hooks/useUsers";
 
 /** A compact Yes/No pair for the finance checklist. */
@@ -84,6 +84,7 @@ export function StatusChangeModal({
   const [testDrivesConfirmed, setTestDrivesConfirmed] = useState(false);
   const changeStatus = useChangeStatus(enquiryId);
   const updateBooking = useUpdateBookingDetails(enquiryId);
+  const updateRetail = useUpdateRetailDetails(enquiryId);
   const updateDetails = useUpdateEnquiryDetails(enquiryId);
   const { data: consultants, isLoading: consultantsLoading } = useBranchStaff(branchId, "CONSULTANT");
   const allowedNext = ALLOWED_TRANSITIONS[currentStatus];
@@ -113,6 +114,8 @@ export function StatusChangeModal({
         financeDocumentCollected: enquiry?.financeDocumentCollected ?? undefined,
         financeLoanApproved: enquiry?.financeLoanApproved ?? undefined,
         financeDoReceived: enquiry?.financeDoReceived ?? undefined,
+        // Prefill the retail date (shown at the Retail Done stage) from the enquiry.
+        retailDoneAt: enquiry?.retailDoneAt ?? undefined,
         // Delivery-stage customer details, prefilled from the lead.
         dob: enquiry?.lead?.dob ? enquiry.lead.dob.slice(0, 10) : undefined,
         profession: enquiry?.lead?.profession ?? undefined,
@@ -195,6 +198,11 @@ export function StatusChangeModal({
         financeDoReceived: values.financeRequired ? !!values.financeDoReceived : undefined,
       });
     }
+    // Same pattern at the Retail Done stage — the retail date is edited here, not during the
+    // Booked -> Retail Done transition itself.
+    if (currentStatus === "RETAIL_DONE") {
+      await updateRetail.mutateAsync({ retailDoneAt: toIso(values.retailDoneAt) });
+    }
     await changeStatus.mutateAsync({
       toStatus: values.toStatus,
       note: values.note,
@@ -271,6 +279,18 @@ export function StatusChangeModal({
               )}
             </div>
           </>
+        )}
+
+        {/* Retail date — editable inline at the Retail Done stage; saved on the same
+            "Update status" click before the status move is applied. */}
+        {currentStatus === "RETAIL_DONE" && (
+          <Controller
+            control={control}
+            name="retailDoneAt"
+            render={({ field }) => (
+              <DatePickerField label="Retail date" value={field.value} onChange={field.onChange} />
+            )}
+          />
         )}
 
         {/* Can't advance to Retail Done until the finance checklist is fully resolved. */}
