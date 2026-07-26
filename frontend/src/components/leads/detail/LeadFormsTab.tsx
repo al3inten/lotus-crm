@@ -1,23 +1,25 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Car, ClipboardCheck, ArrowRightLeft, FileText } from "lucide-react";
+import { Car, ClipboardCheck, ArrowRightLeft, FileText, PackageCheck } from "lucide-react";
 import clsx from "clsx";
 
 import { Card } from "../../common/Card";
 import { TestDriveForm } from "../../enquiry/TestDriveForm";
 import { BookingDetailsForm } from "../../enquiry/BookingDetailsForm";
+import { DeliveryDateCard } from "../../enquiry/DeliveryDateCard";
 import { ExchangeForm } from "../../enquiry/ExchangeForm";
 import { QuotationForm } from "../../enquiry/QuotationForm";
 
 import { fadeUp } from "../../../lib/motion";
 import type { Enquiry } from "../../../types";
 
-const SUB_TABS = ["testdrive", "booking", "exchange", "quotation"] as const;
+const SUB_TABS = ["testdrive", "booking", "delivery", "exchange", "quotation"] as const;
 type SubTab = (typeof SUB_TABS)[number];
 
 const SUB_TAB_ICONS: Record<SubTab, typeof Car> = {
   testdrive: Car,
   booking: ClipboardCheck,
+  delivery: PackageCheck,
   exchange: ArrowRightLeft,
   quotation: FileText,
 };
@@ -25,6 +27,7 @@ const SUB_TAB_ICONS: Record<SubTab, typeof Car> = {
 const SUB_TAB_LABELS: Record<SubTab, string> = {
   testdrive: "Test Drive",
   booking: "Booking Details",
+  delivery: "Delivery Details",
   exchange: "Exchange",
   quotation: "Quotation",
 };
@@ -37,6 +40,7 @@ interface LeadFormsTabProps {
   enquiry: Enquiry;
   testDriveEditable: boolean;
   bookingEditable: boolean;
+  deliveryEditable: boolean;
   exchangeEditable: boolean;
   quotationEditable: boolean;
   showQuotation: boolean;
@@ -47,6 +51,7 @@ export function LeadFormsTab({
   enquiry,
   testDriveEditable,
   bookingEditable,
+  deliveryEditable,
   exchangeEditable,
   quotationEditable,
   showQuotation,
@@ -113,6 +118,9 @@ export function LeadFormsTab({
                 )}
                 {activeSubTab === "booking" && (
                   <BookingDetailsForm enquiry={enquiry} editable={bookingEditable} lockedHint={lockedHint("Booked")} />
+                )}
+                {activeSubTab === "delivery" && (
+                  <DeliveryDateCard enquiry={enquiry} editable={deliveryEditable} lockedHint={lockedHint("Delivered")} />
                 )}
                 {activeSubTab === "exchange" && (
                   <ExchangeForm

@@ -61,6 +61,22 @@ export function useUpdateRetailDetails(enquiryId: string) {
   });
 }
 
+export function useUpdateRtoDetails(enquiryId: string) {
+  const invalidate = useInvalidateEnquiry(enquiryId);
+  return useMutation({
+    mutationFn: (payload: enquiriesApi.RtoDetailsPayload) => enquiriesApi.updateRtoDetails(enquiryId, payload),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateDeliveryDate(enquiryId: string) {
+  const invalidate = useInvalidateEnquiry(enquiryId);
+  return useMutation({
+    mutationFn: (payload: enquiriesApi.DeliveryDatePayload) => enquiriesApi.updateDeliveryDate(enquiryId, payload),
+    onSuccess: invalidate,
+  });
+}
+
 export function useUpdateKeyDate(enquiryId: string) {
   const invalidate = useInvalidateEnquiry(enquiryId);
   return useMutation({

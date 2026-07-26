@@ -71,6 +71,22 @@ export async function updateRetailDetails(enquiryId: string, payload: RetailDeta
   return data;
 }
 
+export interface RtoDetailsPayload {
+  rtoDoneAt?: string;
+}
+export async function updateRtoDetails(enquiryId: string, payload: RtoDetailsPayload): Promise<Enquiry> {
+  const { data } = await axiosClient.patch<Enquiry>(`/enquiries/${enquiryId}/rto`, payload);
+  return data;
+}
+
+export interface DeliveryDatePayload {
+  deliveredAt?: string;
+}
+export async function updateDeliveryDate(enquiryId: string, payload: DeliveryDatePayload): Promise<Enquiry> {
+  const { data } = await axiosClient.patch<Enquiry>(`/enquiries/${enquiryId}/delivery-date`, payload);
+  return data;
+}
+
 export interface UpdateKeyDatePayload {
   field: DateFieldKey;
   date: string;

@@ -7,6 +7,8 @@ import {
   changeStatusSchema,
   bookingDetailsSchema,
   retailDetailsSchema,
+  rtoDetailsSchema,
+  deliveryDateSchema,
   updateKeyDateSchema,
   reassignSchema,
   testDriveSchema,
@@ -25,6 +27,8 @@ import {
   changeStatusHandler,
   updateBookingHandler,
   updateRetailHandler,
+  updateRtoHandler,
+  updateDeliveryDateHandler,
   updateKeyDateHandler,
   reassignHandler,
   testDriveHandler,
@@ -51,6 +55,8 @@ router.patch("/:enquiryId/status", validateBody(changeStatusSchema), asyncHandle
 router.patch("/:enquiryId/details", validateBody(enquiryDetailsSchema), asyncHandler(updateDetailsHandler));
 router.patch("/:enquiryId/booking", validateBody(bookingDetailsSchema), asyncHandler(updateBookingHandler));
 router.patch("/:enquiryId/retail", validateBody(retailDetailsSchema), asyncHandler(updateRetailHandler));
+router.patch("/:enquiryId/rto", validateBody(rtoDetailsSchema), asyncHandler(updateRtoHandler));
+router.patch("/:enquiryId/delivery-date", validateBody(deliveryDateSchema), asyncHandler(updateDeliveryDateHandler));
 router.patch("/:enquiryId/key-dates", validateBody(updateKeyDateSchema), asyncHandler(updateKeyDateHandler));
 
 router.patch(

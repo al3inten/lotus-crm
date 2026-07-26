@@ -1,7 +1,7 @@
 import { prisma } from "../../lib/prisma";
 import { NotFoundError, ValidationError } from "../../lib/errors";
 import { ALLOWED_TRANSITIONS, CONSULTANT_REQUIRED_AT_STATUS, STAGE_RANK, TRANSACTION_OPTIONS } from "../../config/constants";
-import { ChangeStatusInput, ReassignInput, EnquiryDetailsInput, BookingDetailsInput, RetailDetailsInput, UpdateKeyDateInput } from "./enquiries.schema";
+import { ChangeStatusInput, ReassignInput, EnquiryDetailsInput, BookingDetailsInput, RetailDetailsInput, RtoDetailsInput, DeliveryDateInput, UpdateKeyDateInput } from "./enquiries.schema";
 
 export async function getEnquiry(enquiryId: string) {
   const enquiry = await prisma.enquiry.findUnique({
@@ -337,6 +337,42 @@ export async function updateRetailDetails(enquiryId: string, input: RetailDetail
     where: { id: enquiryId },
     data: {
       retailDoneAt: input.retailDoneAt ? new Date(input.retailDoneAt) : enquiry.retailDoneAt,
+    },
+  });
+}
+
+// RTO-stage details, edited once the enquiry has reached RTO_DONE (and still editable at any
+// later stage) — just the RTO completion date. The Retail Done -> RTO Done transition itself
+// only stamps this to "now" as a default; the actual date is set/corrected here.
+export async function updateRtoDetails(enquiryId: string, input: RtoDetailsInput) {
+  const enquiry = await prisma.enquiry.findUnique({ where: { id: enquiryId } });
+  if (!enquiry) throw new NotFoundError("Enquiry not found");
+  if (enquiry.status === "CLOSED" || STAGE_RANK[enquiry.status] < STAGE_RANK.RTO_DONE) {
+    throw new ValidationError("RTO details can only be set once the enquiry has reached RTO Done.");
+  }
+
+  return prisma.enquiry.update({
+    where: { id: enquiryId },
+    data: {
+      rtoDoneAt: input.rtoDoneAt ? new Date(input.rtoDoneAt) : enquiry.rtoDoneAt,
+    },
+  });
+}
+
+// Corrects the delivery date once the enquiry has reached DELIVERED. The date is still
+// mandatory to REACH Delivered (see changeStatus) — this only fixes it afterward if entered
+// wrong, since Delivered is a terminal stage with no further transition to defer it to.
+export async function updateDeliveryDate(enquiryId: string, input: DeliveryDateInput) {
+  const enquiry = await prisma.enquiry.findUnique({ where: { id: enquiryId } });
+  if (!enquiry) throw new NotFoundError("Enquiry not found");
+  if (enquiry.status !== "DELIVERED") {
+    throw new ValidationError("Delivery date can only be corrected once the enquiry is Delivered.");
+  }
+
+  return prisma.enquiry.update({
+    where: { id: enquiryId },
+    data: {
+      deliveredAt: input.deliveredAt ? new Date(input.deliveredAt) : enquiry.deliveredAt,
     },
   });
 }

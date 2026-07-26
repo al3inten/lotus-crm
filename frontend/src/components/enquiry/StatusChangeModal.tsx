@@ -13,7 +13,7 @@ import { statusChangeFormSchema } from "../../schemas/enquiry.schema";
 import type { StatusChangeFormValues } from "../../schemas/enquiry.schema";
 import { ALLOWED_TRANSITIONS, LOSS_REASONS, STATUS_LABELS } from "../../types";
 import type { EnquiryStatus, Enquiry } from "../../types";
-import { useChangeStatus, useUpdateBookingDetails, useUpdateRetailDetails, useUpdateEnquiryDetails } from "../../hooks/useEnquiry";
+import { useChangeStatus, useUpdateBookingDetails, useUpdateRetailDetails, useUpdateRtoDetails, useUpdateEnquiryDetails } from "../../hooks/useEnquiry";
 import { useBranchStaff } from "../../hooks/useUsers";
 
 /** A compact Yes/No pair for the finance checklist. */
@@ -44,11 +44,12 @@ function YesNo({ label, checked, onChange }: { label: string; checked: boolean; 
   );
 }
 
-// The date-stamped milestones and the label shown on their date picker. Retail date is
-// deliberately absent — like Booking date, it's only set/edited once the enquiry has actually
-// reached that stage (Retail Details card), not during the transition into it.
-const DATE_MILESTONES: Partial<Record<EnquiryStatus, { field: "rtoDoneAt" | "deliveredAt"; label: string }>> = {
-  RTO_DONE: { field: "rtoDoneAt", label: "RTO date" },
+// The date-stamped milestones and the label shown on their date picker. Retail and RTO dates
+// are deliberately absent here — like Booking date, each is only set/edited inline once the
+// enquiry has actually reached that stage (see the currentStatus === "RETAIL_DONE"/"RTO_DONE"
+// blocks below), not during the transition into it. Delivery date has no later stage to defer
+// to (Delivered is terminal), so it stays here, on the transition itself.
+const DATE_MILESTONES: Partial<Record<EnquiryStatus, { field: "deliveredAt"; label: string }>> = {
   DELIVERED: { field: "deliveredAt", label: "Vehicle delivery date" },
 };
 
@@ -85,6 +86,7 @@ export function StatusChangeModal({
   const changeStatus = useChangeStatus(enquiryId);
   const updateBooking = useUpdateBookingDetails(enquiryId);
   const updateRetail = useUpdateRetailDetails(enquiryId);
+  const updateRto = useUpdateRtoDetails(enquiryId);
   const updateDetails = useUpdateEnquiryDetails(enquiryId);
   const { data: consultants, isLoading: consultantsLoading } = useBranchStaff(branchId, "CONSULTANT");
   const allowedNext = ALLOWED_TRANSITIONS[currentStatus];
@@ -116,6 +118,8 @@ export function StatusChangeModal({
         financeDoReceived: enquiry?.financeDoReceived ?? undefined,
         // Prefill the retail date (shown at the Retail Done stage) from the enquiry.
         retailDoneAt: enquiry?.retailDoneAt ?? undefined,
+        // Prefill the RTO date (shown at the RTO Done stage) from the enquiry.
+        rtoDoneAt: enquiry?.rtoDoneAt ?? undefined,
         // Delivery-stage customer details, prefilled from the lead.
         dob: enquiry?.lead?.dob ? enquiry.lead.dob.slice(0, 10) : undefined,
         profession: enquiry?.lead?.profession ?? undefined,
@@ -203,6 +207,11 @@ export function StatusChangeModal({
     if (currentStatus === "RETAIL_DONE") {
       await updateRetail.mutateAsync({ retailDoneAt: toIso(values.retailDoneAt) });
     }
+    // Same pattern at the RTO Done stage — the RTO date is edited here, not during the
+    // Retail Done -> RTO Done transition itself.
+    if (currentStatus === "RTO_DONE") {
+      await updateRto.mutateAsync({ rtoDoneAt: toIso(values.rtoDoneAt) });
+    }
     await changeStatus.mutateAsync({
       toStatus: values.toStatus,
       note: values.note,
@@ -289,6 +298,18 @@ export function StatusChangeModal({
             name="retailDoneAt"
             render={({ field }) => (
               <DatePickerField label="Retail date" value={field.value} onChange={field.onChange} />
+            )}
+          />
+        )}
+
+        {/* RTO date — editable inline at the RTO Done stage; saved on the same
+            "Update status" click before the status move is applied. */}
+        {currentStatus === "RTO_DONE" && (
+          <Controller
+            control={control}
+            name="rtoDoneAt"
+            render={({ field }) => (
+              <DatePickerField label="RTO date" value={field.value} onChange={field.onChange} />
             )}
           />
         )}

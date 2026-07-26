@@ -98,6 +98,7 @@ export function LeadPipelinePanel({
   const quotationEditable = editableFrom("TEST_DRIVE");
   const exchangeEditable = editableFrom("BOOKED");
   const bookingEditable = editableFrom("BOOKED");
+  const deliveryEditable = editableFrom("DELIVERED");
 
   // Quotation card still respects the branch's quotationEnabled setting; the rest are always shown.
   const showQuotation = settings?.quotationEnabled !== false;
@@ -234,6 +235,7 @@ export function LeadPipelinePanel({
           enquiry={enquiry}
           testDriveEditable={testDriveEditable}
           bookingEditable={bookingEditable}
+          deliveryEditable={deliveryEditable}
           exchangeEditable={exchangeEditable}
           quotationEditable={quotationEditable}
           showQuotation={showQuotation}

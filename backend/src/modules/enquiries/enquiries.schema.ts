@@ -68,6 +68,19 @@ export const retailDetailsSchema = z.object({
   retailDoneAt: z.string().datetime().optional(),
 });
 
+// RTO-stage details, captured once the enquiry has reached RTO_DONE (not during the
+// Retail Done -> RTO Done transition itself).
+export const rtoDetailsSchema = z.object({
+  rtoDoneAt: z.string().datetime().optional(),
+});
+
+// Correcting the delivery date once the enquiry has reached DELIVERED (the vehicle delivery
+// date is still mandatory to REACH Delivered — this is only for fixing it afterward). Distinct
+// from deliveryDetailsSchema below, which is a separate, richer post-delivery checklist.
+export const deliveryDateSchema = z.object({
+  deliveredAt: z.string().datetime().optional(),
+});
+
 export const reassignSchema = z.object({
   toUserId: z.string().min(1),
   reason: z.string().optional(),
@@ -162,6 +175,8 @@ export type EnquiryDetailsInput = z.infer<typeof enquiryDetailsSchema>;
 export type ChangeStatusInput = z.infer<typeof changeStatusSchema>;
 export type BookingDetailsInput = z.infer<typeof bookingDetailsSchema>;
 export type RetailDetailsInput = z.infer<typeof retailDetailsSchema>;
+export type RtoDetailsInput = z.infer<typeof rtoDetailsSchema>;
+export type DeliveryDateInput = z.infer<typeof deliveryDateSchema>;
 export type ReassignInput = z.infer<typeof reassignSchema>;
 export type TestDriveInput = z.infer<typeof testDriveSchema>;
 export type UpdateTestDriveInput = z.infer<typeof updateTestDriveSchema>;
