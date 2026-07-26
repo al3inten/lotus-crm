@@ -336,6 +336,19 @@ export function LeadHeroHeader({
               </div>
               <div className="rounded-lg border border-slate-200/70 bg-white p-2.5 dark:border-slate-700/50 dark:bg-slate-900/40">
                 <InfoField
+                  icon={<Radio size={14} />}
+                  label="Source"
+                  value={
+                    enquiry.sourceCategory
+                      ? `${enquiry.sourceCategory.replaceAll("_", " ")}${
+                          enquiry.subsource ? ` · ${enquiry.subsource.replaceAll("_", " ")}` : ""
+                        }`
+                      : "Not set"
+                  }
+                />
+              </div>
+              <div className="rounded-lg border border-slate-200/70 bg-white p-2.5 dark:border-slate-700/50 dark:bg-slate-900/40">
+                <InfoField
                   icon={<RefreshCw size={14} />}
                   label="Exchange"
                   value={
