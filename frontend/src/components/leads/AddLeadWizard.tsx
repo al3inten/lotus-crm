@@ -175,6 +175,7 @@ export function AddLeadWizard({
   const canForceNew = !!user && ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"].includes(user.role);
 
   const { data: crStaff } = useBranchStaff(watch("branchId"), "CR_TEAM", isOpen);
+  const { data: consultantStaff } = useBranchStaff(watch("branchId"), "CONSULTANT", isOpen);
   const { data: vehicleModels } = useVehicleModels(isOpen);
   const selectedSourceCategory = watch("sourceCategory");
   const subsourceOptions = selectedSourceCategory
@@ -391,6 +392,7 @@ export function AddLeadWizard({
         location: values.location || undefined,
         branchId: values.branchId,
         assignedCrId: values.assignedCrId || undefined,
+        consultantId: values.consultantId || undefined,
         forceNew: values.forceNew,
         ...buildEnrichmentPayload(values),
       };
@@ -670,6 +672,7 @@ export function AddLeadWizard({
                   modelOptions={modelOptions}
                   variantOptionsList={variantOptionsList}
                   enquiryCategoryOptions={enquiryCategoryOptions}
+                  consultantOptions={(consultantStaff ?? []).map((c) => ({ value: c.id, label: c.name }))}
                   sectionTitle={SECTIONS[2].title}
                   sectionIconClassName={SECTIONS[2].iconClassName}
                 />

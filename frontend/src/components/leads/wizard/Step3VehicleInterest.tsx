@@ -24,6 +24,7 @@ interface Step3VehicleInterestProps {
   modelOptions: SelectOption[];
   variantOptionsList: SelectOption[];
   enquiryCategoryOptions: readonly string[];
+  consultantOptions: SelectOption[];
   sectionTitle: string;
   sectionIconClassName: string;
 }
@@ -39,6 +40,7 @@ export function Step3VehicleInterest({
   modelOptions,
   variantOptionsList,
   enquiryCategoryOptions,
+  consultantOptions,
   sectionTitle,
   sectionIconClassName,
 }: Step3VehicleInterestProps) {
@@ -101,6 +103,18 @@ export function Step3VehicleInterest({
           {enquiryCategoryOptions.map((c) => (
             <option key={c} value={c}>
               {c}
+            </option>
+          ))}
+        </Select>
+
+        {/* Showroom consultant for this customer — optional at intake. */}
+        <Select label="Consultant" disabled={isComplete} error={fieldError("consultantId")} {...register("consultantId")}>
+          <option value="">
+            {consultantOptions.length === 0 ? "No consultants in this branch" : "Select consultant"}
+          </option>
+          {consultantOptions.map((c) => (
+            <option key={c.value} value={c.value}>
+              {c.label}
             </option>
           ))}
         </Select>

@@ -141,6 +141,7 @@ export async function createOrAttachEnquiry(
         enquiryType: input.enquiryType,
         location: input.location,
         assignedCrId,
+        consultantId: input.consultantId || undefined,
         status: "NEW",
         department: input.department,
         sourceCategory: input.sourceCategory,

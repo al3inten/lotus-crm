@@ -109,6 +109,7 @@ const walkInLeadBaseSchema = z
     location: z.string().min(1, "City is required"),
     branchId: z.string().min(1, "Branch is required"),
     assignedCrId: z.string().optional(),
+    consultantId: z.string().optional(),
     forceNew: z.boolean().optional(),
   })
   .merge(leadEnrichmentFormSchema);
@@ -129,6 +130,7 @@ export interface WalkInLeadFormInput {
   location: string;
   branchId: string;
   assignedCrId?: string;
+  consultantId?: string;
   forceNew?: boolean;
   alternateMobile?: string;
   dob?: string;

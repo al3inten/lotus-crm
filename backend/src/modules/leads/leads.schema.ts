@@ -64,6 +64,8 @@ export const createEnquirySchema = z
     branchId: z.string().min(1),
     // Only honored for manually-assigned sources (WALK_IN/MANUAL_OTHER/REFERRAL).
     assignedCrId: z.string().optional(),
+    // Showroom consultant handling this customer — optional at intake.
+    consultantId: z.string().optional(),
     forceNew: z.boolean().optional(),
   })
   .merge(leadEnrichmentSchema);
