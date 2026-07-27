@@ -34,6 +34,11 @@ export const leadEnrichmentSchema = z.object({
       "HMIL_EVENT",
       "EXCHANGE_CAMP",
     ])
+    // Nullable (not just optional): when the Source Category changes, the previously
+    // selected Subsource may no longer be valid for it and gets cleared client-side —
+    // that clear has to reach the DB as an explicit null, since `undefined` here means
+    // "field not touched" (see updateEnquiryDetails) and would leave the stale value in place.
+    .nullable()
     .optional(),
   variant: z.string().optional(),
   enquiryCategory: z.enum(["HOT", "WARM", "COLD"]).optional(),

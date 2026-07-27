@@ -361,7 +361,11 @@ export function AddLeadWizard({
     address: values.address || undefined,
     department: values.department || undefined,
     sourceCategory: values.sourceCategory || undefined,
-    subsource: values.subsource || undefined,
+    // null (not undefined) — an empty value here means the user cleared it (directly, or
+    // via the Source Category reset effect above), and that clear must actually reach the
+    // DB. undefined would be read by the backend as "field not touched", leaving whatever
+    // subsource was already saved in place even though the dropdown now shows blank.
+    subsource: values.subsource || null,
     variant: values.variant || undefined,
     enquiryCategory: values.enquiryCategory || undefined,
     exchangeCarModel: values.exchangeCarModel || undefined,
