@@ -24,6 +24,9 @@ type IconType = ComponentType<{ size?: number | string; strokeWidth?: number | s
 export const NAV_GROUP_ORDER = ["WORKSPACE", "SALES", "ENGAGE", "INSIGHTS", "AUTOMATION", "ADMIN"] as const;
 export type NavGroup = (typeof NAV_GROUP_ORDER)[number];
 
+/** "ENGAGE" is under development — hidden from the sidebar for now. Remove it here to restore. */
+const HIDDEN_GROUPS: NavGroup[] = ["ENGAGE"];
+
 export const NAV_GROUP_LABELS: Record<NavGroup, string> = {
   WORKSPACE: "Workspace",
   SALES: "Sales",
@@ -86,7 +89,7 @@ export const NAV_ITEMS: NavItem[] = [
 /** Visible nav items grouped into ordered sections (empty sections dropped). */
 export function useNavGroups(): { group: NavGroup; label: string; items: NavItem[] }[] {
   const items = useNavItems();
-  return NAV_GROUP_ORDER.map((group) => ({
+  return NAV_GROUP_ORDER.filter((group) => !HIDDEN_GROUPS.includes(group)).map((group) => ({
     group,
     label: NAV_GROUP_LABELS[group],
     items: items.filter((i) => i.group === group),
@@ -100,6 +103,7 @@ export function useNavGroups(): { group: NavGroup; label: string; items: NavItem
 export function useNavItems(): NavItem[] {
   const { user } = useAuth();
   return NAV_ITEMS.filter((item) => {
+    if (HIDDEN_GROUPS.includes(item.group)) return false;
     if (!user) return false;
     if (user.role === "SUPER_ADMIN") return true;
     if (user.permissions) return user.permissions.includes(item.module);
