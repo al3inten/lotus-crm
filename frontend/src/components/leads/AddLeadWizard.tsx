@@ -197,6 +197,17 @@ export function AddLeadWizard({
       setValue("enquiryCategory", "");
     }
   }, [isWalkInSource, selectedEnquiryCategory, setValue]);
+
+  // Subsource options depend on the chosen Source Category — a value carried over from a
+  // previously selected category (or a stale/mismatched value from existing data) that
+  // isn't valid for the current one would stay silently set (invisible in the dropdown,
+  // which shows blank) and still get saved. Clear it so the user consciously re-picks.
+  const selectedSubsource = watch("subsource");
+  useEffect(() => {
+    if (selectedSubsource && !subsourceOptions.includes(selectedSubsource)) {
+      setValue("subsource", "");
+    }
+  }, [selectedSubsource, subsourceOptions, setValue]);
   const selectedModelName = watch("carModel") as string | undefined;
   const selectedVariantName = watch("variant") as string | undefined;
   const activeModels = vehicleModels?.filter((m) => m.isActive) ?? [];
