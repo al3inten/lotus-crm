@@ -106,8 +106,8 @@ export function Step3VehicleInterest({
           ))}
         </Select>
 
-        {/* Showroom consultant for this customer — optional at intake. */}
-        <Select label="Consultant" disabled={isComplete} error={fieldError("consultantId")} {...register("consultantId")}>
+        {/* Showroom consultant for this customer — optional at intake, reassignable here too. */}
+        <Select label="Consultant" error={fieldError("consultantId")} {...register("consultantId")}>
           <option value="">
             {consultantOptions.length === 0 ? "No consultants in this branch" : "Select consultant"}
           </option>

@@ -361,6 +361,7 @@ export function AddLeadWizard({
     address: values.address || undefined,
     carModel: values.carModel || undefined,
     enquiryType: values.enquiryType || undefined,
+    consultantId: values.consultantId || undefined,
     department: values.department || undefined,
     sourceCategory: values.sourceCategory || undefined,
     // null (not undefined) — an empty value here means the user cleared it (directly, or
