@@ -171,6 +171,7 @@ const DETAILS_FIELD_LABELS: Record<string, string> = {
   department: "Department",
   sourceCategory: "Source",
   subsource: "Subsource",
+  referrerName: "Referrer name",
   variant: "Variant",
   enquiryCategory: "Enquiry category",
   financeRequired: "Finance required",
@@ -242,6 +243,7 @@ export async function updateEnquiryDetails(enquiryId: string, input: EnquiryDeta
     diff("department", enquiry.department, input.department);
     diff("sourceCategory", enquiry.sourceCategory, input.sourceCategory);
     diff("subsource", enquiry.subsource, input.subsource);
+    diff("referrerName", enquiry.referrerName, input.referrerName);
     diff("variant", enquiry.variant, input.variant);
     diff("enquiryCategory", enquiry.enquiryCategory, input.enquiryCategory);
     diff("financeRequired", enquiry.financeRequired, input.financeRequired);
@@ -281,6 +283,7 @@ export async function updateEnquiryDetails(enquiryId: string, input: EnquiryDeta
         department: input.department,
         sourceCategory: input.sourceCategory,
         subsource: input.subsource,
+        referrerName: input.referrerName,
         variant: input.variant,
         enquiryCategory: input.enquiryCategory,
         financeRequired: input.financeRequired,

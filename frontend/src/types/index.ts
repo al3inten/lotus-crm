@@ -313,6 +313,7 @@ export interface Enquiry {
   department?: Department | null;
   sourceCategory?: SourceCategory | null;
   subsource?: LeadSubsource | null;
+  referrerName?: string | null;
   variant?: string | null;
   enquiryCategory?: EnquiryCategory | null;
   financeRequired?: boolean | null;

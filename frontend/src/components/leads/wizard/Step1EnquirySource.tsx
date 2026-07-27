@@ -1,7 +1,7 @@
 import { Controller } from "react-hook-form";
 import type { Control, UseFormRegister } from "react-hook-form";
 import { Building2 } from "lucide-react";
-import { Select } from "../../common/Input";
+import { Select, Input } from "../../common/Input";
 import { SearchableSelect } from "../../common/SearchableSelect";
 import { Card, CardHeader } from "../../common/Card";
 import type { AddLeadFormInput } from "../../../schemas/lead.schema";
@@ -18,6 +18,7 @@ interface Step1EnquirySourceProps {
   branches: ReturnType<typeof useBranches>["data"];
   crStaff: ReturnType<typeof useBranchStaff>["data"];
   subsourceOptions: readonly string[];
+  selectedSourceCategory?: string;
   sectionTitle: string;
   sectionIconClassName: string;
 }
@@ -31,6 +32,7 @@ export function Step1EnquirySource({
   branches,
   crStaff,
   subsourceOptions,
+  selectedSourceCategory,
   sectionTitle,
   sectionIconClassName,
 }: Step1EnquirySourceProps) {
@@ -114,6 +116,15 @@ export function Step1EnquirySource({
             </option>
           ))}
         </Select>
+        {selectedSourceCategory === "REFERRAL" && (
+          <Input
+            label="Referrer Name"
+            required
+            placeholder="Name of the customer/employee who referred this lead"
+            error={fieldError("referrerName")}
+            {...register("referrerName")}
+          />
+        )}
 
         {!isComplete && (
           <div className="sm:col-span-2 mt-1 border-t border-slate-100 pt-4 dark:border-slate-800">

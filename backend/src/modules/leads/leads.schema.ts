@@ -41,6 +41,9 @@ export const leadEnrichmentSchema = z.object({
     // "field not touched" (see updateEnquiryDetails) and would leave the stale value in place.
     .nullable()
     .optional(),
+  // Only meaningful when sourceCategory is REFERRAL — the existing customer/employee
+  // who referred this lead.
+  referrerName: z.string().optional(),
   variant: z.string().optional(),
   enquiryCategory: z.enum(["HOT", "WARM", "COLD"]).optional(),
   financeRequired: z.boolean().optional(),

@@ -174,6 +174,11 @@ export function LeadHeroHeader({
                   </Tag>
                 )}
               </div>
+              {enquiry?.referrerName && (
+                <p className="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">
+                  Referred by: <span className="font-medium text-slate-700 dark:text-slate-300">{enquiry.referrerName}</span>
+                </p>
+              )}
               {enquiry && (
                 <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                   {/* The editable classification (Lead Source/Subsource from Edit) — not

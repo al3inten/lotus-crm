@@ -187,6 +187,28 @@ export async function fetchLostReasons(filters: ReportFilters): Promise<LostReas
   return data;
 }
 
+export interface ReferralLeadRow {
+  id: string;
+  leadId: string;
+  name: string;
+  phone: string;
+  referrerName: string | null;
+  carModel: string;
+  status: string;
+  branch: string;
+  createdAt: string;
+}
+
+export interface ReferralLeadsResult {
+  total: number;
+  rows: ReferralLeadRow[];
+}
+
+export async function fetchReferralLeads(filters: ReportFilters): Promise<ReferralLeadsResult> {
+  const { data } = await axiosClient.get<ReferralLeadsResult>("/reports/referral-leads", { params: filters });
+  return data;
+}
+
 export async function fetchVehiclePerformance(filters: ReportFilters): Promise<VehiclePerformanceRow[]> {
   const { data } = await axiosClient.get<VehiclePerformanceRow[]>("/reports/vehicle-performance", { params: filters });
   return data;

@@ -235,6 +235,42 @@ export async function getSourcePerformance(query: ReportQuery, branchFilter?: { 
     .sort((a, b) => b.total - a.total);
 }
 
+const REFERRAL_LEAD_ROW_CAP = 500;
+
+/** Referral-sourced leads (sourceCategory = REFERRAL) — a simple count plus the list of
+ * who referred whom, for the Reports "Referrals" tab. */
+export async function getReferralLeads(query: ReportQuery, branchFilter?: { branchId: string }) {
+  const where: Prisma.EnquiryWhereInput = { ...buildWhere(query, branchFilter), sourceCategory: "REFERRAL" };
+
+  const [total, enquiries] = await Promise.all([
+    prisma.enquiry.count({ where }),
+    prisma.enquiry.findMany({
+      where,
+      include: {
+        lead: { select: { name: true, phoneRaw: true } },
+        branch: { select: { name: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: REFERRAL_LEAD_ROW_CAP,
+    }),
+  ]);
+
+  return {
+    total,
+    rows: enquiries.map((e) => ({
+      id: e.id,
+      leadId: e.leadId,
+      name: e.lead.name,
+      phone: e.lead.phoneRaw,
+      referrerName: e.referrerName,
+      carModel: e.carModel,
+      status: e.status,
+      branch: e.branch.name,
+      createdAt: e.createdAt.toISOString(),
+    })),
+  };
+}
+
 /** Why deals are being lost, from the lossReason captured at LOST transition. */
 export async function getLostReasons(query: ReportQuery, branchFilter?: { branchId: string }) {
   const where = buildWhere(query, branchFilter);

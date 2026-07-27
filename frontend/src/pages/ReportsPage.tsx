@@ -13,6 +13,7 @@ import {
   useSourcePerformanceReport,
   useLostReasonsReport,
   useConsultantPerformanceReport,
+  useReferralLeadsReport,
 } from "../hooks/useReports";
 import {
   ClipboardList,
@@ -32,6 +33,7 @@ import {
   LayoutDashboard,
   GitBranch,
   SlidersHorizontal,
+  UserPlus,
 } from "lucide-react";
 import type { ReportFilters } from "../api/reports.api";
 import { StatTile } from "../components/reports/StatTile";
@@ -68,6 +70,7 @@ const TABS = [
   { key: "sources-team", label: "Sources & Team", icon: Users },
   { key: "pipeline", label: "Pipeline", icon: GitBranch },
   { key: "ai-calling", label: "AI Calling", icon: PhoneCall },
+  { key: "referrals", label: "Referrals", icon: UserPlus },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -172,6 +175,7 @@ export function ReportsPage() {
   const { data: crRows } = useCrPerformanceReport(filters);
   const { data: consultantRows } = useConsultantPerformanceReport(filters);
   const { data: rollup } = useBranchRollupReport(filters);
+  const { data: referralLeads } = useReferralLeadsReport(filters, tab === "referrals");
 
   // Every "download this list" action opens the preview modal first (see CustomerListModal)
   // rather than downloading blind — `extra` narrows the list beyond the page's own filters.
@@ -770,6 +774,62 @@ export function ReportsPage() {
             />
           ) : (
             <p className="text-sm text-gray-400 dark:text-slate-500">Loading…</p>
+          )}
+        </Section>
+      )}
+
+      {tab === "referrals" && (
+        <Section
+          title="Referral Leads"
+          subtitle="Leads that came in through Referral, and who referred them"
+          icon={<UserPlus size={20} />}
+          iconClassName="bg-emerald-50 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
+        >
+          {!referralLeads ? (
+            <p className="text-sm text-gray-400 dark:text-slate-500">Loading…</p>
+          ) : (
+            <div className="flex flex-col gap-4">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <StatTile
+                  label="Total Referral Leads"
+                  value={referralLeads.total}
+                  icon={<UserPlus size={20} />}
+                  iconClassName="bg-emerald-50 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
+                />
+              </div>
+              {referralLeads.rows.length === 0 ? (
+                <p className="text-sm text-gray-400 dark:text-slate-500">No referral leads in this range.</p>
+              ) : (
+                <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-slate-800">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:bg-slate-800/50 dark:text-slate-400">
+                      <tr>
+                        <th className="px-4 py-2.5">Lead</th>
+                        <th className="px-4 py-2.5">Phone</th>
+                        <th className="px-4 py-2.5">Referred By</th>
+                        <th className="px-4 py-2.5">Vehicle</th>
+                        <th className="px-4 py-2.5">Branch</th>
+                        <th className="px-4 py-2.5">Status</th>
+                        <th className="px-4 py-2.5">Date</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+                      {referralLeads.rows.map((row) => (
+                        <tr key={row.id} className="transition-colors hover:bg-primary-50/60 dark:hover:bg-primary-500/[0.06]">
+                          <td className="px-4 py-2.5 font-medium text-gray-900 dark:text-slate-100">{row.name}</td>
+                          <td className="px-4 py-2.5 tabular-nums text-gray-700 dark:text-slate-300">{row.phone}</td>
+                          <td className="px-4 py-2.5 text-gray-700 dark:text-slate-300">{row.referrerName ?? "—"}</td>
+                          <td className="px-4 py-2.5 text-gray-700 dark:text-slate-300">{row.carModel}</td>
+                          <td className="px-4 py-2.5 text-gray-700 dark:text-slate-300">{row.branch}</td>
+                          <td className="px-4 py-2.5 text-gray-700 dark:text-slate-300">{(STAGE_LABELS[row.status] ?? row.status.replaceAll("_", " "))}</td>
+                          <td className="px-4 py-2.5 text-gray-700 dark:text-slate-300">{new Date(row.createdAt).toLocaleDateString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           )}
         </Section>
       )}
