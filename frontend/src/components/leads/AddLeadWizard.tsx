@@ -359,6 +359,8 @@ export function AddLeadWizard({
     pincode: values.pincode || undefined,
     area: values.area || undefined,
     address: values.address || undefined,
+    carModel: values.carModel || undefined,
+    enquiryType: values.enquiryType || undefined,
     department: values.department || undefined,
     sourceCategory: values.sourceCategory || undefined,
     // null (not undefined) — an empty value here means the user cleared it (directly, or

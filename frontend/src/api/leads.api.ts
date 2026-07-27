@@ -55,6 +55,8 @@ export interface LeadEnrichmentPayload {
   pincode?: string;
   area?: string;
   address?: string;
+  carModel?: string;
+  enquiryType?: EnquiryType;
   department?: Department;
   sourceCategory?: SourceCategory;
   /** null explicitly clears it (e.g. it no longer matches a changed sourceCategory) —

@@ -61,7 +61,6 @@ export function Step3VehicleInterest({
               ref={field.ref}
               label="Vehicle Model"
               required
-              disabled={isComplete}
               placeholder="Search models…"
               value={field.value}
               onChange={(v) => {
@@ -81,7 +80,7 @@ export function Step3VehicleInterest({
             <SearchableSelect
               ref={field.ref}
               label="Variant"
-              disabled={isComplete || !selectedModelName}
+              disabled={!selectedModelName}
               placeholder="Search variants…"
               value={field.value}
               onChange={field.onChange}
@@ -91,7 +90,7 @@ export function Step3VehicleInterest({
             />
           )}
         />
-        <Select label="Lead Type" required disabled={isComplete} error={fieldError("enquiryType")} {...register("enquiryType")}>
+        <Select label="Lead Type" required error={fieldError("enquiryType")} {...register("enquiryType")}>
           {ENQUIRY_TYPES.map((type) => (
             <option key={type} value={type}>
               {type.replaceAll("_", " ")}

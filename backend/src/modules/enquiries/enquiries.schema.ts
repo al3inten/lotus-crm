@@ -9,6 +9,10 @@ export const enquiryDetailsSchema = leadEnrichmentSchema.extend({
   name: z.string().optional(),
   location: z.string().optional(),
   consultantId: z.string().optional(),
+  // Editable here (unlike on creation, where they're required) — the Vehicle Interest
+  // step is now editable in the Complete/Edit flow, same as Lead Source/Subsource.
+  carModel: z.string().min(1).optional(),
+  enquiryType: z.enum(["NEW_CAR", "USED_CAR", "SERVICE_RELATED", "ACCESSORY", "OTHER"]).optional(),
 });
 
 export const changeStatusSchema = z.object({

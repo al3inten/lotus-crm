@@ -165,6 +165,8 @@ const DETAILS_FIELD_LABELS: Record<string, string> = {
   area: "Area",
   address: "Address",
   location: "Location",
+  carModel: "Vehicle model",
+  enquiryType: "Lead type",
   department: "Department",
   sourceCategory: "Source",
   subsource: "Subsource",
@@ -225,6 +227,8 @@ export async function updateEnquiryDetails(enquiryId: string, input: EnquiryDeta
     diff("area", lead?.area, input.area);
     diff("address", lead?.address, input.address);
     diff("location", enquiry.location, input.location);
+    diff("carModel", enquiry.carModel, input.carModel);
+    diff("enquiryType", enquiry.enquiryType, input.enquiryType);
     diff("department", enquiry.department, input.department);
     diff("sourceCategory", enquiry.sourceCategory, input.sourceCategory);
     diff("subsource", enquiry.subsource, input.subsource);
@@ -261,6 +265,8 @@ export async function updateEnquiryDetails(enquiryId: string, input: EnquiryDeta
       where: { id: enquiryId },
       data: {
         location: input.location,
+        carModel: input.carModel,
+        enquiryType: input.enquiryType,
         department: input.department,
         sourceCategory: input.sourceCategory,
         subsource: input.subsource,
