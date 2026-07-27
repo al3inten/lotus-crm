@@ -4,6 +4,21 @@ export const reportQuerySchema = z.object({
   branchId: z.string().optional(),
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),
+  // Only honored by the export endpoints (see exportEnquiriesCsv/Xlsx) — lets a specific
+  // status/loss-reason/source/CR row elsewhere on the Reports page be downloaded as its own
+  // customer list without touching any of the aggregate report queries, which never send these.
+  status: z.string().optional(),
+  lossReason: z.string().optional(),
+  source: z.string().optional(),
+  assignedCrId: z.string().optional(),
+  consultantId: z.string().optional(),
+  carModel: z.string().optional(),
+  enquiryType: z.string().optional(),
+});
+
+export const customerPreviewQuerySchema = reportQuerySchema.extend({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20),
 });
 
 export const trendQuerySchema = reportQuerySchema.extend({

@@ -48,6 +48,7 @@ export interface LeadLookupResult {
 /** Offline-intake enrichment fields — all optional, shared by create and complete-details payloads. */
 export interface LeadEnrichmentPayload {
   name?: string;
+  email?: string;
   location?: string;
   alternateMobile?: string;
   dob?: string;

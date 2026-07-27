@@ -1,7 +1,8 @@
 import { Request, Response } from "express";
 import * as reportsService from "./reports.service";
 import * as analyticsService from "./analytics.service";
-import { ReportQuery, TrendQuery, BreakdownQuery } from "./reports.schema";
+import { ReportQuery, TrendQuery, BreakdownQuery, customerPreviewQuerySchema } from "./reports.schema";
+import { z } from "zod";
 
 export async function summaryHandler(req: Request, res: Response) {
   const result = await reportsService.getSummary(req.query as unknown as ReportQuery, req.branchFilter);
@@ -53,6 +54,11 @@ export async function lostReasonsHandler(req: Request, res: Response) {
   res.json(result);
 }
 
+export async function consultantPerformanceHandler(req: Request, res: Response) {
+  const result = await analyticsService.getConsultantPerformance(req.query as unknown as ReportQuery, req.branchFilter);
+  res.json(result);
+}
+
 export async function vehiclePerformanceHandler(req: Request, res: Response) {
   const result = await analyticsService.getVehiclePerformance(req.query as unknown as ReportQuery, req.branchFilter);
   res.json(result);
@@ -77,4 +83,17 @@ export async function exportCsvHandler(req: Request, res: Response) {
   res.setHeader("Content-Type", "text/csv; charset=utf-8");
   res.setHeader("Content-Disposition", `attachment; filename="lotus-crm-enquiries-${new Date().toISOString().slice(0, 10)}.csv"`);
   res.send(csv);
+}
+
+export async function previewCustomersHandler(req: Request, res: Response) {
+  const query = req.query as unknown as z.infer<typeof customerPreviewQuerySchema>;
+  const result = await analyticsService.previewCustomers(query, req.branchFilter, query.page, query.pageSize);
+  res.json(result);
+}
+
+export async function exportXlsxHandler(req: Request, res: Response) {
+  const buffer = await analyticsService.exportEnquiriesXlsx(req.query as unknown as ReportQuery, req.branchFilter);
+  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+  res.setHeader("Content-Disposition", `attachment; filename="lotus-crm-customers-${new Date().toISOString().slice(0, 10)}.xlsx"`);
+  res.send(buffer);
 }

@@ -29,11 +29,13 @@ export function useMarkNotificationAsRead() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: notificationKeys.all });
     },
+    meta: { successMessage: "Notification marked read" },
   });
 }
 
 export function usePushRepeatEnquiryAlert() {
   return useMutation({
     mutationFn: notificationsApi.pushRepeatEnquiryAlert,
+    meta: { successMessage: "Alert sent" },
   });
 }

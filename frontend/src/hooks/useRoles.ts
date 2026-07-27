@@ -15,6 +15,7 @@ export function useCreateRole() {
   return useMutation({
     mutationFn: (payload: CreateRolePayload) => rolesApi.createRole(payload),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["roles"] }),
+    meta: { successMessage: "Role created" },
   });
 }
 
@@ -24,6 +25,7 @@ export function useUpdateRole() {
     mutationFn: ({ roleId, payload }: { roleId: string; payload: { name?: string; permissions?: ModuleKey[]; isActive?: boolean } }) =>
       rolesApi.updateRole(roleId, payload),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["roles"] }),
+    meta: { successMessage: "Role updated" },
   });
 }
 
@@ -32,6 +34,7 @@ export function useDeleteRole() {
   return useMutation({
     mutationFn: (roleId: string) => rolesApi.deleteRole(roleId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["roles"] }),
+    meta: { successMessage: "Role deleted" },
   });
 }
 

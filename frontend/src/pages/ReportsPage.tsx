@@ -12,6 +12,7 @@ import {
   useCallAnalysisReport,
   useSourcePerformanceReport,
   useLostReasonsReport,
+  useConsultantPerformanceReport,
 } from "../hooks/useReports";
 import {
   ClipboardList,
@@ -22,7 +23,6 @@ import {
   Download,
   LayoutGrid,
   TrendingUp,
-  Filter,
   Clock,
   Radio,
   ThumbsDown,
@@ -31,19 +31,25 @@ import {
   Building2,
   LayoutDashboard,
   GitBranch,
+  SlidersHorizontal,
 } from "lucide-react";
-import { downloadEnquiriesCsv } from "../api/reports.api";
+import type { ReportFilters } from "../api/reports.api";
 import { StatTile } from "../components/reports/StatTile";
+import { CustomerListModal } from "../components/reports/CustomerListModal";
+import { DonutChart } from "../components/reports/DonutChart";
+import type { DonutSlice } from "../components/reports/DonutChart";
+import { ChartTableToggle } from "../components/reports/ChartTableToggle";
 import { FunnelChart } from "../components/reports/FunnelChart";
 import { HBarList } from "../components/reports/HBarList";
 import { SourcePerformanceTable } from "../components/reports/SourcePerformanceTable";
 import { CrPerformanceTable } from "../components/reports/CrPerformanceTable";
-import { ChartBuilder } from "../components/reports/ChartBuilder";
 import { TrendChart } from "../components/reports/TrendChart";
 import { formatHours } from "../components/reports/vizTheme";
 import { Button } from "../components/common/Button";
 import { Select } from "../components/common/Input";
+import { DatePickerField } from "../components/common/DateTimePicker";
 import { Card, CardHeader } from "../components/common/Card";
+import { LEAD_SOURCES, LOSS_REASONS, ENQUIRY_TYPES } from "../types";
 
 type Granularity = "week" | "month" | "year";
 
@@ -52,14 +58,15 @@ const DATE_PRESETS = [
   { key: "90d", label: "Last 90 days", days: 90 },
   { key: "ytd", label: "This year", days: null },
   { key: "all", label: "All time", days: -1 },
+  { key: "custom", label: "Custom range", days: null },
 ] as const;
 
 type PresetKey = (typeof DATE_PRESETS)[number]["key"];
 
 const TABS = [
   { key: "overview", label: "Overview", icon: LayoutDashboard },
-  { key: "pipeline", label: "Pipeline", icon: GitBranch },
   { key: "sources-team", label: "Sources & Team", icon: Users },
+  { key: "pipeline", label: "Pipeline", icon: GitBranch },
   { key: "ai-calling", label: "AI Calling", icon: PhoneCall },
 ] as const;
 
@@ -76,10 +83,27 @@ const STAGE_LABELS: Record<string, string> = {
   UNDER_FOLLOW_UP: "Under Follow-up",
   APPOINTMENT_FIXED: "Appointment Fixed",
   TEST_DRIVE: "Test Drive",
-  BOOKED: "Booked",
-  RETAIL_DONE: "Retail Done",
+  BOOKED: "Booking",
+  RETAIL_DONE: "Retail",
+  RTO_DONE: "RTO",
+  DELIVERED: "Delivered",
   CLOSED: "Closed",
 };
+
+// Every case a customer can be in, in pipeline order — the Status Breakdown table below
+// walks this list so "all the situations" is always complete, not just whatever keys
+// happen to be present in this period's data.
+const STATUS_ORDER = [
+  "NEW",
+  "UNDER_FOLLOW_UP",
+  "APPOINTMENT_FIXED",
+  "TEST_DRIVE",
+  "BOOKED",
+  "RETAIL_DONE",
+  "RTO_DONE",
+  "DELIVERED",
+  "CLOSED",
+] as const;
 
 function Section({
   title,
@@ -104,10 +128,19 @@ function Section({
 
 export function ReportsPage() {
   const [preset, setPreset] = useState<PresetKey>("ytd");
+  const [customFrom, setCustomFrom] = useState<string>("");
+  const [customTo, setCustomTo] = useState<string>("");
   const [branchId, setBranchId] = useState<string>("");
   const [granularity, setGranularity] = useState<Granularity>("month");
-  const [exporting, setExporting] = useState(false);
   const [tab, setTab] = useState<TabKey>("overview");
+
+  // The Custom Download card — every extra dimension is optional and they all combine
+  // (AND, not OR), so "Status = Retail" + "Source = Referral" downloads only customers
+  // matching both at once, on top of whatever date/branch is already selected above.
+  const [customStatus, setCustomStatus] = useState<string>("");
+  const [customSource, setCustomSource] = useState<string>("");
+  const [customEnquiryType, setCustomEnquiryType] = useState<string>("");
+  const [customLossReason, setCustomLossReason] = useState<string>("");
 
   const filters = useMemo(() => {
     const base: { branchId?: string; dateFrom?: string; dateTo?: string } = {
@@ -115,13 +148,17 @@ export function ReportsPage() {
     };
     const now = new Date();
     const presetDef = DATE_PRESETS.find((p) => p.key === preset)!;
-    if (presetDef.key === "ytd") {
+    if (presetDef.key === "custom") {
+      if (customFrom) base.dateFrom = new Date(customFrom).toISOString();
+      // End-of-day so "to" is inclusive of the whole selected day, not midnight at its start.
+      if (customTo) base.dateTo = new Date(`${customTo}T23:59:59.999`).toISOString();
+    } else if (presetDef.key === "ytd") {
       base.dateFrom = new Date(now.getFullYear(), 0, 1).toISOString();
     } else if (presetDef.days !== null && presetDef.days > 0) {
       base.dateFrom = new Date(now.getTime() - presetDef.days * 24 * 3600 * 1000).toISOString();
     }
     return base;
-  }, [preset, branchId]);
+  }, [preset, branchId, customFrom, customTo]);
 
   const { data: branches } = useBranches();
   const { data: summary } = useSummaryReport(filters);
@@ -133,21 +170,29 @@ export function ReportsPage() {
   const { data: sources } = useSourcePerformanceReport(filters);
   const { data: lostReasons } = useLostReasonsReport(filters);
   const { data: crRows } = useCrPerformanceReport(filters);
+  const { data: consultantRows } = useConsultantPerformanceReport(filters);
   const { data: rollup } = useBranchRollupReport(filters);
 
-  const handleExport = async () => {
-    setExporting(true);
-    try {
-      const blob = await downloadEnquiriesCsv(filters);
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `lotus-crm-enquiries-${new Date().toISOString().slice(0, 10)}.csv`;
-      link.click();
-      URL.revokeObjectURL(url);
-    } finally {
-      setExporting(false);
-    }
+  // Every "download this list" action opens the preview modal first (see CustomerListModal)
+  // rather than downloading blind — `extra` narrows the list beyond the page's own filters.
+  const [preview, setPreview] = useState<{ title: string; fileSuffix: string; filters: ReportFilters } | null>(null);
+  const openList = (title: string, fileSuffix: string, extra: Partial<ReportFilters> = {}) =>
+    setPreview({ title, fileSuffix, filters: { ...filters, ...extra } });
+
+  const handleExport = () => openList("All customers", "all");
+
+  const customFilterCount = [customStatus, customSource, customEnquiryType, customLossReason].filter(Boolean).length;
+  const handleCustomDownload = () => {
+    const parts = [customStatus, customSource, customEnquiryType, customLossReason].filter(Boolean);
+    const label = parts.length
+      ? parts.map((p) => p.replaceAll("_", " ")).join(" + ")
+      : "All customers";
+    openList(label, parts.length ? parts.join("-").toLowerCase().replace(/_/g, "-") : "all", {
+      status: customStatus || undefined,
+      source: customSource || undefined,
+      enquiryType: customEnquiryType || undefined,
+      lossReason: customLossReason || undefined,
+    });
   };
 
   const maxLostCount = Math.max(1, ...(lostReasons ?? []).map((r) => r.count));
@@ -178,12 +223,11 @@ export function ReportsPage() {
           <div className="shrink-0">
             <Button
               variant="secondary"
-              isLoading={exporting}
               icon={<Download size={15} />}
               onClick={handleExport}
               className="bg-white/10 text-white hover:bg-white/20 border-0 ring-1 ring-white/20 shadow-lg backdrop-blur-md transition-all hover:scale-105"
             >
-              Export CSV
+              Export Excel
             </Button>
           </div>
         </div>
@@ -199,6 +243,12 @@ export function ReportsPage() {
             </option>
           ))}
         </Select>
+        {preset === "custom" && (
+          <>
+            <DatePickerField label="From" value={customFrom} onChange={(v) => setCustomFrom(v ?? "")} />
+            <DatePickerField label="To" value={customTo} onChange={(v) => setCustomTo(v ?? "")} />
+          </>
+        )}
         <Select label="Branch" value={branchId} onChange={(e) => setBranchId(e.target.value)} className="min-w-[180px]">
           <option value="">All Branches</option>
           {branches?.map((b) => (
@@ -284,12 +334,110 @@ export function ReportsPage() {
       {tab === "overview" && (
         <>
           <Section
-            title="Chart Builder"
-            subtitle="Break enquiries down by any field — pick a dimension and measure, view as bars or a donut"
-            icon={<Filter size={20} />}
+            title="Custom Download"
+            subtitle="Combine any of these — e.g. Status = Retail + Source = Referral — and download only those customers"
+            icon={<SlidersHorizontal size={20} />}
+            iconClassName="bg-violet-50 text-violet-600 dark:bg-violet-500/20 dark:text-violet-400"
+          >
+            <div className="flex flex-wrap items-end gap-4">
+              <Select label="Status" value={customStatus} onChange={(e) => setCustomStatus(e.target.value)} className="min-w-[160px]">
+                <option value="">Any status</option>
+                {STATUS_ORDER.map((s) => (
+                  <option key={s} value={s}>
+                    {STAGE_LABELS[s]}
+                  </option>
+                ))}
+              </Select>
+              <Select label="Lead Source" value={customSource} onChange={(e) => setCustomSource(e.target.value)} className="min-w-[160px]">
+                <option value="">Any source</option>
+                {LEAD_SOURCES.map((s) => (
+                  <option key={s} value={s}>
+                    {s.replaceAll("_", " ")}
+                  </option>
+                ))}
+              </Select>
+              <Select label="Lead Type" value={customEnquiryType} onChange={(e) => setCustomEnquiryType(e.target.value)} className="min-w-[160px]">
+                <option value="">Any type</option>
+                {ENQUIRY_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {t.replaceAll("_", " ")}
+                  </option>
+                ))}
+              </Select>
+              <Select label="Loss Reason" value={customLossReason} onChange={(e) => setCustomLossReason(e.target.value)} className="min-w-[160px]">
+                <option value="">Any reason</option>
+                {LOSS_REASONS.map((r) => (
+                  <option key={r} value={r}>
+                    {LOSS_REASON_LABELS[r] ?? r.replaceAll("_", " ")}
+                  </option>
+                ))}
+              </Select>
+              <Button
+                icon={<Download size={15} />}
+                onClick={handleCustomDownload}
+              >
+                Download{customFilterCount > 0 ? ` (${customFilterCount} filters)` : ""}
+              </Button>
+            </div>
+          </Section>
+
+          <Section
+            title="Status Breakdown"
+            subtitle="Every case in the pipeline right now — click the download icon for that case's customer list"
+            icon={<LayoutGrid size={20} />}
             iconClassName="bg-primary-50 text-primary-600 dark:bg-primary-500/20 dark:text-primary-400"
           >
-            <ChartBuilder filters={filters} />
+            <ChartTableToggle
+              table={
+                <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-slate-800">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:bg-slate-800/50 dark:text-slate-400">
+                      <tr>
+                        <th className="px-4 py-2.5">Status</th>
+                        <th className="px-4 py-2.5">Customers</th>
+                        <th className="px-4 py-2.5">% of total</th>
+                        <th className="px-4 py-2.5 text-right">Download</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+                      {STATUS_ORDER.map((status) => {
+                        const count = summary?.statusBreakdown[status] ?? 0;
+                        const percent = summary?.totalEnquiries ? Math.round((count / summary.totalEnquiries) * 1000) / 10 : 0;
+                        return (
+                          <tr key={status} className="transition-colors hover:bg-primary-50/60 dark:hover:bg-primary-500/[0.06]">
+                            <td className="px-4 py-2.5 font-medium text-gray-900 dark:text-slate-100">{STAGE_LABELS[status] ?? status}</td>
+                            <td className="px-4 py-2.5 tabular-nums text-gray-700 dark:text-slate-300">{count}</td>
+                            <td className="px-4 py-2.5 tabular-nums text-gray-500 dark:text-slate-400">{percent}%</td>
+                            <td className="px-4 py-2.5 text-right">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                disabled={count === 0}
+                                icon={<Download size={14} />}
+                                onClick={() => openList(STAGE_LABELS[status] ?? status, STAGE_LABELS[status]?.toLowerCase().replace(/\s+/g, "-") ?? status.toLowerCase(), { status })}
+                              >
+                                Download
+                              </Button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              }
+              chart={
+                <DonutChart
+                  slices={STATUS_ORDER.filter((s) => (summary?.statusBreakdown[s] ?? 0) > 0).map(
+                    (s): DonutSlice => ({
+                      label: STAGE_LABELS[s] ?? s,
+                      value: summary?.statusBreakdown[s] ?? 0,
+                      valueLabel: String(summary?.statusBreakdown[s] ?? 0),
+                    })
+                  )}
+                />
+              }
+            />
           </Section>
 
           <Section
@@ -343,13 +491,33 @@ export function ReportsPage() {
             iconClassName="bg-red-50 text-red-600 dark:bg-red-500/20 dark:text-red-400"
           >
             {lostReasons && lostReasons.length > 0 ? (
-              <HBarList
-                rows={lostReasons.map((row) => ({
-                  label: LOSS_REASON_LABELS[row.reason] ?? row.reason,
-                  value: row.count,
-                  fraction: row.count / maxLostCount,
-                  valueLabel: `${row.count} (${row.percent}%)`,
-                }))}
+              <ChartTableToggle
+                table={
+                  <HBarList
+                    rows={lostReasons.map((row) => ({
+                      label: LOSS_REASON_LABELS[row.reason] ?? row.reason,
+                      value: row.count,
+                      fraction: row.count / maxLostCount,
+                      valueLabel: `${row.count} (${row.percent}%)`,
+                      onDownload: () =>
+                        openList(`Lost — ${LOSS_REASON_LABELS[row.reason] ?? row.reason.replaceAll("_"," ")}`, `lost-${row.reason.toLowerCase().replace(/_/g, "-")}`, {
+                          status: "CLOSED",
+                          lossReason: row.reason,
+                        }),
+                    }))}
+                  />
+                }
+                chart={
+                  <DonutChart
+                    slices={lostReasons.map(
+                      (row): DonutSlice => ({
+                        label: LOSS_REASON_LABELS[row.reason] ?? row.reason,
+                        value: row.count,
+                        valueLabel: String(row.count),
+                      })
+                    )}
+                  />
+                }
               />
             ) : (
               <p className="text-sm text-gray-400 dark:text-slate-500">No lost enquiries with a recorded reason in this range.</p>
@@ -366,7 +534,109 @@ export function ReportsPage() {
             icon={<Radio size={20} />}
             iconClassName="bg-primary-50 text-primary-600 dark:bg-primary-500/20 dark:text-primary-400"
           >
-            {sources ? <SourcePerformanceTable rows={sources} /> : <p className="text-sm text-gray-400 dark:text-slate-500">Loading…</p>}
+            {sources ? (
+              <ChartTableToggle
+                table={
+                  <SourcePerformanceTable
+                    rows={sources}
+                    onDownload={(source) => openList(`Source — ${source.replaceAll("_"," ")}`, `source-${source.toLowerCase().replace(/_/g, "-")}`, { source })}
+                  />
+                }
+                chart={
+                  <DonutChart
+                    slices={sources.map(
+                      (row): DonutSlice => ({
+                        label: row.source.replaceAll("_", " "),
+                        value: row.total,
+                        valueLabel: String(row.total),
+                      })
+                    )}
+                  />
+                }
+              />
+            ) : (
+              <p className="text-sm text-gray-400 dark:text-slate-500">Loading…</p>
+            )}
+          </Section>
+
+          <Section
+            title="Consultant Sales Performance"
+            subtitle="Who is actually closing cars on the floor — sales, share of the total mix, and each consultant's best-selling model"
+            icon={<Users size={20} />}
+            iconClassName="bg-emerald-50 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
+          >
+            {!consultantRows ? (
+              <p className="text-sm text-gray-400 dark:text-slate-500">Loading…</p>
+            ) : consultantRows.length === 0 ? (
+              <p className="text-sm text-gray-400 dark:text-slate-500">No consultant activity in this range.</p>
+            ) : (
+              <ChartTableToggle
+                table={
+                  <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-slate-800">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:bg-slate-800/50 dark:text-slate-400">
+                        <tr>
+                          <th className="px-4 py-2.5">Consultant</th>
+                          <th className="px-4 py-2.5">Handled</th>
+                          <th className="px-4 py-2.5">Sold</th>
+                          <th className="px-4 py-2.5">Conversion</th>
+                          <th className="px-4 py-2.5">Share of Sales</th>
+                          <th className="px-4 py-2.5">Top Model</th>
+                          <th className="px-4 py-2.5 text-right">Download</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+                        {consultantRows.map((row) => (
+                          <tr key={row.consultantId} className="transition-colors hover:bg-primary-50/60 dark:hover:bg-primary-500/[0.06]">
+                            <td className="px-4 py-2.5 font-medium text-gray-900 dark:text-slate-100">{row.consultantName}</td>
+                            <td className="px-4 py-2.5 tabular-nums text-gray-700 dark:text-slate-300">{row.handled}</td>
+                            <td className="px-4 py-2.5 tabular-nums font-semibold text-emerald-600 dark:text-emerald-400">{row.sold}</td>
+                            <td className="px-4 py-2.5 tabular-nums text-gray-700 dark:text-slate-300">{row.conversionRate}%</td>
+                            <td className="px-4 py-2.5 tabular-nums text-gray-700 dark:text-slate-300">{row.shareOfSales}%</td>
+                            <td className="px-4 py-2.5 text-gray-700 dark:text-slate-300" title={row.models.map((m) => `${m.carModel}: ${m.sold}`).join(", ")}>
+                              {row.topModel ?? "—"}
+                            </td>
+                            <td className="px-4 py-2.5 text-right">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                icon={<Download size={14} />}
+                                onClick={() =>
+                                  openList(
+                                    `Consultant — ${row.consultantName}`,
+                                    `consultant-${row.consultantName.toLowerCase().replace(/\s+/g, "-")}`,
+                                    { consultantId: row.consultantId }
+                                  )
+                                }
+                              >
+                                Download
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                }
+                chart={
+                  consultantRows.some((r) => r.sold > 0) ? (
+                    <DonutChart
+                      slices={consultantRows
+                        .filter((r) => r.sold > 0)
+                        .map(
+                          (row): DonutSlice => ({
+                            label: row.consultantName,
+                            value: row.sold,
+                            valueLabel: String(row.sold),
+                          })
+                        )}
+                    />
+                  ) : (
+                    <p className="text-sm text-gray-400 dark:text-slate-500">No sales in this range yet.</p>
+                  )
+                }
+              />
+            )}
           </Section>
 
           <Section
@@ -375,7 +645,38 @@ export function ReportsPage() {
             icon={<Users size={20} />}
             iconClassName="bg-primary-50 text-primary-600 dark:bg-primary-500/20 dark:text-primary-400"
           >
-            {crRows ? <CrPerformanceTable rows={crRows} /> : <p className="text-sm text-gray-400 dark:text-slate-500">Loading…</p>}
+            {crRows ? (
+              <ChartTableToggle
+                table={
+                  <CrPerformanceTable
+                    rows={crRows}
+                    onDownload={(crId) => {
+                      const cr = crRows.find((r) => r.crId === crId);
+                      openList(`CR — ${cr?.crName ?? crId}`, `cr-${(cr?.crName ?? crId).toLowerCase().replace(/\s+/g, "-")}`, { assignedCrId: crId });
+                    }}
+                  />
+                }
+                chart={
+                  crRows.some((r) => r.assigned > 0) ? (
+                    <DonutChart
+                      slices={crRows
+                        .filter((r) => r.assigned > 0)
+                        .map(
+                          (row): DonutSlice => ({
+                            label: row.crName,
+                            value: row.assigned,
+                            valueLabel: String(row.assigned),
+                          })
+                        )}
+                    />
+                  ) : (
+                    <p className="text-sm text-gray-400 dark:text-slate-500">No CR activity in this range.</p>
+                  )
+                }
+              />
+            ) : (
+              <p className="text-sm text-gray-400 dark:text-slate-500">Loading…</p>
+            )}
           </Section>
 
           {rollup && rollup.length > 1 && (
@@ -385,28 +686,54 @@ export function ReportsPage() {
               icon={<Building2 size={20} />}
               iconClassName="bg-primary-50 text-primary-600 dark:bg-primary-500/20 dark:text-primary-400"
             >
-              <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-slate-800">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:bg-slate-800/50 dark:text-slate-400">
-                    <tr>
-                      <th className="px-4 py-2.5">Branch</th>
-                      <th className="px-4 py-2.5">Total</th>
-                      <th className="px-4 py-2.5">Converted</th>
-                      <th className="px-4 py-2.5">Lost</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
-                    {rollup.map((row) => (
-                      <tr key={row.branchId} className="transition-colors hover:bg-primary-50/60 dark:hover:bg-primary-500/[0.06]">
-                        <td className="px-4 py-2.5 font-medium text-gray-900 dark:text-slate-100">{row.branchName}</td>
-                        <td className="px-4 py-2.5 tabular-nums text-gray-700 dark:text-slate-300">{row.total}</td>
-                        <td className="px-4 py-2.5 tabular-nums text-gray-700 dark:text-slate-300">{row.statusCounts["RETAIL_DONE"] ?? 0}</td>
-                        <td className="px-4 py-2.5 tabular-nums text-gray-700 dark:text-slate-300">{row.statusCounts["CLOSED"] ?? 0}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <ChartTableToggle
+                table={
+                  <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-slate-800">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:bg-slate-800/50 dark:text-slate-400">
+                        <tr>
+                          <th className="px-4 py-2.5">Branch</th>
+                          <th className="px-4 py-2.5">Total</th>
+                          <th className="px-4 py-2.5">Converted</th>
+                          <th className="px-4 py-2.5">Lost</th>
+                          <th className="px-4 py-2.5 text-right">Download</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+                        {rollup.map((row) => (
+                          <tr key={row.branchId} className="transition-colors hover:bg-primary-50/60 dark:hover:bg-primary-500/[0.06]">
+                            <td className="px-4 py-2.5 font-medium text-gray-900 dark:text-slate-100">{row.branchName}</td>
+                            <td className="px-4 py-2.5 tabular-nums text-gray-700 dark:text-slate-300">{row.total}</td>
+                            <td className="px-4 py-2.5 tabular-nums text-gray-700 dark:text-slate-300">{row.statusCounts["RETAIL_DONE"] ?? 0}</td>
+                            <td className="px-4 py-2.5 tabular-nums text-gray-700 dark:text-slate-300">{row.statusCounts["CLOSED"] ?? 0}</td>
+                            <td className="px-4 py-2.5 text-right">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                icon={<Download size={14} />}
+                                onClick={() => openList(`Branch — ${row.branchName}`, `branch-${row.branchName.toLowerCase().replace(/\s+/g, "-")}`, { branchId: row.branchId })}
+                              >
+                                Download
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                }
+                chart={
+                  <DonutChart
+                    slices={rollup.map(
+                      (row): DonutSlice => ({
+                        label: row.branchName,
+                        value: row.total,
+                        valueLabel: String(row.total),
+                      })
+                    )}
+                  />
+                }
+              />
             </Section>
           )}
         </>
@@ -420,19 +747,41 @@ export function ReportsPage() {
           iconClassName="bg-violet-50 text-violet-600 dark:bg-violet-500/20 dark:text-violet-400"
         >
           {callAnalysis ? (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <StatTile label="Total Calls" value={callAnalysis.totalCalls} />
-              <StatTile label="Answer Rate" value={callAnalysis.answerRate} suffix="%" />
-              <StatTile label="No Answer" value={callAnalysis.noAnswer} />
-              <StatTile
-                label="Avg Duration"
-                value={callAnalysis.avgDurationSeconds != null ? `${Math.round(callAnalysis.avgDurationSeconds / 60)}m ${callAnalysis.avgDurationSeconds % 60}s` : "—"}
-              />
-            </div>
+            <ChartTableToggle
+              table={
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <StatTile label="Total Calls" value={callAnalysis.totalCalls} />
+                  <StatTile label="Answer Rate" value={callAnalysis.answerRate} suffix="%" />
+                  <StatTile label="No Answer" value={callAnalysis.noAnswer} />
+                  <StatTile
+                    label="Avg Duration"
+                    value={callAnalysis.avgDurationSeconds != null ? `${Math.round(callAnalysis.avgDurationSeconds / 60)}m ${callAnalysis.avgDurationSeconds % 60}s` : "—"}
+                  />
+                </div>
+              }
+              chart={
+                <DonutChart
+                  slices={[
+                    { label: "Answered", value: Math.max(callAnalysis.totalCalls - callAnalysis.noAnswer, 0), valueLabel: String(Math.max(callAnalysis.totalCalls - callAnalysis.noAnswer, 0)) },
+                    { label: "No Answer", value: callAnalysis.noAnswer, valueLabel: String(callAnalysis.noAnswer) },
+                  ]}
+                />
+              }
+            />
           ) : (
             <p className="text-sm text-gray-400 dark:text-slate-500">Loading…</p>
           )}
         </Section>
+      )}
+
+      {preview && (
+        <CustomerListModal
+          isOpen
+          onClose={() => setPreview(null)}
+          title={preview.title}
+          fileSuffix={preview.fileSuffix}
+          filters={preview.filters}
+        />
       )}
     </div>
   );

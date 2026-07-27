@@ -352,6 +352,8 @@ export function AddLeadWizard({
 
   const buildEnrichmentPayload = (values: AddLeadFormValues): LeadEnrichmentPayload => ({
     name: values.name || undefined,
+    // "Nil" means the customer has no email — store nothing rather than the literal.
+    email: normaliseEmail(values.email),
     location: values.location || undefined,
     alternateMobile: values.alternateMobile || undefined,
     dob: toIso(values.dob),
@@ -403,8 +405,6 @@ export function AddLeadWizard({
       const payload: WalkInLeadPayload = {
         name: values.name,
         phone: values.phone,
-        // "Nil" means the customer has no email — store nothing rather than the literal.
-        email: normaliseEmail(values.email),
         carModel: values.carModel,
         enquiryType: values.enquiryType,
         location: values.location || undefined,

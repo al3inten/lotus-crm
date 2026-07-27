@@ -26,22 +26,22 @@ export async function updateDetailsHandler(req: Request, res: Response) {
 }
 
 export async function updateBookingHandler(req: Request, res: Response) {
-  const enquiry = await enquiriesService.updateBookingDetails(req.params.enquiryId, req.body);
+  const enquiry = await enquiriesService.updateBookingDetails(req.params.enquiryId, req.body, req.user?.id);
   res.json(enquiry);
 }
 
 export async function updateRetailHandler(req: Request, res: Response) {
-  const enquiry = await enquiriesService.updateRetailDetails(req.params.enquiryId, req.body);
+  const enquiry = await enquiriesService.updateRetailDetails(req.params.enquiryId, req.body, req.user?.id);
   res.json(enquiry);
 }
 
 export async function updateRtoHandler(req: Request, res: Response) {
-  const enquiry = await enquiriesService.updateRtoDetails(req.params.enquiryId, req.body);
+  const enquiry = await enquiriesService.updateRtoDetails(req.params.enquiryId, req.body, req.user?.id);
   res.json(enquiry);
 }
 
 export async function updateDeliveryDateHandler(req: Request, res: Response) {
-  const enquiry = await enquiriesService.updateDeliveryDate(req.params.enquiryId, req.body);
+  const enquiry = await enquiriesService.updateDeliveryDate(req.params.enquiryId, req.body, req.user?.id);
   res.json(enquiry);
 }
 

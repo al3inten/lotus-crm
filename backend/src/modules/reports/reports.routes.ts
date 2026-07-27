@@ -4,7 +4,7 @@ import { verifyJwt } from "../../middleware/auth";
 import { requireRole } from "../../middleware/rbac";
 import { applyBranchScope } from "../../middleware/branchScope";
 import { validateQuery } from "../../middleware/validate";
-import { reportQuerySchema, trendQuerySchema, breakdownQuerySchema } from "./reports.schema";
+import { reportQuerySchema, trendQuerySchema, breakdownQuerySchema, customerPreviewQuerySchema } from "./reports.schema";
 import {
   summaryHandler,
   crPerformanceHandler,
@@ -16,9 +16,12 @@ import {
   callAnalysisHandler,
   sourcePerformanceHandler,
   lostReasonsHandler,
+  consultantPerformanceHandler,
   vehiclePerformanceHandler,
   breakdownHandler,
   exportCsvHandler,
+  exportXlsxHandler,
+  previewCustomersHandler,
 } from "./reports.controller";
 
 const router = Router();
@@ -36,7 +39,10 @@ router.get("/call-analysis", validateQuery(reportQuerySchema), asyncHandler(call
 router.get("/source-performance", validateQuery(reportQuerySchema), asyncHandler(sourcePerformanceHandler));
 router.get("/lost-reasons", validateQuery(reportQuerySchema), asyncHandler(lostReasonsHandler));
 router.get("/vehicle-performance", validateQuery(reportQuerySchema), asyncHandler(vehiclePerformanceHandler));
+router.get("/consultant-performance", validateQuery(reportQuerySchema), asyncHandler(consultantPerformanceHandler));
 router.get("/breakdown", validateQuery(breakdownQuerySchema), asyncHandler(breakdownHandler));
 router.get("/export", validateQuery(reportQuerySchema), asyncHandler(exportCsvHandler));
+router.get("/export.xlsx", validateQuery(reportQuerySchema), asyncHandler(exportXlsxHandler));
+router.get("/customers", validateQuery(customerPreviewQuerySchema), asyncHandler(previewCustomersHandler));
 
 export default router;

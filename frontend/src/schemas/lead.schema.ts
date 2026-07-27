@@ -44,7 +44,7 @@ export const leadEnrichmentFormSchema = z.object({
   address: z.string().optional().or(z.literal("")),
   department: z.enum(DEPARTMENTS).optional().or(z.literal("")),
   sourceCategory: z.enum(SOURCE_CATEGORIES, { message: "Lead source is required" }),
-  subsource: z.enum(LEAD_SUBSOURCES).optional().or(z.literal("")),
+  subsource: z.enum(LEAD_SUBSOURCES, { message: "Subsource is required" }),
   variant: z.string().optional().or(z.literal("")),
   enquiryCategory: z.enum(ENQUIRY_CATEGORIES).optional().or(z.literal("")),
   appointmentScheduled: z.boolean().optional(),

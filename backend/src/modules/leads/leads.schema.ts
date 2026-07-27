@@ -5,6 +5,7 @@ import { z } from "zod";
 // digital lead may never collect some of these, and a walk-in draft may only have a few.
 export const leadEnrichmentSchema = z.object({
   // Lead (customer profile) fields
+  email: z.string().email().optional(),
   alternateMobile: z.string().optional(),
   dob: z.string().datetime().optional(),
   profession: z.string().optional(),

@@ -15,6 +15,7 @@ export function useUploadMedia() {
     mutationFn: ({ file, label, mediaType, carModel }: { file: File; label: string; mediaType: MediaType; carModel?: string }) =>
       mediaApi.uploadMedia(file, label, mediaType, carModel),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["media"] }),
+    meta: { successMessage: "Media uploaded" },
   });
 }
 
@@ -23,5 +24,6 @@ export function useDeleteMedia() {
   return useMutation({
     mutationFn: (mediaId: string) => mediaApi.deleteMedia(mediaId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["media"] }),
+    meta: { successMessage: "Media deleted" },
   });
 }

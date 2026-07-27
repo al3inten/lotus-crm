@@ -42,6 +42,7 @@ export function useCreateWalkInLead() {
   return useMutation({
     mutationFn: leadsApi.createWalkInLead,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["leads"] }),
+    meta: { successMessage: "Walk-in lead created" },
   });
 }
 
@@ -50,6 +51,7 @@ export function useImportLeads() {
   return useMutation({
     mutationFn: ({ file, branchId }: { file: File; branchId: string }) => leadsApi.importLeadsFile(file, branchId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["leads"] }),
+    meta: { successMessage: "Leads imported" },
   });
 }
 
@@ -63,6 +65,7 @@ export function useSaveDraft() {
     mutationFn: ({ branchId, data }: { branchId?: string; data: Record<string, unknown> }) =>
       leadsApi.saveDraft(branchId, data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["leads", "drafts"] }),
+    meta: { successMessage: "Draft saved" },
   });
 }
 
@@ -71,6 +74,7 @@ export function useUpdateDraft() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) => leadsApi.updateDraft(id, data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["leads", "drafts"] }),
+    meta: { successMessage: "Draft saved" },
   });
 }
 
@@ -79,6 +83,7 @@ export function useDeleteDraft() {
   return useMutation({
     mutationFn: (id: string) => leadsApi.deleteDraft(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["leads", "drafts"] }),
+    meta: { successMessage: "Draft deleted" },
   });
 }
 

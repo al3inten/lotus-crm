@@ -111,8 +111,8 @@ export function VehicleEditorModal({ vehicle, onClose }: VehicleEditorModalProps
 
       onClose();
     } catch (error) {
+      // Failure feedback comes from the global mutation toast for whichever call rejected.
       console.error("Failed to save vehicle", error);
-      alert("Failed to save vehicle. Check console for details.");
     } finally {
       setIsSaving(false);
     }
@@ -126,7 +126,6 @@ export function VehicleEditorModal({ vehicle, onClose }: VehicleEditorModalProps
         onClose();
       } catch (error) {
         console.error("Failed to delete", error);
-        alert("Failed to delete vehicle.");
       } finally {
         setIsSaving(false);
       }

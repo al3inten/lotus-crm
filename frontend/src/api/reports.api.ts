@@ -4,6 +4,15 @@ export interface ReportFilters {
   branchId?: string;
   dateFrom?: string;
   dateTo?: string;
+  // Only honored by the export endpoints — narrows a download to one status/loss-reason
+  // "case" (e.g. just the Retail row) rather than everything matching the page's filters.
+  status?: string;
+  lossReason?: string;
+  source?: string;
+  assignedCrId?: string;
+  consultantId?: string;
+  carModel?: string;
+  enquiryType?: string;
 }
 
 export interface SummaryReport {
@@ -116,10 +125,28 @@ export interface LostReasonRow {
   percent: number;
 }
 
+export interface ConsultantPerformanceRow {
+  consultantId: string;
+  consultantName: string;
+  branchId: string | null;
+  handled: number;
+  sold: number;
+  conversionRate: number;
+  shareOfSales: number;
+  topModel: string | null;
+  models: { carModel: string; sold: number }[];
+}
+
+export async function fetchConsultantPerformance(filters: ReportFilters): Promise<ConsultantPerformanceRow[]> {
+  const { data } = await axiosClient.get<ConsultantPerformanceRow[]>("/reports/consultant-performance", { params: filters });
+  return data;
+}
+
 export interface VehiclePerformanceRow {
   carModel: string;
   enquiries: number;
   booked: number;
+  shareOfSales: number;
   delivered: number;
   conversionRate: number;
   testDrives: number;
@@ -233,4 +260,37 @@ export async function fetchBreakdown2D(
 export async function downloadEnquiriesCsv(filters: ReportFilters): Promise<Blob> {
   const { data } = await axiosClient.get("/reports/export", { params: filters, responseType: "blob" });
   return data as Blob;
+}
+
+export async function downloadEnquiriesXlsx(filters: ReportFilters): Promise<Blob> {
+  const { data } = await axiosClient.get("/reports/export.xlsx", { params: filters, responseType: "blob" });
+  return data as Blob;
+}
+
+export interface CustomerPreviewRow {
+  createdAt: string;
+  name: string;
+  phone: string;
+  email: string | null;
+  carModel: string;
+  source: string;
+  enquiryType: string;
+  status: string;
+  lossReason: string | null;
+  branch: string;
+  assignedCr: string | null;
+  consultant: string | null;
+  location: string | null;
+}
+
+export interface CustomerPreviewResult {
+  rows: CustomerPreviewRow[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export async function fetchCustomerPreview(filters: ReportFilters, page: number, pageSize = 20): Promise<CustomerPreviewResult> {
+  const { data } = await axiosClient.get<CustomerPreviewResult>("/reports/customers", { params: { ...filters, page, pageSize } });
+  return data;
 }

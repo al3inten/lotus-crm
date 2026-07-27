@@ -1,6 +1,17 @@
+import { Download } from "lucide-react";
 import type { CrPerformanceRow } from "../../api/reports.api";
+import { Button } from "../common/Button";
 
-export function CrPerformanceTable({ rows }: { rows: CrPerformanceRow[] }) {
+export function CrPerformanceTable({
+  rows,
+  onDownload,
+  downloadingKey,
+}: {
+  rows: CrPerformanceRow[];
+  /** Downloads that CR's assigned customer list as Excel — omit to hide the column entirely. */
+  onDownload?: (crId: string) => void;
+  downloadingKey?: string | null;
+}) {
   if (rows.length === 0) {
     return <p className="text-sm text-gray-500 dark:text-slate-400">No CR activity in this range.</p>;
   }
@@ -16,6 +27,7 @@ export function CrPerformanceTable({ rows }: { rows: CrPerformanceRow[] }) {
             <th className="px-4 py-2.5">Pending Follow-ups</th>
             <th className="px-4 py-2.5">Overdue</th>
             <th className="px-4 py-2.5">Conversion Rate</th>
+            {onDownload && <th className="px-4 py-2.5 text-right">Download</th>}
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
@@ -27,6 +39,19 @@ export function CrPerformanceTable({ rows }: { rows: CrPerformanceRow[] }) {
               <td className="px-4 py-2.5 tabular-nums font-medium text-amber-600 dark:text-amber-400">{row.followUpsPending}</td>
               <td className="px-4 py-2.5 tabular-nums font-bold text-rose-600 dark:text-rose-400">{row.followUpsOverdue > 0 ? row.followUpsOverdue : "-"}</td>
               <td className="px-4 py-2.5 tabular-nums font-semibold text-gray-700 dark:text-slate-200">{row.conversionRate}%</td>
+              {onDownload && (
+                <td className="px-4 py-2.5 text-right">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    isLoading={downloadingKey === `cr-${row.crId}`}
+                    icon={<Download size={14} />}
+                    onClick={() => onDownload(row.crId)}
+                  >
+                    Download
+                  </Button>
+                </td>
+              )}
             </tr>
           ))}
         </tbody>

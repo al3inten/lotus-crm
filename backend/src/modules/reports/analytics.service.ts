@@ -1,4 +1,5 @@
-import { Prisma, EnquiryStatus } from "@prisma/client";
+import { Prisma, EnquiryStatus, LossReason } from "@prisma/client";
+import ExcelJS from "exceljs";
 import { prisma } from "../../lib/prisma";
 import { ReportQuery, BreakdownQuery, BreakdownDimension } from "./reports.schema";
 import { cacheKey, getOrCompute } from "../../lib/simpleCache";
@@ -446,6 +447,75 @@ export async function getBreakdown2D(
 const VEHICLE_ROW_CAP = 30;
 // A booking has happened once the enquiry reaches Booked or any later stage.
 const BOOKED_OR_LATER: EnquiryStatus[] = ["BOOKED", "RETAIL_DONE", "RTO_DONE", "DELIVERED"];
+// A car is sold once retail is done — RTO and Delivery are post-sale steps, so they count
+// too. (Distinct from CONVERTED_STATUSES, which the older funnel/summary reports pin to
+// RETAIL_DONE alone; changing that would move every historical conversion-rate number.)
+const SOLD_STATUSES: EnquiryStatus[] = ["RETAIL_DONE", "RTO_DONE", "DELIVERED"];
+
+/**
+ * "Who is actually selling" — per showroom consultant (the salesperson on the floor):
+ * how many enquiries they handled, how many they closed, their conversion rate, and the
+ * model they sell most. Complements getCrPerformance, which covers the CR/telecalling
+ * side (lead follow-up) rather than the showroom sale itself.
+ */
+export async function getConsultantPerformance(query: ReportQuery, branchFilter?: { branchId: string }) {
+  return getOrCompute(
+    cacheKey("getConsultantPerformance", { query, branchFilter }),
+    () => computeConsultantPerformance(query, branchFilter),
+    REPORT_CACHE_TTL_MS
+  );
+}
+
+async function computeConsultantPerformance(query: ReportQuery, branchFilter?: { branchId: string }) {
+  const where = { ...buildWhere(query, branchFilter), consultantId: { not: null } };
+
+  const [handled, sold, soldByModel, consultants] = await Promise.all([
+    prisma.enquiry.groupBy({ by: ["consultantId"], where, _count: true }),
+    prisma.enquiry.groupBy({ by: ["consultantId"], where: { ...where, status: { in: SOLD_STATUSES } }, _count: true }),
+    prisma.enquiry.groupBy({
+      by: ["consultantId", "carModel"],
+      where: { ...where, status: { in: SOLD_STATUSES } },
+      _count: true,
+    }),
+    prisma.user.findMany({ where: { role: "CONSULTANT" }, select: { id: true, name: true, branchId: true } }),
+  ]);
+
+  const soldMap = new Map(sold.map((r) => [r.consultantId, r._count]));
+  const nameMap = new Map(consultants.map((c) => [c.id, c]));
+
+  // Most-sold model per consultant, plus the full per-model split for the expandable detail.
+  const modelsByConsultant = new Map<string, { carModel: string; sold: number }[]>();
+  for (const row of soldByModel) {
+    if (!row.consultantId) continue;
+    const list = modelsByConsultant.get(row.consultantId) ?? [];
+    list.push({ carModel: row.carModel, sold: row._count });
+    modelsByConsultant.set(row.consultantId, list);
+  }
+  for (const list of modelsByConsultant.values()) list.sort((a, b) => b.sold - a.sold);
+
+  const totalSold = sold.reduce((s, r) => s + r._count, 0);
+
+  return handled
+    .filter((row) => row.consultantId)
+    .map((row) => {
+      const id = row.consultantId!;
+      const soldCount = soldMap.get(id) ?? 0;
+      const models = modelsByConsultant.get(id) ?? [];
+      return {
+        consultantId: id,
+        consultantName: nameMap.get(id)?.name ?? "Unknown",
+        branchId: nameMap.get(id)?.branchId ?? null,
+        handled: row._count,
+        sold: soldCount,
+        conversionRate: row._count > 0 ? Number(((soldCount / row._count) * 100).toFixed(1)) : 0,
+        // Share of the showroom's total sales this consultant is responsible for.
+        shareOfSales: totalSold > 0 ? Number(((soldCount / totalSold) * 100).toFixed(1)) : 0,
+        topModel: models[0]?.carModel ?? null,
+        models,
+      };
+    })
+    .sort((a, b) => b.sold - a.sold);
+}
 
 /**
  * Per-vehicle-model "model mix" report — the dealership-standard view of which cars
@@ -535,6 +605,10 @@ async function computeVehiclePerformance(query: ReportQuery, branchFilter?: { br
     ])
   );
 
+  // Denominator for "this model was X% of everything we sold" — the share-of-sales view a
+  // manager actually asks for ("which model sells most, and how much of the mix is it").
+  const totalBooked = totals.reduce((sum, row) => sum + (bookedMap.get(row.carModel) ?? 0), 0);
+
   const rows = totals.map((row) => {
     const model = row.carModel;
     const total = row._count;
@@ -546,6 +620,7 @@ async function computeVehiclePerformance(query: ReportQuery, branchFilter?: { br
       carModel: model,
       enquiries: total,
       booked: bookedCount,
+      shareOfSales: totalBooked > 0 ? Number(((bookedCount / totalBooked) * 100).toFixed(1)) : 0,
       delivered: convertedMap.get(model) ?? 0,
       conversionRate: total > 0 ? Number(((bookedCount / total) * 100).toFixed(1)) : 0,
       testDrives: td?.count ?? 0,
@@ -562,8 +637,84 @@ async function computeVehiclePerformance(query: ReportQuery, branchFilter?: { br
 }
 
 /** Flat CSV of enquiries matching the filters — for sharing outside the CRM. */
-export async function exportEnquiriesCsv(query: ReportQuery, branchFilter?: { branchId: string }): Promise<string> {
+const EXPORT_COLUMNS = [
+  "Created",
+  "Lead Name",
+  "Phone",
+  "Email",
+  "Car Model",
+  "Source",
+  "Enquiry Type",
+  "Status",
+  "Loss Reason",
+  "Branch",
+  "Assigned CR",
+  "Consultant",
+  "Location",
+];
+
+// Narrows to one status/loss-reason/source/CR/model "case" (e.g. the Retail row of the
+// status breakdown, or one Lost Reasons bar) — deliberately applied only here, not in
+// buildWhere, so none of the aggregate report queries can ever pick these params up.
+function buildExportWhere(query: ReportQuery, branchFilter?: { branchId: string }) {
   const where = buildWhere(query, branchFilter);
+  if (query.status) where.status = query.status as EnquiryStatus;
+  if (query.lossReason) where.lossReason = query.lossReason as LossReason;
+  if (query.source) where.source = query.source as Prisma.EnquiryWhereInput["source"];
+  if (query.assignedCrId) where.assignedCrId = query.assignedCrId;
+  if (query.consultantId) where.consultantId = query.consultantId;
+  if (query.carModel) where.carModel = query.carModel;
+  if (query.enquiryType) where.enquiryType = query.enquiryType as Prisma.EnquiryWhereInput["enquiryType"];
+  return where;
+}
+
+/** Small paginated JSON preview of exactly what the Excel export would contain — shown to
+ * the user to confirm before they commit to downloading the file. */
+export async function previewCustomers(
+  query: ReportQuery,
+  branchFilter: { branchId: string } | undefined,
+  page: number,
+  pageSize: number
+) {
+  const where = buildExportWhere(query, branchFilter);
+
+  const [total, enquiries] = await Promise.all([
+    prisma.enquiry.count({ where }),
+    prisma.enquiry.findMany({
+      where,
+      include: {
+        lead: { select: { name: true, phoneRaw: true, email: true } },
+        branch: { select: { name: true } },
+        assignedCr: { select: { name: true } },
+        consultant: { select: { name: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+  ]);
+
+  const rows = enquiries.map((e) => ({
+    createdAt: e.createdAt.toISOString(),
+    name: e.lead.name,
+    phone: e.lead.phoneRaw,
+    email: e.lead.email,
+    carModel: e.carModel,
+    source: e.source,
+    enquiryType: e.enquiryType,
+    status: e.status,
+    lossReason: e.lossReason,
+    branch: e.branch.name,
+    assignedCr: e.assignedCr?.name ?? null,
+    consultant: e.consultant?.name ?? null,
+    location: e.location,
+  }));
+
+  return { rows, total, page, pageSize };
+}
+
+async function fetchExportRows(query: ReportQuery, branchFilter?: { branchId: string }) {
+  const where = buildExportWhere(query, branchFilter);
 
   const enquiries = await prisma.enquiry.findMany({
     where,
@@ -577,46 +728,44 @@ export async function exportEnquiriesCsv(query: ReportQuery, branchFilter?: { br
     take: 10_000, // hard cap — exports beyond this should be narrowed by date range
   });
 
+  return enquiries.map((e) => [
+    e.createdAt.toISOString(),
+    e.lead.name,
+    e.lead.phoneRaw,
+    e.lead.email ?? "",
+    e.carModel,
+    e.source,
+    e.enquiryType,
+    e.status,
+    e.lossReason ?? "",
+    e.branch.name,
+    e.assignedCr?.name ?? "",
+    e.consultant?.name ?? "",
+    e.location ?? "",
+  ]);
+}
+
+export async function exportEnquiriesCsv(query: ReportQuery, branchFilter?: { branchId: string }): Promise<string> {
+  const rows = await fetchExportRows(query, branchFilter);
+
   const escape = (value: unknown): string => {
     const str = value == null ? "" : String(value);
     return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
   };
 
-  const header = [
-    "Created",
-    "Lead Name",
-    "Phone",
-    "Email",
-    "Car Model",
-    "Source",
-    "Enquiry Type",
-    "Status",
-    "Loss Reason",
-    "Branch",
-    "Assigned CR",
-    "Consultant",
-    "Location",
-  ];
+  const lines = rows.map((row) => row.map(escape).join(","));
+  return [EXPORT_COLUMNS.join(","), ...lines].join("\n");
+}
 
-  const lines = enquiries.map((e) =>
-    [
-      e.createdAt.toISOString(),
-      e.lead.name,
-      e.lead.phoneRaw,
-      e.lead.email ?? "",
-      e.carModel,
-      e.source,
-      e.enquiryType,
-      e.status,
-      e.lossReason ?? "",
-      e.branch.name,
-      e.assignedCr?.name ?? "",
-      e.consultant?.name ?? "",
-      e.location ?? "",
-    ]
-      .map(escape)
-      .join(",")
-  );
+export async function exportEnquiriesXlsx(query: ReportQuery, branchFilter?: { branchId: string }): Promise<Buffer> {
+  const rows = await fetchExportRows(query, branchFilter);
 
-  return [header.join(","), ...lines].join("\n");
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet("Customer Details");
+  sheet.columns = EXPORT_COLUMNS.map((header) => ({ header, key: header, width: 20 }));
+  sheet.getRow(1).font = { bold: true };
+  for (const row of rows) sheet.addRow(row);
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  return Buffer.from(buffer);
 }

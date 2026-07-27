@@ -85,7 +85,7 @@ const STAGES: StageTheme[] = [
   },
   {
     id: "BOOKED",
-    label: "Booked",
+    label: "Booking",
     Icon: BadgeCheck,
     head: "border-primary-500 bg-primary-200/60 dark:border-primary-400/55 dark:bg-primary-500/25",
     badge: "bg-primary-600 text-white dark:bg-primary-500 dark:text-white",

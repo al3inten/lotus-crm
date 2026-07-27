@@ -108,9 +108,9 @@ export const STATUS_LABELS: Record<EnquiryStatus, string> = {
   UNDER_FOLLOW_UP: "Under Follow-up",
   APPOINTMENT_FIXED: "Appointment Fixed",
   TEST_DRIVE: "Test Drive",
-  BOOKED: "Booked",
-  RETAIL_DONE: "Retail Done",
-  RTO_DONE: "RTO Done",
+  BOOKED: "Booking",
+  RETAIL_DONE: "Retail",
+  RTO_DONE: "RTO",
   DELIVERED: "Delivered",
   CLOSED: "Closed (Lost)",
 };

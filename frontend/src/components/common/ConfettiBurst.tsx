@@ -185,7 +185,7 @@ export function ConfettiBurst({ customerName, crName, carModel, onDone }: Confet
             </motion.span>
           </span>
           <div className="min-w-0">
-            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-primary-200">Retail Done</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-primary-200">Retail</p>
             <h2 className="truncate text-xl font-extrabold leading-tight">{headline}</h2>
             {sub && <p className="mt-0.5 truncate text-sm font-medium text-primary-100">{sub}</p>}
           </div>

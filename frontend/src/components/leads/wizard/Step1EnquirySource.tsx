@@ -106,7 +106,7 @@ export function Step1EnquirySource({
             </option>
           ))}
         </Select>
-        <Select label="Subsource" error={fieldError("subsource")} {...register("subsource")}>
+        <Select label="Subsource" required error={fieldError("subsource")} {...register("subsource")}>
           <option value="">Select subsource</option>
           {subsourceOptions.map((s) => (
             <option key={s} value={s}>

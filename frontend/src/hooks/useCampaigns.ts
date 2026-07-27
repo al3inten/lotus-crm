@@ -15,6 +15,7 @@ export function useCreateMessageCampaign() {
   return useMutation({
     mutationFn: (payload: CreateMessageCampaignPayload) => campaignsApi.createMessageCampaign(payload),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["message-campaigns"] }),
+    meta: { successMessage: "Campaign created" },
   });
 }
 
@@ -31,5 +32,6 @@ export function useRunMessageCampaign() {
   return useMutation({
     mutationFn: (campaignId: string) => campaignsApi.runMessageCampaign(campaignId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["message-campaigns"] }),
+    meta: { successMessage: "Campaign started" },
   });
 }

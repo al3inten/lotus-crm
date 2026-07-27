@@ -78,6 +78,13 @@ export function useLostReasonsReport(filters: reportsApi.ReportFilters) {
   });
 }
 
+export function useConsultantPerformanceReport(filters: reportsApi.ReportFilters) {
+  return useQuery({
+    queryKey: ["reports", "consultant-performance", filters],
+    queryFn: () => reportsApi.fetchConsultantPerformance(filters),
+  });
+}
+
 export function useVehiclePerformanceReport(filters: reportsApi.ReportFilters) {
   return useQuery({
     queryKey: ["reports", "vehicle-performance", filters],

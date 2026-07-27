@@ -33,7 +33,7 @@ export function QuickActions({
       {status === "TEST_DRIVE" && (
         <>
           <Button size="sm" icon={<CheckCircle size={14} />} onClick={() => onChangeStatus("BOOKED")}>
-            Booked
+            Booking
           </Button>
         </>
       )}
@@ -41,7 +41,7 @@ export function QuickActions({
       {status === "BOOKED" && (
         <>
           <Button size="sm" icon={<ArrowRightCircle size={14} />} onClick={() => onChangeStatus("RETAIL_DONE")}>
-            Retail Done
+            Retail
           </Button>
         </>
       )}

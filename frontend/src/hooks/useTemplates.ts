@@ -13,6 +13,7 @@ export function useCreateTemplate() {
   return useMutation({
     mutationFn: templatesApi.createTemplate,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["templates"] }),
+    meta: { successMessage: "Template created" },
   });
 }
 
@@ -21,5 +22,6 @@ export function useDeleteTemplate() {
   return useMutation({
     mutationFn: (templateId: string) => templatesApi.deleteTemplate(templateId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["templates"] }),
+    meta: { successMessage: "Template deleted" },
   });
 }

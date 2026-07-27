@@ -11,9 +11,9 @@ const MAIN_PATH: { status: EnquiryStatus; label: string; Icon: LucideIcon }[] = 
   { status: "NEW", label: "New Lead", Icon: Inbox },
   { status: "APPOINTMENT_FIXED", label: "Appointment Fixed", Icon: CalendarCheck },
   { status: "TEST_DRIVE", label: "Test Drive", Icon: Car },
-  { status: "BOOKED", label: "Booked", Icon: BadgeCheck },
-  { status: "RETAIL_DONE", label: "Retail Done", Icon: Trophy },
-  { status: "RTO_DONE", label: "RTO Done", Icon: FileCheck2 },
+  { status: "BOOKED", label: "Booking", Icon: BadgeCheck },
+  { status: "RETAIL_DONE", label: "Retail", Icon: Trophy },
+  { status: "RTO_DONE", label: "RTO", Icon: FileCheck2 },
   { status: "DELIVERED", label: "Delivered", Icon: Truck },
 ];
 

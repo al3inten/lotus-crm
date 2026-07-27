@@ -27,6 +27,7 @@ export function useConvertConversation(conversationId: string) {
       queryClient.invalidateQueries({ queryKey: ["social-inbox"] });
       queryClient.invalidateQueries({ queryKey: ["leads"] });
     },
+    meta: { successMessage: "Conversation converted to lead" },
   });
 }
 
@@ -35,5 +36,6 @@ export function useIgnoreConversation() {
   return useMutation({
     mutationFn: (conversationId: string) => socialInboxApi.ignoreConversation(conversationId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["social-inbox"] }),
+    meta: { successMessage: "Conversation ignored" },
   });
 }

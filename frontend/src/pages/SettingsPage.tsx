@@ -14,13 +14,9 @@ export function SettingsPage() {
   }, [settings]);
 
   const handleSave = async () => {
-    try {
-      await updateSettings.mutateAsync({ quotationEnabled });
-      alert("Settings saved successfully!");
-    } catch (err) {
-      console.error(err);
-      alert("Failed to save settings.");
-    }
+    // Success/failure feedback comes from the global mutation toast — just swallow the
+    // rejection here so it doesn't surface as an unhandled promise error.
+    await updateSettings.mutateAsync({ quotationEnabled }).catch(() => {});
   };
 
   return (

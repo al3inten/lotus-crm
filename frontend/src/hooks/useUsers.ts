@@ -21,6 +21,7 @@ export function useCreateBranchStaff(branchId: string | undefined) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["branch-staff", branchId] });
     },
+    meta: { successMessage: "Staff member added" },
   });
 }
 
@@ -33,6 +34,7 @@ export function useUpdateUser() {
       queryClient.invalidateQueries({ queryKey: ["branch-staff"] });
       queryClient.invalidateQueries({ queryKey: ["directory"] });
     },
+    meta: { successMessage: "User updated" },
   });
 }
 
@@ -44,6 +46,7 @@ export function useDeleteUser() {
       queryClient.invalidateQueries({ queryKey: ["branch-staff"] });
       queryClient.invalidateQueries({ queryKey: ["directory"] });
     },
+    meta: { successMessage: "User deleted" },
   });
 }
 
@@ -60,6 +63,7 @@ export function useTeamActivity(enabled = true) {
 export function useUploadAvatar() {
   return useMutation({
     mutationFn: ({ userId, file }: { userId: string; file: File }) => usersApi.uploadAvatar(userId, file),
+    meta: { successMessage: "Avatar updated" },
   });
 }
 
@@ -68,5 +72,6 @@ export function useSetBreak() {
   return useMutation({
     mutationFn: (onBreak: boolean) => usersApi.setBreak(onBreak),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["team-activity"] }),
+    meta: { successMessage: "Break status updated" },
   });
 }

@@ -1,11 +1,22 @@
+import { Download } from "lucide-react";
 import { VIZ } from "./vizTheme";
 import type { SourcePerformanceRow } from "../../api/reports.api";
+import { Button } from "../common/Button";
 
 /**
  * Three measures per source (total, converted, rate) — a table is the honest form,
  * with an inline single-hue bar carrying the lead-volume comparison at a glance.
  */
-export function SourcePerformanceTable({ rows }: { rows: SourcePerformanceRow[] }) {
+export function SourcePerformanceTable({
+  rows,
+  onDownload,
+  downloadingKey,
+}: {
+  rows: SourcePerformanceRow[];
+  /** Downloads that source's customer list as Excel — omit to hide the column entirely. */
+  onDownload?: (source: string) => void;
+  downloadingKey?: string | null;
+}) {
   if (rows.length === 0) {
     return <p className="text-sm text-gray-400 dark:text-slate-500">No data in this range.</p>;
   }
@@ -22,6 +33,7 @@ export function SourcePerformanceTable({ rows }: { rows: SourcePerformanceRow[] 
             <th className="px-4 py-2.5 w-1/3" aria-hidden />
             <th className="px-4 py-2.5">Converted</th>
             <th className="px-4 py-2.5">Conversion Rate</th>
+            {onDownload && <th className="px-4 py-2.5 text-right">Download</th>}
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
@@ -42,6 +54,19 @@ export function SourcePerformanceTable({ rows }: { rows: SourcePerformanceRow[] 
               </td>
               <td className="px-4 py-2.5 tabular-nums text-gray-700 dark:text-slate-300">{row.converted.toLocaleString()}</td>
               <td className="px-4 py-2.5 tabular-nums font-semibold text-gray-700 dark:text-slate-200">{row.conversionRate}%</td>
+              {onDownload && (
+                <td className="px-4 py-2.5 text-right">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    isLoading={downloadingKey === `source-${row.source}`}
+                    icon={<Download size={14} />}
+                    onClick={() => onDownload(row.source)}
+                  >
+                    Download
+                  </Button>
+                </td>
+              )}
             </tr>
           ))}
         </tbody>
