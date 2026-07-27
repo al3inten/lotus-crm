@@ -4,8 +4,6 @@ import clsx from "clsx";
 import {
   PanelLeftClose,
   PanelLeftOpen,
-  Search,
-  Command,
   LogOut,
 } from "lucide-react";
 import { useNavGroups } from "./navConfig";
@@ -16,12 +14,6 @@ import { LogoutConfirmModal } from "../common/LogoutConfirmModal";
 interface SidebarProps {
   isMobileMenuOpen: boolean;
   setIsMobileMenuOpen: (val: boolean) => void;
-}
-
-function openCommandSearch() {
-  window.dispatchEvent(
-    new KeyboardEvent("keydown", { key: "k", ctrlKey: true, metaKey: true, bubbles: true })
-  );
 }
 
 export function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }: SidebarProps) {
@@ -81,27 +73,6 @@ export function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }: SidebarProps)
 
         {/* Main Navigation */}
         <div className="flex min-h-0 flex-1 flex-col px-3 py-2 overflow-hidden hover:overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <button
-            type="button"
-            onClick={openCommandSearch}
-            aria-label="Search"
-            title={isCollapsed ? "Search (Ctrl/⌘K)" : undefined}
-            className={clsx(
-              "group mb-4 flex items-center rounded-md border border-slate-600/50 bg-slate-800/80 px-2.5 py-1.5 text-sm text-slate-300 transition-all hover:border-blue-500/60 hover:bg-slate-700 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40",
-              isCollapsed ? "justify-center" : "gap-2"
-            )}
-          >
-            <Search size={15} className="shrink-0 text-slate-400 transition-colors group-hover:text-blue-300" />
-            {!isCollapsed && (
-              <div className="flex flex-1 items-center justify-between">
-                <span className="text-[13px]">Search...</span>
-                <kbd className="hidden items-center gap-0.5 rounded bg-slate-700 px-1.5 py-0.5 text-[10px] font-medium text-slate-300 md:flex">
-                  <Command size={10} strokeWidth={2.5} />K
-                </kbd>
-              </div>
-            )}
-          </button>
-
           {/* Nav Groups */}
           <nav className="flex flex-col gap-5">
             {groups.map((section) => (

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import clsx from "clsx";
-import { LogOut, Search, Bell, HelpCircle, Menu, ChevronDown, Sun, Moon, BellOff, CheckCheck, Camera, Coffee, Loader2, User, Car, CalendarClock, Cake, PartyPopper, ArrowRight } from "lucide-react";
+import { LogOut, Search, Bell, HelpCircle, Menu, ChevronDown, Sun, Moon, BellOff, CheckCheck, Camera, Coffee, Loader2, User, Car, CalendarClock, Cake, PartyPopper, ArrowRight, X } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../hooks/useTheme";
 import { useNavItems } from "./navConfig";
@@ -49,6 +49,9 @@ export function Topbar({ onMenuToggle }: { onMenuToggle: () => void }) {
 
   const [query, setQuery] = useState("");
   const [showResults, setShowResults] = useState(false);
+  // The search box is hidden below md to save space; this toggles it into view on small
+  // screens (tap the search icon) since it would otherwise be completely unreachable there.
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
@@ -89,11 +92,14 @@ export function Topbar({ onMenuToggle }: { onMenuToggle: () => void }) {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        searchInputRef.current?.focus();
+        setShowMobileSearch(true);
+        // The input is hidden until the mobile-search state above renders it, so wait a tick.
+        setTimeout(() => searchInputRef.current?.focus(), 0);
       }
       if (e.key === "Escape") {
         searchInputRef.current?.blur();
         setShowResults(false);
+        setShowMobileSearch(false);
       }
     };
     window.addEventListener("keydown", handler);
@@ -118,15 +124,32 @@ export function Topbar({ onMenuToggle }: { onMenuToggle: () => void }) {
       <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b border-slate-200/50 bg-white/40 px-4 backdrop-blur-xl transition-colors dark:border-white/5 dark:bg-white/[0.02] sm:px-8">
         {/* Left: mobile menu + quick-nav search */}
         <div className="flex flex-1 items-center gap-4">
-          <button
-            onClick={onMenuToggle}
-            aria-label="Open menu"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white md:hidden"
-          >
-            <Menu size={20} />
-          </button>
+          {!showMobileSearch && (
+            <button
+              onClick={onMenuToggle}
+              aria-label="Open menu"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white md:hidden"
+            >
+              <Menu size={20} />
+            </button>
+          )}
 
-          <div className="relative hidden w-full max-w-md md:block">
+          {/* Below md the search box is hidden by default (no room in the header) — this
+              button reveals it in its place so search stays reachable on small screens. */}
+          {!showMobileSearch && (
+            <button
+              onClick={() => {
+                setShowMobileSearch(true);
+                setTimeout(() => searchInputRef.current?.focus(), 0);
+              }}
+              aria-label="Open search"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white md:hidden"
+            >
+              <Search size={18} />
+            </button>
+          )}
+
+          <div className={clsx("relative w-full max-w-md", showMobileSearch ? "flex" : "hidden", "md:flex")}>
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
               <Search size={14} className="text-slate-400 dark:text-slate-500" />
             </div>
@@ -213,6 +236,20 @@ export function Topbar({ onMenuToggle }: { onMenuToggle: () => void }) {
               </>
             )}
           </div>
+
+          {showMobileSearch && (
+            <button
+              onClick={() => {
+                setShowMobileSearch(false);
+                setQuery("");
+                setShowResults(false);
+              }}
+              aria-label="Close search"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white md:hidden"
+            >
+              <X size={18} />
+            </button>
+          )}
         </div>
 
         {/* Right: Actions & Profile */}
