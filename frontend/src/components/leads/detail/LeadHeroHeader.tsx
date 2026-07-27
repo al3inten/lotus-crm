@@ -11,7 +11,6 @@ import {
   Pencil,
   UserPlus,
   ClipboardEdit,
-  Hash,
   Radio,
   Building2,
   Mail,
@@ -177,9 +176,6 @@ export function LeadHeroHeader({
               </div>
               {enquiry && (
                 <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                  <Tag icon={<Hash size={12} />}>
-                    <span className="tabular-nums">{enquiry.id.slice(-6).toUpperCase()}</span>
-                  </Tag>
                   {/* The editable classification (Lead Source/Subsource from Edit) — not
                       enquiry.source, which is the fixed intake channel set at creation and
                       never changes here. Falls back to the intake channel until classified. */}
