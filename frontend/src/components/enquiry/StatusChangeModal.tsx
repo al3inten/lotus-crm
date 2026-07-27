@@ -115,6 +115,10 @@ export function StatusChangeModal({
   // Feedback for the standalone "Save progress" action on the finance checklist — cleared
   // whenever the modal is reopened or the user changes something after saving.
   const [progressSaved, setProgressSaved] = useState(false);
+  // Same idea for the Retail/RTO date fields: at RTO Done, the only next stage is Delivered,
+  // whose date/DOB/job are all mandatory — so submitting the form just to save a corrected
+  // RTO date forced the CR through Delivery's validation too. A standalone save avoids that.
+  const [milestoneSaved, setMilestoneSaved] = useState<"RETAIL_DONE" | "RTO_DONE" | null>(null);
   // CR/ARM must tick this off — confirming every test drive on the Test Drives card is marked
   // Done — before the enquiry can move to Booked.
   const [testDrivesConfirmed, setTestDrivesConfirmed] = useState(false);
@@ -163,6 +167,7 @@ export function StatusChangeModal({
       setOutcome("WON");
       setTestDrivesConfirmed(false);
       setProgressSaved(false);
+      setMilestoneSaved(null);
     }
   }, [isOpen, initialTargetStatus, allowedNext, currentConsultantId, enquiry, reset]);
 
@@ -317,6 +322,21 @@ export function StatusChangeModal({
     setTimeout(() => setProgressSaved(false), 3000);
   };
 
+  // Saves the Retail/RTO date as its own action, without moving the status — the "Move to"
+  // default from Retail Done / RTO Done is the next stage (RTO Done / Delivered), whose own
+  // requirements (Delivered needs date + customer DOB + job) would otherwise have to be
+  // satisfied just to correct a date on the CURRENT stage.
+  const handleSaveMilestone = async (stage: "RETAIL_DONE" | "RTO_DONE") => {
+    const toIso = (v?: string) => (v ? new Date(v).toISOString() : undefined);
+    if (stage === "RETAIL_DONE") {
+      await updateRetail.mutateAsync({ retailDoneAt: toIso(getValues("retailDoneAt")) });
+    } else {
+      await updateRto.mutateAsync({ rtoDoneAt: toIso(getValues("rtoDoneAt")) });
+    }
+    setMilestoneSaved(stage);
+    setTimeout(() => setMilestoneSaved(null), 3000);
+  };
+
   if (allowedNext.length === 0) {
     return (
       <Modal isOpen={isOpen} onClose={onClose} title="Update status" maxWidth="max-w-md">
@@ -451,28 +471,58 @@ export function StatusChangeModal({
           </>
         )}
 
-        {/* Retail date — editable inline at the Retail Done stage; saved on the same
-            "Update status" click before the status move is applied. */}
+        {/* Retail date — editable inline at the Retail Done stage; saved either via the
+            standalone Save progress button (no status change) or on the "Update status" click. */}
         {currentStatus === "RETAIL_DONE" && (
-          <Controller
-            control={control}
-            name="retailDoneAt"
-            render={({ field }) => (
-              <DatePickerField label="Retail date" value={field.value} onChange={field.onChange} />
-            )}
-          />
+          <div className="flex flex-col gap-2">
+            <Controller
+              control={control}
+              name="retailDoneAt"
+              render={({ field }) => (
+                <DatePickerField label="Retail date" value={field.value} onChange={field.onChange} />
+              )}
+            />
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                icon={milestoneSaved === "RETAIL_DONE" ? <Check size={13} /> : <Save size={13} />}
+                isLoading={updateRetail.isPending}
+                onClick={() => handleSaveMilestone("RETAIL_DONE")}
+              >
+                {milestoneSaved === "RETAIL_DONE" ? "Saved" : "Save progress"}
+              </Button>
+            </div>
+          </div>
         )}
 
-        {/* RTO date — editable inline at the RTO Done stage; saved on the same
-            "Update status" click before the status move is applied. */}
+        {/* RTO date — editable inline at the RTO Done stage; saved either via the standalone
+            Save progress button (no status change) or on the "Update status" click. Needed
+            because the only next stage from here is Delivered, whose date/DOB/job are all
+            mandatory — without this button, saving the RTO date forced that validation too. */}
         {currentStatus === "RTO_DONE" && (
-          <Controller
-            control={control}
-            name="rtoDoneAt"
-            render={({ field }) => (
-              <DatePickerField label="RTO date" value={field.value} onChange={field.onChange} />
-            )}
-          />
+          <div className="flex flex-col gap-2">
+            <Controller
+              control={control}
+              name="rtoDoneAt"
+              render={({ field }) => (
+                <DatePickerField label="RTO date" value={field.value} onChange={field.onChange} />
+              )}
+            />
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                icon={milestoneSaved === "RTO_DONE" ? <Check size={13} /> : <Save size={13} />}
+                isLoading={updateRto.isPending}
+                onClick={() => handleSaveMilestone("RTO_DONE")}
+              >
+                {milestoneSaved === "RTO_DONE" ? "Saved" : "Save progress"}
+              </Button>
+            </div>
+          </div>
         )}
 
         {/* Can't advance to Retail Done until the finance checklist is fully resolved. */}
