@@ -15,5 +15,6 @@ export function useUpdateSettings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["settings"] });
     },
+    meta: { successMessage: "Settings updated" },
   });
 }

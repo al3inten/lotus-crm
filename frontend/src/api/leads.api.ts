@@ -48,6 +48,7 @@ export interface LeadLookupResult {
 /** Offline-intake enrichment fields — all optional, shared by create and complete-details payloads. */
 export interface LeadEnrichmentPayload {
   name?: string;
+  email?: string;
   location?: string;
   alternateMobile?: string;
   dob?: string;
@@ -62,6 +63,7 @@ export interface LeadEnrichmentPayload {
   /** null explicitly clears it (e.g. it no longer matches a changed sourceCategory) —
    * omitting the field entirely leaves whatever was already saved untouched. */
   subsource?: LeadSubsource | null;
+  referrerName?: string;
   variant?: string;
   enquiryCategory?: EnquiryCategory;
   financeRequired?: boolean;

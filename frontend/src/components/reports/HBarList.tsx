@@ -1,3 +1,4 @@
+import { Download } from "lucide-react";
 import { VIZ } from "./vizTheme";
 
 export interface HBarRow {
@@ -7,6 +8,9 @@ export interface HBarRow {
   fraction: number;
   /** Text rendered at the bar end (e.g. "42 (12.5%)" or "3.2d"). */
   valueLabel: string;
+  /** When set, shows a small download icon at the row's end (e.g. "download this case's
+   * customer list as Excel") — omitted rows (like Time in Stage) just don't get one. */
+  onDownload?: () => void;
 }
 
 /**
@@ -35,6 +39,17 @@ export function HBarList({ rows, color = VIZ.series1 }: { rows: HBarRow[]; color
               />
             </div>
             <span className="w-24 shrink-0 text-xs tabular-nums text-gray-700 dark:text-slate-300">{row.valueLabel}</span>
+            {row.onDownload && (
+              <button
+                type="button"
+                onClick={row.onDownload}
+                title={`Download ${row.label} list as Excel`}
+                aria-label={`Download ${row.label} list as Excel`}
+                className="shrink-0 rounded p-1 text-gray-400 transition-colors hover:bg-primary-50 hover:text-primary-600 dark:text-slate-500 dark:hover:bg-primary-500/10 dark:hover:text-primary-400"
+              >
+                <Download size={14} />
+              </button>
+            )}
           </div>
         </div>
       ))}

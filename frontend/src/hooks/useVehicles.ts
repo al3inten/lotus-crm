@@ -18,6 +18,7 @@ export function useCreateVehicleModel() {
   return useMutation({
     mutationFn: vehiclesApi.createVehicleModel,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: vehicleKeys.all }),
+    meta: { successMessage: "Vehicle model created" },
   });
 }
 
@@ -27,6 +28,7 @@ export function useUpdateVehicleModel() {
     mutationFn: ({ modelId, payload }: { modelId: string; payload: vehiclesApi.UpdateVehicleModelPayload }) =>
       vehiclesApi.updateVehicleModel(modelId, payload),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: vehicleKeys.all }),
+    meta: { successMessage: "Vehicle model updated" },
   });
 }
 
@@ -35,6 +37,7 @@ export function useDeleteVehicleModel() {
   return useMutation({
     mutationFn: (modelId: string) => vehiclesApi.deleteVehicleModel(modelId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: vehicleKeys.all }),
+    meta: { successMessage: "Vehicle model deleted" },
   });
 }
 
@@ -44,6 +47,7 @@ export function useCreateVehicleVariant() {
     mutationFn: ({ modelId, payload }: { modelId: string; payload: vehiclesApi.CreateVehicleVariantPayload }) =>
       vehiclesApi.createVehicleVariant(modelId, payload),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: vehicleKeys.all }),
+    meta: { successMessage: "Variant created" },
   });
 }
 
@@ -53,6 +57,7 @@ export function useUpdateVehicleVariant() {
     mutationFn: ({ variantId, payload }: { variantId: string; payload: vehiclesApi.UpdateVehicleVariantPayload }) =>
       vehiclesApi.updateVehicleVariant(variantId, payload),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: vehicleKeys.all }),
+    meta: { successMessage: "Variant updated" },
   });
 }
 
@@ -61,5 +66,6 @@ export function useDeleteVehicleVariant() {
   return useMutation({
     mutationFn: (variantId: string) => vehiclesApi.deleteVehicleVariant(variantId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: vehicleKeys.all }),
+    meta: { successMessage: "Variant deleted" },
   });
 }

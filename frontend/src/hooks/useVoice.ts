@@ -15,6 +15,7 @@ export function useCreateCallCampaign() {
   return useMutation({
     mutationFn: (payload: CreateCallCampaignPayload) => voiceApi.createCallCampaign(payload),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["call-campaigns"] }),
+    meta: { successMessage: "Call campaign created" },
   });
 }
 
@@ -23,6 +24,7 @@ export function useStartCallCampaign() {
   return useMutation({
     mutationFn: (campaignId: string) => voiceApi.startCallCampaign(campaignId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["call-campaigns"] }),
+    meta: { successMessage: "Call campaign started" },
   });
 }
 
@@ -31,6 +33,7 @@ export function usePauseCallCampaign() {
   return useMutation({
     mutationFn: (campaignId: string) => voiceApi.pauseCallCampaign(campaignId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["call-campaigns"] }),
+    meta: { successMessage: "Call campaign paused" },
   });
 }
 

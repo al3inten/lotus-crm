@@ -1,7 +1,7 @@
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DateTimePicker, DatePickerField } from "../common/DateTimePicker";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   ArrowRight,
   BadgeCheck,
@@ -28,8 +28,11 @@ import { statusChangeFormSchema } from "../../schemas/enquiry.schema";
 import type { StatusChangeFormValues } from "../../schemas/enquiry.schema";
 import { ALLOWED_TRANSITIONS, LOSS_REASONS, STATUS_LABELS } from "../../types";
 import type { EnquiryStatus, Enquiry } from "../../types";
-import { useChangeStatus, useUpdateBookingDetails, useUpdateRetailDetails, useUpdateRtoDetails, useUpdateEnquiryDetails } from "../../hooks/useEnquiry";
+import { useChangeStatus, useUpdateBookingDetails, useUpdateRetailDetails, useUpdateRtoDetails, useUpdateEnquiryDetails, enquiryKeys } from "../../hooks/useEnquiry";
 import { useBranchStaff } from "../../hooks/useUsers";
+import { useQueryClient } from "@tanstack/react-query";
+import * as enquiriesApi from "../../api/enquiries.api";
+import { toast } from "sonner";
 
 /** One icon per pipeline stage — used on the "Move to" pills and section headers so
  * every status reads consistently instead of a bare text label. */
@@ -172,7 +175,38 @@ export function StatusChangeModal({
   const financeRequired = watch("financeRequired");
   const dateMilestone = DATE_MILESTONES[toStatus];
 
+  // react-hook-form's `isSubmitting` doesn't update fast enough to stop a second click fired
+  // in the same tick as the first (e.g. a fast double-click before the button re-renders
+  // disabled) — that second call re-enters with the same stale `currentStatus` closure and
+  // re-submits `changeStatus` after the first call already moved the enquiry on, producing a
+  // "Cannot move from X to X" 422. This ref blocks re-entrancy synchronously.
+  const submittingRef = useRef(false);
+
   const onSubmit = async (values: StatusChangeFormValues) => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    try {
+      await submit(values);
+    } finally {
+      submittingRef.current = false;
+    }
+  };
+
+  const queryClient = useQueryClient();
+
+  const submit = async (values: StatusChangeFormValues) => {
+    // `currentStatus` is a prop captured when the modal opened — if the enquiry moved on
+    // since then (another tab/user, or a stale cache from before this modal opened), every
+    // branch below that keys off it (which detail-fields to save, what toStatus is even
+    // valid) is wrong, and the changeStatus call fails with a confusing "same status" 422.
+    // Re-check against the server right before submitting rather than trusting the prop.
+    const fresh = await enquiriesApi.fetchEnquiry(enquiryId);
+    queryClient.setQueryData(enquiryKeys.detail(enquiryId), fresh);
+    if (fresh.status !== currentStatus) {
+      toast.error(`This enquiry has already moved to ${STATUS_LABELS[fresh.status]}. Refreshing — please try again.`);
+      onClose();
+      return;
+    }
     // A consultant must be allocated when the appointment is fixed (server enforces this too).
     if (values.toStatus === "APPOINTMENT_FIXED" && !values.consultantId) {
       setError("consultantId", { message: "Assign a consultant before fixing the appointment" });

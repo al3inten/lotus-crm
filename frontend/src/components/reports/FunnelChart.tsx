@@ -7,8 +7,8 @@ const STAGE_LABELS: Record<string, string> = {
   UNDER_FOLLOW_UP: "Under Follow-up",
   APPOINTMENT_FIXED: "Appointment Fixed",
   TEST_DRIVE: "Test Drive",
-  BOOKED: "Booked",
-  RETAIL_DONE: "Retail Done",
+  BOOKED: "Booking",
+  RETAIL_DONE: "Retail",
   CLOSED: "Closed",
 };
 

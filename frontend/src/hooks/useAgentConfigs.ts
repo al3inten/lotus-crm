@@ -15,6 +15,7 @@ export function useSaveAgentConfig() {
     mutationFn: ({ type, payload }: { type: AgentType; payload: UpsertAgentConfigPayload }) =>
       agentConfigsApi.saveAgentConfig(type, payload),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["agent-configs"] }),
+    meta: { successMessage: "Agent config saved" },
   });
 }
 
@@ -22,5 +23,6 @@ export function useGeneratePrompt() {
   return useMutation({
     mutationFn: ({ agentType, description }: { agentType: AgentType; description: string }) =>
       agentConfigsApi.generatePrompt(agentType, description),
+    meta: { successMessage: "Prompt generated" },
   });
 }

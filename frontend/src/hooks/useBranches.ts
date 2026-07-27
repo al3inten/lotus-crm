@@ -18,6 +18,7 @@ export function useCreateBranch() {
   return useMutation({
     mutationFn: branchesApi.createBranch,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: branchKeys.all }),
+    meta: { successMessage: "Branch created" },
   });
 }
 
@@ -27,6 +28,7 @@ export function useUpdateBranch() {
     mutationFn: ({ branchId, payload }: { branchId: string; payload: Parameters<typeof branchesApi.updateBranch>[1] }) =>
       branchesApi.updateBranch(branchId, payload),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: branchKeys.all }),
+    meta: { successMessage: "Branch updated" },
   });
 }
 
@@ -36,6 +38,7 @@ export function useToggleAutoAssign() {
     mutationFn: ({ branchId, autoAssignEnabled }: { branchId: string; autoAssignEnabled: boolean }) =>
       branchesApi.toggleAutoAssign(branchId, autoAssignEnabled),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: branchKeys.all }),
+    meta: { successMessage: "Auto-assign updated" },
   });
 }
 
@@ -45,6 +48,7 @@ export function useToggleAutoCall() {
     mutationFn: ({ branchId, autoCallEnabled }: { branchId: string; autoCallEnabled: boolean }) =>
       branchesApi.toggleAutoCall(branchId, autoCallEnabled),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: branchKeys.all }),
+    meta: { successMessage: "Auto-call updated" },
   });
 }
 
@@ -56,5 +60,6 @@ export function useDeleteBranch() {
       queryClient.invalidateQueries({ queryKey: branchKeys.all });
       queryClient.invalidateQueries({ queryKey: ["directory"] });
     },
+    meta: { successMessage: "Branch deleted" },
   });
 }

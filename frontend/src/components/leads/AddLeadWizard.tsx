@@ -49,6 +49,7 @@ const FIELD_ORDER: (keyof AddLeadFormInput)[] = [
   "department",
   "sourceCategory",
   "subsource",
+  "referrerName",
   "name",
   "phone",
   "alternateMobile",
@@ -75,7 +76,7 @@ const FIELD_ORDER: (keyof AddLeadFormInput)[] = [
 /** Fields owned by each wizard step (index-aligned to SECTIONS) — used to validate
  * a step before advancing and to jump to the offending step on a failed save. */
 const STEP_FIELDS: (keyof AddLeadFormInput)[][] = [
-  ["branchId", "assignedCrId", "department", "sourceCategory", "subsource"],
+  ["branchId", "assignedCrId", "department", "sourceCategory", "subsource", "referrerName"],
   ["name", "phone", "alternateMobile", "email", "dob", "profession", "pincode", "area", "location", "address"],
   ["carModel", "variant", "enquiryType", "enquiryCategory"],
   ["exchangeCarModel", "exchangeCarYear", "exchangeCarKms", "exchangeCarOwners", "exchangeCarRegNumber"],
@@ -352,6 +353,8 @@ export function AddLeadWizard({
 
   const buildEnrichmentPayload = (values: AddLeadFormValues): LeadEnrichmentPayload => ({
     name: values.name || undefined,
+    // "Nil" means the customer has no email — store nothing rather than the literal.
+    email: normaliseEmail(values.email),
     location: values.location || undefined,
     alternateMobile: values.alternateMobile || undefined,
     dob: toIso(values.dob),
@@ -369,6 +372,7 @@ export function AddLeadWizard({
     // DB. undefined would be read by the backend as "field not touched", leaving whatever
     // subsource was already saved in place even though the dropdown now shows blank.
     subsource: values.subsource || null,
+    referrerName: values.referrerName || undefined,
     variant: values.variant || undefined,
     enquiryCategory: values.enquiryCategory || undefined,
     exchangeCarModel: values.exchangeCarModel || undefined,
@@ -403,8 +407,6 @@ export function AddLeadWizard({
       const payload: WalkInLeadPayload = {
         name: values.name,
         phone: values.phone,
-        // "Nil" means the customer has no email — store nothing rather than the literal.
-        email: normaliseEmail(values.email),
         carModel: values.carModel,
         enquiryType: values.enquiryType,
         location: values.location || undefined,
@@ -655,6 +657,7 @@ export function AddLeadWizard({
                   branches={branches}
                   crStaff={crStaff}
                   subsourceOptions={subsourceOptions}
+                  selectedSourceCategory={selectedSourceCategory}
                   sectionTitle={SECTIONS[0].title}
                   sectionIconClassName={SECTIONS[0].iconClassName}
                 />

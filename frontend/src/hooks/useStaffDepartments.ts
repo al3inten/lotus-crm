@@ -16,6 +16,7 @@ export function useCreateStaffDepartment() {
   return useMutation({
     mutationFn: (payload: CreateStaffDepartmentPayload) => api.createStaffDepartment(payload),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["staff-departments"] }),
+    meta: { successMessage: "Department created" },
   });
 }
 
@@ -25,6 +26,7 @@ export function useUpdateStaffDepartment() {
     mutationFn: ({ departmentId, payload }: { departmentId: string; payload: { name?: string; isActive?: boolean } }) =>
       api.updateStaffDepartment(departmentId, payload),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["staff-departments"] }),
+    meta: { successMessage: "Department updated" },
   });
 }
 
@@ -36,5 +38,6 @@ export function useDeleteStaffDepartment() {
       queryClient.invalidateQueries({ queryKey: ["staff-departments"] });
       queryClient.invalidateQueries({ queryKey: ["directory"] });
     },
+    meta: { successMessage: "Department deleted" },
   });
 }

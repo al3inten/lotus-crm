@@ -44,7 +44,10 @@ export const leadEnrichmentFormSchema = z.object({
   address: z.string().optional().or(z.literal("")),
   department: z.enum(DEPARTMENTS).optional().or(z.literal("")),
   sourceCategory: z.enum(SOURCE_CATEGORIES, { message: "Lead source is required" }),
-  subsource: z.enum(LEAD_SUBSOURCES).optional().or(z.literal("")),
+  subsource: z.enum(LEAD_SUBSOURCES, { message: "Subsource is required" }).optional().or(z.literal("")),
+  // Only required when Lead Source is Referral — enforced below, not here, since this
+  // field is shared with sources where it's simply irrelevant.
+  referrerName: z.string().optional().or(z.literal("")),
   variant: z.string().optional().or(z.literal("")),
   enquiryCategory: z.enum(ENQUIRY_CATEGORIES).optional().or(z.literal("")),
   appointmentScheduled: z.boolean().optional(),
@@ -87,6 +90,18 @@ function requireExchangeFields(
   }
 }
 
+/** The referrer's name is only collected — and only required — when Lead Source is
+ * Referral; every other source leaves it blank. */
+function requireReferrerName(
+  values: { sourceCategory?: string; referrerName?: string } & Record<string, unknown>,
+  ctx: z.RefinementCtx
+) {
+  if (values.sourceCategory !== "REFERRAL") return;
+  if (!values.referrerName || !values.referrerName.trim()) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["referrerName"], message: "Referrer name is required" });
+  }
+}
+
 /** Plain object form, kept un-refined so it can still be `.extend()`ed below. */
 const walkInLeadBaseSchema = z
   .object({
@@ -114,7 +129,9 @@ const walkInLeadBaseSchema = z
   })
   .merge(leadEnrichmentFormSchema);
 
-export const walkInLeadFormSchema = walkInLeadBaseSchema.superRefine(requireExchangeFields);
+export const walkInLeadFormSchema = walkInLeadBaseSchema
+  .superRefine(requireExchangeFields)
+  .superRefine(requireReferrerName);
 
 export type WalkInLeadFormValues = z.infer<typeof walkInLeadFormSchema>;
 
@@ -141,6 +158,7 @@ export interface WalkInLeadFormInput {
   department?: WalkInLeadFormValues["department"];
   sourceCategory: WalkInLeadFormValues["sourceCategory"];
   subsource?: WalkInLeadFormValues["subsource"];
+  referrerName?: string;
   variant?: string;
   enquiryCategory?: WalkInLeadFormValues["enquiryCategory"];
   appointmentScheduled?: boolean;
@@ -163,13 +181,16 @@ export type AddLeadFormValues = WalkInLeadFormValues;
 export type AddLeadFormInput = WalkInLeadFormInput;
 
 /** Fully-optional variant for completing a digital lead's missing details. */
-export const leadDetailsFormSchema = leadEnrichmentFormSchema.superRefine(requireExchangeFields);
+export const leadDetailsFormSchema = leadEnrichmentFormSchema
+  .superRefine(requireExchangeFields)
+  .superRefine(requireReferrerName);
 export type LeadDetailsFormValues = z.infer<typeof leadDetailsFormSchema>;
 
 // Extends the un-refined base (a refined schema has no `.extend`), then re-applies the
 // exchange rule so manual enquiries validate identically.
 export const manualEnquiryFormSchema = walkInLeadBaseSchema
   .extend({ source: z.enum(LEAD_SOURCES) })
-  .superRefine(requireExchangeFields);
+  .superRefine(requireExchangeFields)
+  .superRefine(requireReferrerName);
 
 export type ManualEnquiryFormValues = z.infer<typeof manualEnquiryFormSchema>;

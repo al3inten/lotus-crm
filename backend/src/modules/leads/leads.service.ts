@@ -146,6 +146,7 @@ export async function createOrAttachEnquiry(
         department: input.department,
         sourceCategory: input.sourceCategory,
         subsource: input.subsource,
+        referrerName: input.referrerName,
         variant: input.variant,
         enquiryCategory: input.enquiryCategory,
         financeRequired: input.financeRequired,

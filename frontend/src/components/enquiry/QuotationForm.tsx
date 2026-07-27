@@ -5,6 +5,7 @@ import { Input, Select } from "../common/Input";
 import { Button } from "../common/Button";
 import { useEffect } from "react";
 import { ExternalLink, Copy } from "lucide-react";
+import { toast } from "sonner";
 import { quotationFormSchema } from "../../schemas/enquiry.schema";
 import type { QuotationFormValues, QuotationFormInput } from "../../schemas/enquiry.schema";
 import { useSaveQuotation } from "../../hooks/useEnquiry";
@@ -48,18 +49,13 @@ export function QuotationForm({
   });
 
   const onSubmit = async (values: QuotationFormValues) => {
-    try {
-      const payload = {
-        ...values,
-        validUntil: values.validUntil ? new Date(values.validUntil).toISOString() : undefined,
-        pdfUrl: values.pdfUrl || undefined,
-      };
-      await saveQuotation.mutateAsync(payload);
-      alert("Quotation successfully saved! You can now use the 'View Quote' and 'Copy Link' buttons at the top of the form.");
-    } catch (err) {
-      console.error(err);
-      alert("Failed to save quotation. Please check your inputs.");
-    }
+    const payload = {
+      ...values,
+      validUntil: values.validUntil ? new Date(values.validUntil).toISOString() : undefined,
+      pdfUrl: values.pdfUrl || undefined,
+    };
+    // Success/failure feedback comes from the global mutation toast.
+    await saveQuotation.mutateAsync(payload).catch(() => {});
   };
 
   const onRoadPrice = watch("onRoadPrice") as string;
@@ -78,7 +74,7 @@ export function QuotationForm({
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(quoteUrl);
-    alert("Quote link copied to clipboard!");
+    toast.success("Quote link copied to clipboard");
   };
 
   return (

@@ -436,6 +436,9 @@ model Enquiry {
   department           Department?
   subsource            LeadSubsource?
   sourceCategory       SourceCategory?
+  // Name of the existing customer/employee who referred this lead — only meaningful when
+  // sourceCategory is REFERRAL, but left unconstrained since it's plain intake text.
+  referrerName         String?
   variant              String?
   enquiryCategory      EnquiryCategory?
   financeRequired      Boolean?
@@ -515,6 +518,8 @@ model Enquiry {
   // Reports Chart Builder / source-performance group enquiries by these dimensions.
   @@index([source])
   @@index([enquiryCategory])
+  // The Referral Leads report filters on this dimension specifically.
+  @@index([sourceCategory])
   @@map("enquiries")
 }
 

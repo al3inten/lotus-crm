@@ -28,6 +28,7 @@ export function useChangeStatus(enquiryId: string) {
   return useMutation({
     mutationFn: (payload: enquiriesApi.ChangeStatusPayload) => enquiriesApi.changeEnquiryStatus(enquiryId, payload),
     onSuccess: invalidate,
+    meta: { successMessage: "Status updated" },
   });
 }
 
@@ -42,6 +43,7 @@ export function useUpdateEnquiryDetails(enquiryId: string) {
       // A details edit is logged as a comment (shows on the Activity Timeline) — refresh it too.
       queryClient.invalidateQueries({ queryKey: enquiryKeys.comments(enquiryId) });
     },
+    meta: { successMessage: "Details updated" },
   });
 }
 
@@ -50,6 +52,7 @@ export function useUpdateBookingDetails(enquiryId: string) {
   return useMutation({
     mutationFn: (payload: enquiriesApi.BookingDetailsPayload) => enquiriesApi.updateBookingDetails(enquiryId, payload),
     onSuccess: invalidate,
+    meta: { successMessage: "Booking details saved" },
   });
 }
 
@@ -58,6 +61,7 @@ export function useUpdateRetailDetails(enquiryId: string) {
   return useMutation({
     mutationFn: (payload: enquiriesApi.RetailDetailsPayload) => enquiriesApi.updateRetailDetails(enquiryId, payload),
     onSuccess: invalidate,
+    meta: { successMessage: "Retail details saved" },
   });
 }
 
@@ -66,6 +70,7 @@ export function useUpdateRtoDetails(enquiryId: string) {
   return useMutation({
     mutationFn: (payload: enquiriesApi.RtoDetailsPayload) => enquiriesApi.updateRtoDetails(enquiryId, payload),
     onSuccess: invalidate,
+    meta: { successMessage: "RTO details saved" },
   });
 }
 
@@ -74,6 +79,7 @@ export function useUpdateDeliveryDate(enquiryId: string) {
   return useMutation({
     mutationFn: (payload: enquiriesApi.DeliveryDatePayload) => enquiriesApi.updateDeliveryDate(enquiryId, payload),
     onSuccess: invalidate,
+    meta: { successMessage: "Delivery date updated" },
   });
 }
 
@@ -82,6 +88,7 @@ export function useUpdateKeyDate(enquiryId: string) {
   return useMutation({
     mutationFn: (payload: enquiriesApi.UpdateKeyDatePayload) => enquiriesApi.updateKeyDate(enquiryId, payload),
     onSuccess: invalidate,
+    meta: { successMessage: "Key date updated" },
   });
 }
 
@@ -91,6 +98,7 @@ export function useReassign(enquiryId: string) {
     mutationFn: ({ toUserId, reason }: { toUserId: string; reason?: string }) =>
       enquiriesApi.reassignEnquiry(enquiryId, toUserId, reason),
     onSuccess: invalidate,
+    meta: { successMessage: "Enquiry reassigned" },
   });
 }
 
@@ -99,6 +107,7 @@ export function useSaveTestDrive(enquiryId: string) {
   return useMutation({
     mutationFn: (payload: enquiriesApi.TestDrivePayload) => enquiriesApi.saveTestDrive(enquiryId, payload),
     onSuccess: invalidate,
+    meta: { successMessage: "Test drive saved" },
   });
 }
 
@@ -108,6 +117,7 @@ export function useUpdateTestDrive(enquiryId: string) {
     mutationFn: ({ testDriveId, payload }: { testDriveId: string; payload: enquiriesApi.UpdateTestDrivePayload }) =>
       enquiriesApi.updateTestDrive(enquiryId, testDriveId, payload),
     onSuccess: invalidate,
+    meta: { successMessage: "Test drive updated" },
   });
 }
 
@@ -116,6 +126,7 @@ export function useSaveQuotation(enquiryId: string) {
   return useMutation({
     mutationFn: (payload: enquiriesApi.QuotationPayload) => enquiriesApi.saveQuotation(enquiryId, payload),
     onSuccess: invalidate,
+    meta: { successMessage: "Quotation saved" },
   });
 }
 
@@ -124,6 +135,7 @@ export function useSaveExchangeEvaluation(enquiryId: string) {
   return useMutation({
     mutationFn: (payload: enquiriesApi.ExchangeEvaluationPayload) => enquiriesApi.saveExchangeEvaluation(enquiryId, payload),
     onSuccess: invalidate,
+    meta: { successMessage: "Exchange evaluation saved" },
   });
 }
 
@@ -132,6 +144,7 @@ export function useSaveFinanceApplication(enquiryId: string) {
   return useMutation({
     mutationFn: (payload: enquiriesApi.FinanceApplicationPayload) => enquiriesApi.saveFinanceApplication(enquiryId, payload),
     onSuccess: invalidate,
+    meta: { successMessage: "Finance application saved" },
   });
 }
 
@@ -140,6 +153,7 @@ export function useSaveDeliveryDetails(enquiryId: string) {
   return useMutation({
     mutationFn: (payload: enquiriesApi.DeliveryDetailsPayload) => enquiriesApi.saveDeliveryDetails(enquiryId, payload),
     onSuccess: invalidate,
+    meta: { successMessage: "Delivery details saved" },
   });
 }
 
@@ -148,6 +162,7 @@ export function useSaveFollowUp(enquiryId: string) {
   return useMutation({
     mutationFn: (payload: enquiriesApi.FollowUpPayload) => enquiriesApi.saveFollowUp(enquiryId, payload),
     onSuccess: invalidate,
+    meta: { successMessage: "Follow-up saved" },
   });
 }
 
@@ -166,6 +181,7 @@ export function useAddComment(enquiryId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: enquiryKeys.comments(enquiryId) });
     },
+    meta: { successMessage: "Comment added" },
   });
 }
 
@@ -184,5 +200,6 @@ export function useAddNote(enquiryId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: enquiryKeys.notes(enquiryId) });
     },
+    meta: { successMessage: "Note added" },
   });
 }

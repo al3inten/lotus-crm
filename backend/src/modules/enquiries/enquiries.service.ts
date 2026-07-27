@@ -158,6 +158,7 @@ export async function changeStatus(enquiryId: string, input: ChangeStatusInput, 
 // Human-readable labels + date-typed fields for the details-edit audit log below.
 const DETAILS_FIELD_LABELS: Record<string, string> = {
   name: "Name",
+  email: "Email",
   alternateMobile: "Alternate mobile",
   dob: "Date of birth",
   profession: "Profession",
@@ -170,6 +171,7 @@ const DETAILS_FIELD_LABELS: Record<string, string> = {
   department: "Department",
   sourceCategory: "Source",
   subsource: "Subsource",
+  referrerName: "Referrer name",
   variant: "Variant",
   enquiryCategory: "Enquiry category",
   financeRequired: "Finance required",
@@ -186,7 +188,15 @@ const DETAILS_FIELD_LABELS: Record<string, string> = {
   calledDate: "Called date",
   remarks: "Remarks",
 };
-const DETAILS_DATE_FIELDS = new Set(["dob", "appointmentAt", "calledDate"]);
+const DETAILS_DATE_FIELDS = new Set([
+  "dob",
+  "appointmentAt",
+  "calledDate",
+  "bookedAt",
+  "retailDoneAt",
+  "rtoDoneAt",
+  "deliveredAt",
+]);
 
 function formatDetailValue(field: string, value: unknown): string {
   if (value === null || value === undefined || value === "") return "—";
@@ -220,6 +230,7 @@ export async function updateEnquiryDetails(enquiryId: string, input: EnquiryDeta
     };
 
     diff("name", lead?.name, input.name);
+    diff("email", lead?.email, input.email);
     diff("alternateMobile", lead?.alternateMobile, input.alternateMobile);
     diff("dob", lead?.dob, input.dob);
     diff("profession", lead?.profession, input.profession);
@@ -232,6 +243,7 @@ export async function updateEnquiryDetails(enquiryId: string, input: EnquiryDeta
     diff("department", enquiry.department, input.department);
     diff("sourceCategory", enquiry.sourceCategory, input.sourceCategory);
     diff("subsource", enquiry.subsource, input.subsource);
+    diff("referrerName", enquiry.referrerName, input.referrerName);
     diff("variant", enquiry.variant, input.variant);
     diff("enquiryCategory", enquiry.enquiryCategory, input.enquiryCategory);
     diff("financeRequired", enquiry.financeRequired, input.financeRequired);
@@ -252,6 +264,7 @@ export async function updateEnquiryDetails(enquiryId: string, input: EnquiryDeta
       where: { id: enquiry.leadId },
       data: {
         name: input.name,
+        email: input.email,
         alternateMobile: input.alternateMobile,
         dob: input.dob ? new Date(input.dob) : undefined,
         profession: input.profession,
@@ -270,6 +283,7 @@ export async function updateEnquiryDetails(enquiryId: string, input: EnquiryDeta
         department: input.department,
         sourceCategory: input.sourceCategory,
         subsource: input.subsource,
+        referrerName: input.referrerName,
         variant: input.variant,
         enquiryCategory: input.enquiryCategory,
         financeRequired: input.financeRequired,
@@ -308,79 +322,148 @@ export async function updateEnquiryDetails(enquiryId: string, input: EnquiryDeta
 // Booking-stage details, edited once the enquiry has reached BOOKED (and still editable at any
 // later stage): the booking date plus the finance toggle and its three Yes/No checks. When
 // finance isn't required the three checks are cleared so stale Yes/No answers don't linger.
-export async function updateBookingDetails(enquiryId: string, input: BookingDetailsInput) {
-  const enquiry = await prisma.enquiry.findUnique({ where: { id: enquiryId } });
-  if (!enquiry) throw new NotFoundError("Enquiry not found");
-  if (enquiry.status === "CLOSED" || STAGE_RANK[enquiry.status] < STAGE_RANK.BOOKED) {
-    throw new ValidationError("Booking details can only be set once the enquiry has reached Booked.");
-  }
+export async function updateBookingDetails(enquiryId: string, input: BookingDetailsInput, changedById?: string) {
+  return prisma.$transaction(async (tx) => {
+    const enquiry = await tx.enquiry.findUnique({ where: { id: enquiryId } });
+    if (!enquiry) throw new NotFoundError("Enquiry not found");
+    if (enquiry.status === "CLOSED" || STAGE_RANK[enquiry.status] < STAGE_RANK.BOOKED) {
+      throw new ValidationError("Booking details can only be set once the enquiry has reached Booked.");
+    }
 
-  const financeRequired = input.financeRequired ?? enquiry.financeRequired;
+    const financeRequired = input.financeRequired ?? enquiry.financeRequired;
 
-  return prisma.enquiry.update({
-    where: { id: enquiryId },
-    data: {
-      bookedAt: input.bookedAt ? new Date(input.bookedAt) : enquiry.bookedAt,
-      financeRequired,
-      financeDocumentCollected: financeRequired ? input.financeDocumentCollected ?? null : null,
-      financeLoanApproved: financeRequired ? input.financeLoanApproved ?? null : null,
-      financeDoReceived: financeRequired ? input.financeDoReceived ?? null : null,
-    },
-  });
+    const changes: string[] = [];
+    if (input.bookedAt) {
+      const newBookedAt = new Date(input.bookedAt).toISOString();
+      if ((enquiry.bookedAt?.toISOString() ?? null) !== newBookedAt) {
+        changes.push(`Booked date: ${formatDetailValue("bookedAt", enquiry.bookedAt)} → ${formatDetailValue("bookedAt", input.bookedAt)}`);
+      }
+    }
+    if (input.financeRequired !== undefined && input.financeRequired !== enquiry.financeRequired) {
+      changes.push(`Finance required: ${formatDetailValue("financeRequired", enquiry.financeRequired)} → ${formatDetailValue("financeRequired", input.financeRequired)}`);
+    }
+
+    const updated = await tx.enquiry.update({
+      where: { id: enquiryId },
+      data: {
+        bookedAt: input.bookedAt ? new Date(input.bookedAt) : enquiry.bookedAt,
+        financeRequired,
+        financeDocumentCollected: financeRequired ? input.financeDocumentCollected ?? null : null,
+        financeLoanApproved: financeRequired ? input.financeLoanApproved ?? null : null,
+        financeDoReceived: financeRequired ? input.financeDoReceived ?? null : null,
+      },
+    });
+
+    if (changes.length > 0 && changedById) {
+      await tx.comment.create({
+        data: { enquiryId, userId: changedById, body: `✏️ Updated booking details:\n${changes.map((c) => `• ${c}`).join("\n")}` },
+      });
+    }
+
+    return updated;
+  }, TRANSACTION_OPTIONS);
 }
 
 // Retail-stage details, edited once the enquiry has reached RETAIL_DONE (and still editable at
 // any later stage) — just the retail completion date. The Booked -> Retail Done transition
 // itself only stamps this to "now" as a default; the actual date is set/corrected here.
-export async function updateRetailDetails(enquiryId: string, input: RetailDetailsInput) {
-  const enquiry = await prisma.enquiry.findUnique({ where: { id: enquiryId } });
-  if (!enquiry) throw new NotFoundError("Enquiry not found");
-  if (enquiry.status === "CLOSED" || STAGE_RANK[enquiry.status] < STAGE_RANK.RETAIL_DONE) {
-    throw new ValidationError("Retail details can only be set once the enquiry has reached Retail Done.");
-  }
+export async function updateRetailDetails(enquiryId: string, input: RetailDetailsInput, changedById?: string) {
+  return prisma.$transaction(async (tx) => {
+    const enquiry = await tx.enquiry.findUnique({ where: { id: enquiryId } });
+    if (!enquiry) throw new NotFoundError("Enquiry not found");
+    if (enquiry.status === "CLOSED" || STAGE_RANK[enquiry.status] < STAGE_RANK.RETAIL_DONE) {
+      throw new ValidationError("Retail details can only be set once the enquiry has reached Retail Done.");
+    }
 
-  return prisma.enquiry.update({
-    where: { id: enquiryId },
-    data: {
-      retailDoneAt: input.retailDoneAt ? new Date(input.retailDoneAt) : enquiry.retailDoneAt,
-    },
-  });
+    const changed = input.retailDoneAt && (enquiry.retailDoneAt?.toISOString() ?? null) !== new Date(input.retailDoneAt).toISOString();
+
+    const updated = await tx.enquiry.update({
+      where: { id: enquiryId },
+      data: {
+        retailDoneAt: input.retailDoneAt ? new Date(input.retailDoneAt) : enquiry.retailDoneAt,
+      },
+    });
+
+    if (changed && changedById) {
+      await tx.comment.create({
+        data: {
+          enquiryId,
+          userId: changedById,
+          body: `✏️ Updated retail details:\n• Retail done date: ${formatDetailValue("retailDoneAt", enquiry.retailDoneAt)} → ${formatDetailValue("retailDoneAt", input.retailDoneAt)}`,
+        },
+      });
+    }
+
+    return updated;
+  }, TRANSACTION_OPTIONS);
 }
 
 // RTO-stage details, edited once the enquiry has reached RTO_DONE (and still editable at any
 // later stage) — just the RTO completion date. The Retail Done -> RTO Done transition itself
 // only stamps this to "now" as a default; the actual date is set/corrected here.
-export async function updateRtoDetails(enquiryId: string, input: RtoDetailsInput) {
-  const enquiry = await prisma.enquiry.findUnique({ where: { id: enquiryId } });
-  if (!enquiry) throw new NotFoundError("Enquiry not found");
-  if (enquiry.status === "CLOSED" || STAGE_RANK[enquiry.status] < STAGE_RANK.RTO_DONE) {
-    throw new ValidationError("RTO details can only be set once the enquiry has reached RTO Done.");
-  }
+export async function updateRtoDetails(enquiryId: string, input: RtoDetailsInput, changedById?: string) {
+  return prisma.$transaction(async (tx) => {
+    const enquiry = await tx.enquiry.findUnique({ where: { id: enquiryId } });
+    if (!enquiry) throw new NotFoundError("Enquiry not found");
+    if (enquiry.status === "CLOSED" || STAGE_RANK[enquiry.status] < STAGE_RANK.RTO_DONE) {
+      throw new ValidationError("RTO details can only be set once the enquiry has reached RTO Done.");
+    }
 
-  return prisma.enquiry.update({
-    where: { id: enquiryId },
-    data: {
-      rtoDoneAt: input.rtoDoneAt ? new Date(input.rtoDoneAt) : enquiry.rtoDoneAt,
-    },
-  });
+    const changed = input.rtoDoneAt && (enquiry.rtoDoneAt?.toISOString() ?? null) !== new Date(input.rtoDoneAt).toISOString();
+
+    const updated = await tx.enquiry.update({
+      where: { id: enquiryId },
+      data: {
+        rtoDoneAt: input.rtoDoneAt ? new Date(input.rtoDoneAt) : enquiry.rtoDoneAt,
+      },
+    });
+
+    if (changed && changedById) {
+      await tx.comment.create({
+        data: {
+          enquiryId,
+          userId: changedById,
+          body: `✏️ Updated RTO details:\n• RTO done date: ${formatDetailValue("rtoDoneAt", enquiry.rtoDoneAt)} → ${formatDetailValue("rtoDoneAt", input.rtoDoneAt)}`,
+        },
+      });
+    }
+
+    return updated;
+  }, TRANSACTION_OPTIONS);
 }
 
 // Corrects the delivery date once the enquiry has reached DELIVERED. The date is still
 // mandatory to REACH Delivered (see changeStatus) — this only fixes it afterward if entered
 // wrong, since Delivered is a terminal stage with no further transition to defer it to.
-export async function updateDeliveryDate(enquiryId: string, input: DeliveryDateInput) {
-  const enquiry = await prisma.enquiry.findUnique({ where: { id: enquiryId } });
-  if (!enquiry) throw new NotFoundError("Enquiry not found");
-  if (enquiry.status !== "DELIVERED") {
-    throw new ValidationError("Delivery date can only be corrected once the enquiry is Delivered.");
-  }
+export async function updateDeliveryDate(enquiryId: string, input: DeliveryDateInput, changedById?: string) {
+  return prisma.$transaction(async (tx) => {
+    const enquiry = await tx.enquiry.findUnique({ where: { id: enquiryId } });
+    if (!enquiry) throw new NotFoundError("Enquiry not found");
+    if (enquiry.status !== "DELIVERED") {
+      throw new ValidationError("Delivery date can only be corrected once the enquiry is Delivered.");
+    }
 
-  return prisma.enquiry.update({
-    where: { id: enquiryId },
-    data: {
-      deliveredAt: input.deliveredAt ? new Date(input.deliveredAt) : enquiry.deliveredAt,
-    },
-  });
+    const changed = input.deliveredAt && (enquiry.deliveredAt?.toISOString() ?? null) !== new Date(input.deliveredAt).toISOString();
+
+    const updated = await tx.enquiry.update({
+      where: { id: enquiryId },
+      data: {
+        deliveredAt: input.deliveredAt ? new Date(input.deliveredAt) : enquiry.deliveredAt,
+      },
+    });
+
+    if (changed && changedById) {
+      await tx.comment.create({
+        data: {
+          enquiryId,
+          userId: changedById,
+          body: `✏️ Updated delivery details:\n• Delivered date: ${formatDetailValue("deliveredAt", enquiry.deliveredAt)} → ${formatDetailValue("deliveredAt", input.deliveredAt)}`,
+        },
+      });
+    }
+
+    return updated;
+  }, TRANSACTION_OPTIONS);
 }
 
 /**

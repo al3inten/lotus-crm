@@ -1,10 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
-import { Car, Star, Percent, ClipboardList, LayoutGrid, ChevronLeft, ChevronRight } from "lucide-react";
+import { Car, Star, Percent, ClipboardList, LayoutGrid, ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { isAxiosError } from "axios";
+import { toast } from "sonner";
 import { useBranches } from "../hooks/useBranches";
 import { useVehiclePerformanceReport } from "../hooks/useReports";
+import { downloadEnquiriesXlsx } from "../api/reports.api";
 import { StatTile } from "../components/reports/StatTile";
+import { DonutChart } from "../components/reports/DonutChart";
+import type { DonutSlice } from "../components/reports/DonutChart";
+import { ChartTableToggle } from "../components/reports/ChartTableToggle";
 import { Select } from "../components/common/Input";
+import { Button } from "../components/common/Button";
 import { Card, CardHeader } from "../components/common/Card";
 import type { VehiclePerformanceRow } from "../api/reports.api";
 
@@ -39,7 +46,7 @@ function TableSkeleton() {
     <tbody>
       {Array.from({ length: 6 }).map((_, i) => (
         <tr key={i} className="border-b border-slate-100 dark:border-slate-800/80">
-          {Array.from({ length: 10 }).map((_, j) => (
+          {Array.from({ length: 12 }).map((_, j) => (
             <td key={j} className="px-4 py-3.5">
               <div
                 className="h-4 animate-pulse rounded bg-slate-200 dark:bg-slate-800"
@@ -99,6 +106,33 @@ export function VehiclePerformancePage() {
 
   const { data: branches } = useBranches();
   const { data: rows, isLoading } = useVehiclePerformanceReport(filters);
+
+  const [downloadingModel, setDownloadingModel] = useState<string | null>(null);
+  const handleDownloadModel = async (carModel: string) => {
+    setDownloadingModel(carModel);
+    try {
+      const blob = await downloadEnquiriesXlsx({ ...filters, carModel });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `lotus-crm-customers-${carModel.toLowerCase().replace(/\s+/g, "-")}-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success("Customer list exported");
+    } catch (err) {
+      let message = "Something went wrong";
+      if (isAxiosError(err) && err.response?.data instanceof Blob) {
+        try {
+          message = (JSON.parse(await err.response.data.text()) as { error?: string }).error ?? message;
+        } catch {
+          // leave the generic message
+        }
+      }
+      toast.error(message);
+    } finally {
+      setDownloadingModel(null);
+    }
+  };
 
   const totals = useMemo(() => {
     const list = rows ?? [];
@@ -170,7 +204,7 @@ export function VehiclePerformancePage() {
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatTile label="Total Enquiries" value={totals.enquiries} icon={<ClipboardList size={20} />} iconClassName="bg-primary-50 text-primary-600 dark:bg-primary-500/20 dark:text-primary-400" />
-        <StatTile label="Booked" value={totals.booked} icon={<Car size={20} />} iconClassName="bg-emerald-50 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400" />
+        <StatTile label="Booking" value={totals.booked} icon={<Car size={20} />} iconClassName="bg-emerald-50 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400" />
         <StatTile label="Conversion Rate" value={totals.conversionRate} suffix="%" icon={<Percent size={20} />} iconClassName="bg-violet-50 text-violet-600 dark:bg-violet-500/20 dark:text-violet-400" />
         <StatTile
           label="Avg Test Drive Rating"
@@ -191,14 +225,18 @@ export function VehiclePerformancePage() {
         {!isLoading && sortedRows.length === 0 ? (
           <p className="px-6 pb-6 text-sm text-gray-400 dark:text-slate-500">No enquiries in this range.</p>
         ) : (
+          <div className="px-6 pt-4">
+            <ChartTableToggle
+              table={
           <>
-            <div className="overflow-x-auto">
+            <div className="-mx-6 overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="sticky top-0 z-10 bg-white/95 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400 backdrop-blur-sm dark:bg-slate-900/95 dark:text-slate-500">
                   <tr>
                     <th className="border-b border-slate-100 px-4 py-3 dark:border-slate-800">Model</th>
                     <th className="border-b border-slate-100 px-4 py-3 dark:border-slate-800">Enquiries</th>
-                    <th className="border-b border-slate-100 px-4 py-3 dark:border-slate-800">Booked</th>
+                    <th className="border-b border-slate-100 px-4 py-3 dark:border-slate-800">Booking</th>
+                    <th className="border-b border-slate-100 px-4 py-3 dark:border-slate-800">Share of Sales</th>
                     <th className="border-b border-slate-100 px-4 py-3 dark:border-slate-800">Conversion</th>
                     <th className="border-b border-slate-100 px-4 py-3 dark:border-slate-800">Test Drives</th>
                     <th className="border-b border-slate-100 px-4 py-3 dark:border-slate-800">TD Completion</th>
@@ -206,6 +244,7 @@ export function VehiclePerformancePage() {
                     <th className="border-b border-slate-100 px-4 py-3 dark:border-slate-800">TD → Booking</th>
                     <th className="border-b border-slate-100 px-4 py-3 dark:border-slate-800">Quotations</th>
                     <th className="border-b border-slate-100 px-4 py-3 dark:border-slate-800">Avg Discount</th>
+                    <th className="border-b border-slate-100 px-4 py-3 text-right dark:border-slate-800">Download</th>
                   </tr>
                 </thead>
                 {isLoading ? (
@@ -217,6 +256,7 @@ export function VehiclePerformancePage() {
                         <td className="border-b border-slate-100 px-4 py-3 font-medium text-gray-900 dark:border-slate-800/80 dark:text-slate-100">{row.carModel}</td>
                         <td className="border-b border-slate-100 px-4 py-3 tabular-nums text-gray-700 dark:border-slate-800/80 dark:text-slate-300">{row.enquiries}</td>
                         <td className="border-b border-slate-100 px-4 py-3 tabular-nums text-gray-700 dark:border-slate-800/80 dark:text-slate-300">{row.booked}</td>
+                        <td className="border-b border-slate-100 px-4 py-3 tabular-nums font-semibold text-emerald-600 dark:border-slate-800/80 dark:text-emerald-400">{row.shareOfSales}%</td>
                         <td className="border-b border-slate-100 px-4 py-3 dark:border-slate-800/80">
                           <ConversionBar percent={row.conversionRate} />
                         </td>
@@ -233,6 +273,17 @@ export function VehiclePerformancePage() {
                         <td className="border-b border-slate-100 px-4 py-3 tabular-nums text-gray-700 dark:border-slate-800/80 dark:text-slate-300">{row.quotations}</td>
                         <td className="border-b border-slate-100 px-4 py-3 tabular-nums text-gray-700 dark:border-slate-800/80 dark:text-slate-300">
                           {row.avgDiscountPercent != null ? `${row.avgDiscountPercent}%` : "—"}
+                        </td>
+                        <td className="border-b border-slate-100 px-4 py-3 text-right dark:border-slate-800/80">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            isLoading={downloadingModel === row.carModel}
+                            icon={<Download size={14} />}
+                            onClick={() => handleDownloadModel(row.carModel)}
+                          >
+                            Download
+                          </Button>
                         </td>
                       </tr>
                     ))}
@@ -293,6 +344,24 @@ export function VehiclePerformancePage() {
               </div>
             )}
           </>
+              }
+              chart={
+                <DonutChart
+                  slices={[...sortedRows]
+                    .sort((a, b) => b.booked - a.booked)
+                    .filter((r) => r.booked > 0)
+                    .slice(0, 10)
+                    .map(
+                      (row): DonutSlice => ({
+                        label: row.carModel,
+                        value: row.booked,
+                        valueLabel: `${row.booked} (${row.shareOfSales}%)`,
+                      })
+                    )}
+                />
+              }
+            />
+          </div>
         )}
       </Card>
     </div>

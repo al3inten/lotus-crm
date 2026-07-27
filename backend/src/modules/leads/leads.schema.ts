@@ -5,6 +5,7 @@ import { z } from "zod";
 // digital lead may never collect some of these, and a walk-in draft may only have a few.
 export const leadEnrichmentSchema = z.object({
   // Lead (customer profile) fields
+  email: z.string().email().optional(),
   alternateMobile: z.string().optional(),
   dob: z.string().datetime().optional(),
   profession: z.string().optional(),
@@ -40,6 +41,9 @@ export const leadEnrichmentSchema = z.object({
     // "field not touched" (see updateEnquiryDetails) and would leave the stale value in place.
     .nullable()
     .optional(),
+  // Only meaningful when sourceCategory is REFERRAL — the existing customer/employee
+  // who referred this lead.
+  referrerName: z.string().optional(),
   variant: z.string().optional(),
   enquiryCategory: z.enum(["HOT", "WARM", "COLD"]).optional(),
   financeRequired: z.boolean().optional(),
