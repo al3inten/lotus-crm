@@ -2,7 +2,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DateTimePicker, DatePickerField } from "../common/DateTimePicker";
 import { useState, useEffect } from "react";
-import { ArrowRight, CalendarClock, Trophy, XCircle } from "lucide-react";
+import { ArrowRight, CalendarClock, Check, Save, Trophy, XCircle } from "lucide-react";
 import clsx from "clsx";
 import { Modal } from "../common/Modal";
 import { Input, Select, Textarea } from "../common/Input";
@@ -80,6 +80,9 @@ export function StatusChangeModal({
   enquiry,
 }: StatusChangeModalProps) {
   const [outcome, setOutcome] = useState<"WON" | "LOST">("WON");
+  // Feedback for the standalone "Save progress" action on the finance checklist — cleared
+  // whenever the modal is reopened or the user changes something after saving.
+  const [progressSaved, setProgressSaved] = useState(false);
   // CR/ARM must tick this off — confirming every test drive on the Test Drives card is marked
   // Done — before the enquiry can move to Booked.
   const [testDrivesConfirmed, setTestDrivesConfirmed] = useState(false);
@@ -97,6 +100,7 @@ export function StatusChangeModal({
     control,
     handleSubmit,
     watch,
+    getValues,
     setValue,
     setError,
     reset,
@@ -126,6 +130,7 @@ export function StatusChangeModal({
       });
       setOutcome("WON");
       setTestDrivesConfirmed(false);
+      setProgressSaved(false);
     }
   }, [isOpen, initialTargetStatus, allowedNext, currentConsultantId, enquiry, reset]);
 
@@ -229,6 +234,26 @@ export function StatusChangeModal({
     onClose();
   };
 
+  // Saves the booking/finance checklist as-is, without requiring it to be complete and
+  // without moving the status — finance paperwork (documents, loan approval, DO) often
+  // arrives over several days, so the CR needs to record whatever's done today and come
+  // back to it later rather than losing progress or being forced through a status change.
+  const handleSaveProgress = async () => {
+    const values = getValues();
+    const toIso = (v?: string) => (v ? new Date(v).toISOString() : undefined);
+    await updateBooking.mutateAsync({
+      bookedAt: toIso(values.bookedAt),
+      financeRequired: values.financeRequired,
+      // Left as-is (not coerced to false) — an item the CR hasn't answered yet should stay
+      // unanswered (null in the DB) rather than being recorded as an explicit "No".
+      financeDocumentCollected: values.financeRequired ? values.financeDocumentCollected : undefined,
+      financeLoanApproved: values.financeRequired ? values.financeLoanApproved : undefined,
+      financeDoReceived: values.financeRequired ? values.financeDoReceived : undefined,
+    });
+    setProgressSaved(true);
+    setTimeout(() => setProgressSaved(false), 3000);
+  };
+
   if (allowedNext.length === 0) {
     return (
       <Modal isOpen={isOpen} onClose={onClose} title="Update status" maxWidth="max-w-md">
@@ -281,9 +306,45 @@ export function StatusChangeModal({
               />
               {financeRequired && (
                 <div className="flex flex-col gap-2 border-t border-emerald-200 pt-3 dark:border-emerald-500/25">
-                  <YesNo label="Documents collected" checked={!!watch("financeDocumentCollected")} onChange={(v) => setValue("financeDocumentCollected", v)} />
-                  <YesNo label="Loan approved" checked={!!watch("financeLoanApproved")} onChange={(v) => setValue("financeLoanApproved", v)} />
-                  <YesNo label="DO received" checked={!!watch("financeDoReceived")} onChange={(v) => setValue("financeDoReceived", v)} />
+                  <YesNo
+                    label="Documents collected"
+                    checked={!!watch("financeDocumentCollected")}
+                    onChange={(v) => {
+                      setValue("financeDocumentCollected", v);
+                      setProgressSaved(false);
+                    }}
+                  />
+                  <YesNo
+                    label="Loan approved"
+                    checked={!!watch("financeLoanApproved")}
+                    onChange={(v) => {
+                      setValue("financeLoanApproved", v);
+                      setProgressSaved(false);
+                    }}
+                  />
+                  <YesNo
+                    label="DO received"
+                    checked={!!watch("financeDoReceived")}
+                    onChange={(v) => {
+                      setValue("financeDoReceived", v);
+                      setProgressSaved(false);
+                    }}
+                  />
+                  <div className="mt-1 flex flex-wrap items-center justify-between gap-2 border-t border-emerald-200 pt-3 dark:border-emerald-500/25">
+                    <p className="text-xs text-emerald-700/80 dark:text-emerald-300/80">
+                      Finance paperwork can take a few days — save what's done so far without changing the status.
+                    </p>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      icon={progressSaved ? <Check size={13} /> : <Save size={13} />}
+                      isLoading={updateBooking.isPending}
+                      onClick={handleSaveProgress}
+                    >
+                      {progressSaved ? "Saved" : "Save progress"}
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
