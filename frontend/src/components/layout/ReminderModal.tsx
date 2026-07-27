@@ -49,8 +49,8 @@ export function ReminderModal() {
   return (
     <Modal isOpen={isOpen} onClose={handleDismiss} maxWidth="max-w-md">
       <div className="flex flex-col items-center text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 ring-8 ring-blue-50 dark:bg-blue-500/20 dark:ring-blue-500/10 mb-4">
-          <BellRing className="h-8 w-8 text-blue-600 dark:text-blue-400 animate-pulse" />
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary-100 ring-8 ring-primary-50 dark:bg-primary-500/20 dark:ring-primary-500/10 mb-4">
+          <BellRing className="h-8 w-8 text-primary-600 dark:text-primary-400 animate-pulse" />
         </div>
         <h3 className="text-xl font-bold text-slate-900 dark:text-white">You have Pending Follow-ups!</h3>
         <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">

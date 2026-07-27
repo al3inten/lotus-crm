@@ -10,7 +10,7 @@ export function EnquiryHistoryList({ enquiries, activeEnquiryId }: { enquiries: 
           <Link
             to={`/leads/${enquiry.leadId}/enquiries/${enquiry.id}`}
             className={`block rounded-md border p-3 text-sm ${
-              enquiry.id === activeEnquiryId ? "border-blue-400 bg-blue-50" : "border-gray-200 bg-white hover:bg-gray-50"
+              enquiry.id === activeEnquiryId ? "border-primary-400 bg-primary-50" : "border-gray-200 bg-white hover:bg-gray-50"
             }`}
           >
             <div className="flex items-center justify-between">

@@ -18,12 +18,13 @@ import {
 import type { DragStartEvent, DragEndEvent } from "@dnd-kit/core";
 import { Avatar } from "../common/Avatar";
 import { StatusChangeModal } from "../enquiry/StatusChangeModal";
+import { getFollowUpUrgency } from "./leadPresentation";
 import type { Enquiry, EnquiryStatus, EnquiryCategory } from "../../types";
 
 const CATEGORY_STYLES: Record<EnquiryCategory, string> = {
-  HOT: "bg-red-100 text-red-700 ring-red-200/60 dark:bg-red-500/15 dark:text-red-300 dark:ring-red-500/20",
-  WARM: "bg-amber-100 text-amber-700 ring-amber-200/60 dark:bg-amber-500/15 dark:text-amber-300 dark:ring-amber-500/20",
-  COLD: "bg-sky-100 text-sky-700 ring-sky-200/60 dark:bg-sky-500/15 dark:text-sky-300 dark:ring-sky-500/20",
+  HOT: "bg-primary-600 text-white ring-primary-500/60 dark:bg-primary-500 dark:text-white dark:ring-primary-400/40",
+  WARM: "bg-primary-100 text-primary-700 ring-primary-200/60 dark:bg-primary-500/20 dark:text-primary-300 dark:ring-primary-500/20",
+  COLD: "bg-primary-50 text-primary-500 ring-primary-100/60 dark:bg-primary-500/10 dark:text-primary-400 dark:ring-primary-500/15",
 };
 
 interface StageTheme {
@@ -46,64 +47,53 @@ const STAGES: StageTheme[] = [
     id: "NEW",
     label: "New Lead",
     Icon: Inbox,
-    head: "border-slate-200 bg-slate-50 dark:border-slate-700/60 dark:bg-slate-800/50",
-    badge: "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-200",
-    text: "text-slate-700 dark:text-slate-200",
-    active: "border-slate-300 bg-slate-100 text-slate-800 dark:border-slate-600 dark:bg-slate-700 dark:text-white",
-    bar: "bg-slate-400",
+    head: "border-primary-100 bg-primary-50/50 dark:border-primary-500/15 dark:bg-primary-500/5",
+    badge: "bg-primary-100 text-primary-600 dark:bg-primary-500/15 dark:text-primary-300",
+    text: "text-primary-600 dark:text-primary-300",
+    active: "border-primary-200 bg-primary-100 text-primary-700 dark:border-primary-500/30 dark:bg-primary-500/15 dark:text-primary-200",
+    bar: "bg-primary-300",
   },
   {
     id: "UNDER_FOLLOW_UP",
     label: "Follow-up",
     Icon: PhoneCall,
-    head: "border-blue-200 bg-blue-50 dark:border-blue-500/25 dark:bg-blue-500/10",
-    badge: "bg-blue-200/70 text-blue-700 dark:bg-blue-500/25 dark:text-blue-200",
-    text: "text-blue-700 dark:text-blue-300",
-    active: "border-blue-300 bg-blue-100 text-blue-800 dark:border-blue-500/40 dark:bg-blue-500/20 dark:text-blue-200",
-    bar: "bg-blue-500",
+    head: "border-primary-200 bg-primary-50 dark:border-primary-500/25 dark:bg-primary-500/10",
+    badge: "bg-primary-200/70 text-primary-700 dark:bg-primary-500/25 dark:text-primary-200",
+    text: "text-primary-700 dark:text-primary-300",
+    active: "border-primary-300 bg-primary-100 text-primary-800 dark:border-primary-500/40 dark:bg-primary-500/20 dark:text-primary-200",
+    bar: "bg-primary-500",
   },
   {
     id: "APPOINTMENT_FIXED",
     label: "Appointment",
     Icon: CalendarCheck,
-    head: "border-indigo-200 bg-indigo-50 dark:border-indigo-500/25 dark:bg-indigo-500/10",
-    badge: "bg-indigo-200/70 text-indigo-700 dark:bg-indigo-500/25 dark:text-indigo-200",
-    text: "text-indigo-700 dark:text-indigo-300",
-    active: "border-indigo-300 bg-indigo-100 text-indigo-800 dark:border-indigo-500/40 dark:bg-indigo-500/20 dark:text-indigo-200",
-    bar: "bg-indigo-500",
+    head: "border-primary-300 bg-primary-100/60 dark:border-primary-500/35 dark:bg-primary-500/15",
+    badge: "bg-primary-300/70 text-primary-800 dark:bg-primary-500/35 dark:text-primary-100",
+    text: "text-primary-800 dark:text-primary-200",
+    active: "border-primary-400 bg-primary-200 text-primary-900 dark:border-primary-500/50 dark:bg-primary-500/30 dark:text-primary-100",
+    bar: "bg-primary-600",
   },
   {
     id: "TEST_DRIVE",
     label: "Test Drive",
     Icon: Car,
-    head: "border-purple-200 bg-purple-50 dark:border-purple-500/25 dark:bg-purple-500/10",
-    badge: "bg-purple-200/70 text-purple-700 dark:bg-purple-500/25 dark:text-purple-200",
-    text: "text-purple-700 dark:text-purple-300",
-    active: "border-purple-300 bg-purple-100 text-purple-800 dark:border-purple-500/40 dark:bg-purple-500/20 dark:text-purple-200",
-    bar: "bg-purple-500",
+    head: "border-primary-400 bg-primary-100/80 dark:border-primary-500/45 dark:bg-primary-500/20",
+    badge: "bg-primary-400/70 text-white dark:bg-primary-500/45 dark:text-white",
+    text: "text-primary-900 dark:text-primary-100",
+    active: "border-primary-500 bg-primary-200 text-primary-950 dark:border-primary-400/60 dark:bg-primary-500/40 dark:text-white",
+    bar: "bg-primary-700",
   },
   {
     id: "BOOKED",
     label: "Booked",
     Icon: BadgeCheck,
-    head: "border-emerald-200 bg-emerald-50 dark:border-emerald-500/25 dark:bg-emerald-500/10",
-    badge: "bg-emerald-200/70 text-emerald-700 dark:bg-emerald-500/25 dark:text-emerald-200",
-    text: "text-emerald-700 dark:text-emerald-300",
-    active: "border-emerald-300 bg-emerald-100 text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-500/20 dark:text-emerald-200",
-    bar: "bg-emerald-500",
+    head: "border-primary-500 bg-primary-200/60 dark:border-primary-400/55 dark:bg-primary-500/25",
+    badge: "bg-primary-600 text-white dark:bg-primary-500 dark:text-white",
+    text: "text-primary-950 dark:text-white",
+    active: "border-primary-600 bg-primary-300 text-primary-950 dark:border-primary-400 dark:bg-primary-500/50 dark:text-white",
+    bar: "bg-primary-900",
   },
 ];
-
-type FollowUpUrgency = "overdue" | "today" | "future" | null;
-
-function getFollowUpUrgency(iso?: string | null): FollowUpUrgency {
-  if (!iso) return null;
-  const due = new Date(iso);
-  const now = new Date();
-  if (due < now && due.toDateString() !== now.toDateString()) return "overdue";
-  if (due.toDateString() === now.toDateString()) return "today";
-  return "future";
-}
 
 /* ---------- Presentational card body (shared by draggable, mobile & overlay) ---------- */
 function CardBody({ enquiry, dragging, onMove }: { enquiry: Enquiry; dragging?: boolean; onMove?: () => void }) {
@@ -116,7 +106,7 @@ function CardBody({ enquiry, dragging, onMove }: { enquiry: Enquiry; dragging?: 
         urgency === "overdue"
           ? "border-l-[3px] border-l-red-500 border-slate-200 dark:border-slate-700"
           : "border-slate-200 dark:border-slate-700",
-        dragging ? "cursor-grabbing shadow-2xl shadow-blue-900/20 ring-2 ring-blue-500/40" : "shadow-sm"
+        dragging ? "cursor-grabbing shadow-2xl shadow-primary-900/20 ring-2 ring-primary-500/40" : "shadow-sm"
       )}
     >
       <div className="mb-2.5 flex items-start justify-between gap-2">
@@ -154,10 +144,10 @@ function CardBody({ enquiry, dragging, onMove }: { enquiry: Enquiry; dragging?: 
             className={clsx(
               "flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 font-semibold",
               urgency === "overdue"
-                ? "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400"
+                ? "bg-primary-600 text-white dark:bg-primary-500 dark:text-white"
                 : urgency === "today"
-                  ? "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400"
-                  : "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
+                  ? "bg-primary-100 text-primary-700 dark:bg-primary-500/20 dark:text-primary-300"
+                  : "bg-slate-50 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
             )}
           >
             <Clock size={12} />
@@ -217,7 +207,7 @@ function DraggableCard({ enquiry, onOpen }: { enquiry: Enquiry; onOpen: (leadId:
       {...attributes}
       onClick={() => onOpen(enquiry.leadId)}
       className={clsx(
-        "group cursor-grab touch-none rounded-xl outline-none transition-all focus-visible:ring-2 focus-visible:ring-blue-500 active:cursor-grabbing",
+        "group cursor-grab touch-none rounded-xl outline-none transition-all focus-visible:ring-2 focus-visible:ring-primary-500 active:cursor-grabbing",
         isDragging ? "opacity-40" : "hover:-translate-y-0.5"
       )}
     >
@@ -237,7 +227,7 @@ function DesktopColumn({ stage, enquiries, onOpen }: { stage: StageTheme; enquir
         className={clsx(
           "flex flex-1 flex-col gap-3 overflow-y-auto rounded-xl p-2 ring-1 transition-colors [scrollbar-width:thin]",
           isOver
-            ? "bg-blue-50/70 ring-2 ring-blue-400 dark:bg-blue-500/10 dark:ring-blue-500/50"
+            ? "bg-primary-50/70 ring-2 ring-primary-400 dark:bg-primary-500/10 dark:ring-primary-500/50"
             : "bg-slate-50/60 ring-slate-200/60 dark:bg-slate-900/40 dark:ring-slate-800/60"
         )}
       >
@@ -248,7 +238,7 @@ function DesktopColumn({ stage, enquiries, onOpen }: { stage: StageTheme; enquir
           <div
             className={clsx(
               "flex h-24 items-center justify-center rounded-lg border-2 border-dashed text-xs font-medium transition-colors",
-              isOver ? "border-blue-400 text-blue-500 dark:border-blue-500/60" : "border-slate-200 text-slate-400 dark:border-slate-700 dark:text-slate-600"
+              isOver ? "border-primary-400 text-primary-500 dark:border-primary-500/60" : "border-slate-200 text-slate-400 dark:border-slate-700 dark:text-slate-600"
             )}
           >
             {isOver ? "Release to move here" : "No leads"}
@@ -329,7 +319,7 @@ export function LeadKanbanBoard({ enquiries }: { enquiries: Enquiry[] }) {
                 onClick={() => setSelectedStage(stage.id)}
                 aria-pressed={isActive}
                 className={clsx(
-                  "flex flex-col items-center gap-1 rounded-xl border px-1 py-2.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+                  "flex flex-col items-center gap-1 rounded-xl border px-1 py-2.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
                   isActive
                     ? stage.active
                     : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900/50 dark:text-slate-400 dark:hover:bg-slate-800/50"
@@ -338,7 +328,7 @@ export function LeadKanbanBoard({ enquiries }: { enquiries: Enquiry[] }) {
                 <span className="relative">
                   <Icon size={18} />
                   {count > 0 && (
-                    <span className="absolute -right-2.5 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[9px] font-bold text-white">
+                    <span className="absolute -right-2.5 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary-600 px-1 text-[9px] font-bold text-white">
                       {count}
                     </span>
                   )}

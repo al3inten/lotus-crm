@@ -17,7 +17,7 @@ import { cn } from "../../lib/utils";
 const triggerClass = (error?: string, disabled?: boolean) =>
   cn(
     "flex w-full items-center gap-2 rounded-xl border bg-white py-2.5 pl-9 pr-9 text-left text-sm text-slate-900 shadow-sm transition-colors",
-    "focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/15",
+    "focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/15",
     "dark:bg-slate-900 dark:text-white",
     error ? "border-red-400 dark:border-red-500/60" : "border-slate-200 dark:border-slate-700",
     disabled && "cursor-not-allowed bg-slate-50 dark:bg-slate-800/50"
@@ -122,7 +122,7 @@ function TimeColumn({ selected, onSelect }: { selected: string | null; onSelect:
           className={cn(
             "shrink-0 rounded-lg px-2 py-1.5 text-left text-sm font-medium transition-colors",
             selected === opt.value
-              ? "bg-blue-600 text-white dark:bg-blue-500"
+              ? "bg-primary-600 text-white dark:bg-primary-500"
               : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
           )}
         >
@@ -341,7 +341,7 @@ export function YearPicker({ label, error, required, value, onChange, placeholde
                 className={cn(
                   "rounded-lg px-2 py-2 text-sm font-medium transition-colors",
                   year === selectedYear
-                    ? "bg-blue-600 text-white dark:bg-blue-500"
+                    ? "bg-primary-600 text-white dark:bg-primary-500"
                     : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
                 )}
               >

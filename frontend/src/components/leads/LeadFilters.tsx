@@ -14,30 +14,30 @@ const toDateStr = (d: Date) => {
   return new Date(d.getTime() - offset * 60000).toISOString().slice(0, 10);
 };
 
-function datePreset(key: "today" | "tomorrow" | "week"): { from: string; to: string } {
+/** These filter on lead *creation* date, which only ever lies in the past — so every
+ * preset here is backward-looking (no "Tomorrow"), and "week" is a rolling last-7-days
+ * window ending today rather than a Mon–Sun calendar week that could reach into the future. */
+function datePreset(key: "today" | "yesterday" | "week"): { from: string; to: string } {
   const now = new Date();
   if (key === "today") {
     const s = toDateStr(now);
     return { from: s, to: s };
   }
-  if (key === "tomorrow") {
+  if (key === "yesterday") {
     const t = new Date(now);
-    t.setDate(t.getDate() + 1);
+    t.setDate(t.getDate() - 1);
     const s = toDateStr(t);
     return { from: s, to: s };
   }
   const start = new Date(now);
-  const day = (start.getDay() + 6) % 7; // Monday = 0
-  start.setDate(start.getDate() - day);
-  const end = new Date(start);
-  end.setDate(start.getDate() + 6);
-  return { from: toDateStr(start), to: toDateStr(end) };
+  start.setDate(start.getDate() - 6);
+  return { from: toDateStr(start), to: toDateStr(now) };
 }
 
 const DATE_PRESETS = [
   { key: "today", label: "Today" },
-  { key: "tomorrow", label: "Tomorrow" },
-  { key: "week", label: "This Week" },
+  { key: "yesterday", label: "Yesterday" },
+  { key: "week", label: "Last 7 Days" },
 ] as const;
 
 interface LeadFiltersProps {
@@ -87,7 +87,7 @@ export function LeadFilters({ filters, onChange }: LeadFiltersProps) {
           <SlidersHorizontal size={13} />
           Filters
           {activeCount > 0 && (
-            <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-600 px-1.5 text-[11px] font-bold text-white">
+            <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary-600 px-1.5 text-[11px] font-bold text-white">
               {activeCount}
             </span>
           )}
@@ -96,7 +96,7 @@ export function LeadFilters({ filters, onChange }: LeadFiltersProps) {
           <button
             type="button"
             onClick={clearAll}
-            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
+            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
           >
             <X size={13} />
             Clear
@@ -183,9 +183,9 @@ export function LeadFilters({ filters, onChange }: LeadFiltersProps) {
               key={p.key}
               type="button"
               onClick={() => update(isActive ? { dateFrom: undefined, dateTo: undefined } : { dateFrom: range.from, dateTo: range.to })}
-              className={`rounded-full px-2.5 py-1 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 ${
+              className={`rounded-full px-2.5 py-1 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 ${
                 isActive
-                  ? "bg-blue-600 text-white"
+                  ? "bg-primary-600 text-white"
                   : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
               }`}
             >

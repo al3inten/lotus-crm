@@ -210,7 +210,11 @@ export async function listEnquiries(query: LeadListQuery, branchFilter?: { branc
   if (query.dateFrom || query.dateTo) {
     where.createdAt = {
       ...(query.dateFrom ? { gte: new Date(query.dateFrom) } : {}),
-      ...(query.dateTo ? { lte: new Date(query.dateTo) } : {}),
+      // dateTo arrives as a bare "YYYY-MM-DD" which parses to that day's midnight —
+      // an `lte` bound there would exclude nearly everything created later that same
+      // day. Use an exclusive bound at the start of the following day instead so the
+      // whole end date is included.
+      ...(query.dateTo ? { lt: new Date(new Date(query.dateTo).getTime() + 24 * 60 * 60 * 1000) } : {}),
     };
   }
 

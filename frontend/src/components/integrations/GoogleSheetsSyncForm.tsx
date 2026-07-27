@@ -27,7 +27,7 @@ interface SyncResult {
 }
 
 const TONE_CLASSES = {
-  blue: "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300",
+  blue: "bg-primary-50 text-primary-700 dark:bg-primary-500/10 dark:text-primary-300",
   green: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300",
   amber: "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300",
   red: "bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300",

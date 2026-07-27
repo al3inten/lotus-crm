@@ -24,33 +24,33 @@ const statusToPathIndex = (status: EnquiryStatus) =>
 type NodeTone = "blue" | "green" | "red" | "muted";
 
 const CIRCLE: Record<NodeTone, string> = {
-  blue: "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md shadow-blue-500/25",
-  green: "bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/25",
-  red: "bg-gradient-to-br from-red-500 to-rose-600 text-white shadow-md shadow-red-500/25",
+  blue: "bg-primary-600 text-white shadow-md shadow-primary-500/25",
+  green: "bg-teal-600 text-white shadow-md shadow-emerald-500/25",
+  red: "bg-rose-600 text-white shadow-md shadow-red-500/25",
   muted: "border-2 border-slate-200 bg-white text-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-600",
 };
 const RING: Record<NodeTone, string> = {
-  blue: "ring-4 ring-blue-600/20 dark:ring-blue-500/25",
+  blue: "ring-4 ring-primary-600/20 dark:ring-primary-500/25",
   green: "ring-4 ring-emerald-600/20 dark:ring-emerald-500/25",
   red: "ring-4 ring-red-600/20 dark:ring-red-500/25",
   muted: "",
 };
 const GLOW: Record<NodeTone, string> = {
-  blue: "bg-blue-500/20",
+  blue: "bg-primary-500/20",
   green: "bg-emerald-500/20",
   red: "bg-red-500/20",
   muted: "bg-transparent",
 };
-const CHECK: Record<NodeTone, string> = { blue: "bg-blue-600", green: "bg-emerald-600", red: "bg-red-600", muted: "bg-slate-400" };
+const CHECK: Record<NodeTone, string> = { blue: "bg-primary-600", green: "bg-emerald-600", red: "bg-red-600", muted: "bg-slate-400" };
 // Soft "cloud" backdrop behind each node — colour matches the node's tone.
 const CLOUD: Record<NodeTone, string> = {
-  blue: "bg-blue-400/20 dark:bg-blue-500/20",
+  blue: "bg-primary-400/20 dark:bg-primary-500/20",
   green: "bg-emerald-400/20 dark:bg-emerald-500/20",
   red: "bg-red-400/20 dark:bg-red-500/20",
   muted: "",
 };
 const NUMBER_COLOR: Record<NodeTone, string> = {
-  blue: "text-blue-700 dark:text-blue-400",
+  blue: "text-primary-700 dark:text-primary-400",
   green: "text-emerald-700 dark:text-emerald-400",
   red: "text-red-700 dark:text-red-400",
   muted: "text-slate-500 dark:text-slate-400",
@@ -62,13 +62,13 @@ const LABEL: Record<NodeTone, string> = {
   muted: "text-slate-500 font-medium dark:text-slate-400",
 };
 const PILL: Record<NodeTone, string> = {
-  blue: "bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-200",
+  blue: "bg-primary-100 text-primary-800 dark:bg-primary-500/20 dark:text-primary-200",
   green: "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-200",
   red: "bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-200",
   muted: "bg-slate-100/70 text-slate-400 dark:bg-slate-800/50 dark:text-slate-500",
 };
 const CONNECTOR: Record<NodeTone, string> = {
-  blue: "bg-blue-500 shadow-sm shadow-blue-500/20",
+  blue: "bg-primary-500 shadow-sm shadow-primary-500/20",
   green: "bg-emerald-500 shadow-sm shadow-emerald-500/20",
   red: "bg-red-500 shadow-sm shadow-red-500/20",
   muted: "bg-slate-200 dark:bg-slate-700",
@@ -212,7 +212,7 @@ export function PipelineStepper({
   return (
     <div className="flex flex-col">
       {canChangeFromPipeline && (
-        <p className="mb-2 flex items-center gap-1.5 text-[11px] font-medium text-blue-600 dark:text-blue-400">
+        <p className="mb-2 flex items-center gap-1.5 text-[11px] font-medium text-primary-600 dark:text-primary-400">
           <MousePointerClick size={12} />
           Click a highlighted stage to update the status
         </p>
@@ -352,8 +352,8 @@ export function PipelineStepper({
           </div>
         </div>
         {/* Fade hints signal there's more of the stepper to scroll to — otherwise it reads as "cut off". */}
-        <div className="pointer-events-none absolute left-0 top-0 h-full w-6 bg-gradient-to-r from-white to-transparent dark:from-slate-900" />
-        <div className="pointer-events-none absolute right-0 top-0 h-full w-6 bg-gradient-to-l from-white to-transparent dark:from-slate-900" />
+        <div className="pointer-events-none absolute left-0 top-0 h-full w-6 bg-white dark:bg-slate-900" />
+        <div className="pointer-events-none absolute right-0 top-0 h-full w-6 bg-white dark:bg-slate-900" />
       </div>
 
       <Modal isOpen={!!detailsStage} onClose={() => setDetailsStage(null)} title={detailsStage?.label} maxWidth="max-w-sm">

@@ -151,7 +151,7 @@ export function LeadActivityTab({
                 aria-selected={active}
                 onClick={() => setActiveSubTab(tab)}
                 className={clsx(
-                  "relative flex shrink-0 items-center gap-1.5 rounded-t-lg px-3.5 py-2.5 text-[13px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-indigo-500",
+                  "relative flex shrink-0 items-center gap-1.5 rounded-t-lg px-3.5 py-2.5 text-[13px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary-500",
                   active
                     ? "text-slate-900 dark:text-white"
                     : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
@@ -160,7 +160,7 @@ export function LeadActivityTab({
                 {active && (
                   <motion.span
                     layoutId="activitySubTab"
-                    className="absolute inset-x-0 bottom-0 h-[2px] bg-indigo-500"
+                    className="absolute inset-x-0 bottom-0 h-[2px] bg-primary-500"
                     transition={{ type: "spring", stiffness: 500, damping: 38 }}
                   />
                 )}
@@ -344,7 +344,7 @@ export function LeadActivityTab({
                     <button
                       type="button"
                       onClick={() => setShowTimelineModal(true)}
-                      className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-blue-400"
+                      className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-slate-400 transition-colors hover:bg-slate-100 hover:text-primary-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-primary-400"
                     >
                       <Eye size={12} />
                       View full timeline

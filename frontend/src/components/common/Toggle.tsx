@@ -24,8 +24,8 @@ export function Toggle({ checked, onChange, label, description, disabled }: Togg
         disabled={disabled}
         onClick={() => onChange(!checked)}
         className={clsx(
-          "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1",
-          checked ? "bg-blue-600" : "bg-gray-300"
+          "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1",
+          checked ? "bg-primary-600" : "bg-gray-300"
         )}
       >
         <span

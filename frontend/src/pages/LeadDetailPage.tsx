@@ -269,7 +269,7 @@ export function LeadDetailPage() {
           <button
             type="button"
             onClick={() => setShowNewEnquiry(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-4 py-2 text-[13px] font-medium text-white shadow-sm transition-colors hover:bg-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 active:scale-[0.98] dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-4 py-2 text-[13px] font-medium text-white shadow-sm transition-colors hover:bg-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500 active:scale-[0.98] dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
           >
             <Plus size={14} />
             New enquiry

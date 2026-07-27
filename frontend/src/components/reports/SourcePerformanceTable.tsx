@@ -7,40 +7,41 @@ import type { SourcePerformanceRow } from "../../api/reports.api";
  */
 export function SourcePerformanceTable({ rows }: { rows: SourcePerformanceRow[] }) {
   if (rows.length === 0) {
-    return <p className="text-sm text-gray-400">No data in this range.</p>;
+    return <p className="text-sm text-gray-400 dark:text-slate-500">No data in this range.</p>;
   }
 
   const maxTotal = Math.max(1, ...rows.map((r) => r.total));
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+    <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-slate-800">
       <table className="w-full text-sm">
-        <thead className="bg-gray-50 text-left text-xs font-medium text-gray-500">
+        <thead className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:bg-slate-800/50 dark:text-slate-400">
           <tr>
-            <th className="px-4 py-2">Source</th>
-            <th className="px-4 py-2">Leads</th>
-            <th className="px-4 py-2 w-1/3" aria-hidden />
-            <th className="px-4 py-2">Converted</th>
-            <th className="px-4 py-2">Conversion Rate</th>
+            <th className="px-4 py-2.5">Source</th>
+            <th className="px-4 py-2.5">Leads</th>
+            <th className="px-4 py-2.5 w-1/3" aria-hidden />
+            <th className="px-4 py-2.5">Converted</th>
+            <th className="px-4 py-2.5">Conversion Rate</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-100">
+        <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
           {rows.map((row) => (
-            <tr key={row.source}>
-              <td className="px-4 py-2 font-medium text-gray-900">{row.source.replaceAll("_", " ")}</td>
-              <td className="px-4 py-2 tabular-nums text-gray-700">{row.total.toLocaleString()}</td>
-              <td className="px-4 py-2">
-                <div
-                  className="h-3"
-                  style={{
-                    width: `${(row.total / maxTotal) * 100}%`,
-                    backgroundColor: VIZ.series1,
-                    borderRadius: "0 4px 4px 0",
-                  }}
-                />
+            <tr key={row.source} className="transition-colors hover:bg-primary-50/60 dark:hover:bg-primary-500/[0.06]">
+              <td className="px-4 py-2.5 font-medium text-gray-900 dark:text-slate-100">{row.source.replaceAll("_", " ")}</td>
+              <td className="px-4 py-2.5 tabular-nums text-gray-700 dark:text-slate-300">{row.total.toLocaleString()}</td>
+              <td className="px-4 py-2.5">
+                <div className="h-3 rounded-r bg-gray-100 dark:bg-slate-800/60">
+                  <div
+                    className="h-3 rounded-r transition-[width] duration-300"
+                    style={{
+                      width: `${(row.total / maxTotal) * 100}%`,
+                      backgroundColor: VIZ.series1,
+                    }}
+                  />
+                </div>
               </td>
-              <td className="px-4 py-2 tabular-nums text-gray-700">{row.converted.toLocaleString()}</td>
-              <td className="px-4 py-2 tabular-nums text-gray-700">{row.conversionRate}%</td>
+              <td className="px-4 py-2.5 tabular-nums text-gray-700 dark:text-slate-300">{row.converted.toLocaleString()}</td>
+              <td className="px-4 py-2.5 tabular-nums font-semibold text-gray-700 dark:text-slate-200">{row.conversionRate}%</td>
             </tr>
           ))}
         </tbody>

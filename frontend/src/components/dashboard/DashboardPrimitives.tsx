@@ -57,7 +57,7 @@ export function SectionHeader({ title, to, cta }: { title: string; to?: string; 
       {to && cta && (
         <Link
           to={to}
-          className="group inline-flex items-center gap-0.5 rounded-md text-[12px] font-medium text-slate-500 transition-colors hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 dark:text-slate-400 dark:hover:text-slate-100"
+          className="group inline-flex items-center gap-0.5 rounded-md text-[12px] font-medium text-slate-500 transition-colors hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500 dark:text-slate-400 dark:hover:text-slate-100"
         >
           {cta}
           <ChevronRight

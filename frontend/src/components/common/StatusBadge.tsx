@@ -2,19 +2,22 @@ import clsx from "clsx";
 import { STATUS_LABELS } from "../../types";
 import type { EnquiryStatus } from "../../types";
 
+/** Single primary-blue family for every pipeline stage — progression reads via
+ * increasing intensity (NEW lightest, DELIVERED strongest) instead of switching hues.
+ * CLOSED/LOST stays neutral gray since it's an exit from the pipeline, not a stage in it. */
 const STATUS_STYLES: Record<EnquiryStatus, string> = {
-  NEW: "bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300",
-  UNDER_FOLLOW_UP: "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300",
-  APPOINTMENT_FIXED: "bg-purple-100 text-purple-800 dark:bg-purple-500/15 dark:text-purple-300",
-  TEST_DRIVE: "bg-teal-100 text-teal-800 dark:bg-teal-500/15 dark:text-teal-300",
-  BOOKED: "bg-lime-100 text-lime-800 dark:bg-lime-500/15 dark:text-lime-300",
-  RETAIL_DONE: "bg-green-200 text-green-900 dark:bg-green-500/15 dark:text-green-300",
-  RTO_DONE: "bg-cyan-100 text-cyan-800 dark:bg-cyan-500/15 dark:text-cyan-300",
-  DELIVERED: "bg-emerald-200 text-emerald-900 dark:bg-emerald-500/15 dark:text-emerald-300",
-  CLOSED: "bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300",
+  NEW: "bg-primary-50 text-primary-600 dark:bg-primary-500/10 dark:text-primary-400",
+  UNDER_FOLLOW_UP: "bg-primary-100 text-primary-700 dark:bg-primary-500/15 dark:text-primary-300",
+  APPOINTMENT_FIXED: "bg-primary-200 text-primary-800 dark:bg-primary-500/25 dark:text-primary-200",
+  TEST_DRIVE: "bg-primary-300 text-primary-900 dark:bg-primary-500/35 dark:text-primary-100",
+  BOOKED: "bg-primary-400 text-white dark:bg-primary-500/50 dark:text-white",
+  RETAIL_DONE: "bg-primary-500 text-white dark:bg-primary-500/70 dark:text-white",
+  RTO_DONE: "bg-primary-600 text-white dark:bg-primary-500 dark:text-white",
+  DELIVERED: "bg-primary-700 text-white dark:bg-primary-600 dark:text-white",
+  CLOSED: "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300",
 };
 
-const WON_STYLE = "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300";
+const WON_STYLE = "bg-primary-700 text-white dark:bg-primary-600 dark:text-white";
 
 interface StatusBadgeProps {
   status: EnquiryStatus;

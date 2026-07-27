@@ -18,7 +18,7 @@ export function LeadCard({ enquiry, onOpen }: { enquiry: Enquiry; onOpen: (leadI
       onClick={() => onOpen(enquiry.leadId)}
       onKeyDown={(e) => onOpenKeyDown(e, enquiry.leadId, onOpen)}
       className={clsx(
-        "flex h-full cursor-pointer flex-col rounded-2xl border-y border-r border-l-4 border-slate-200 bg-white p-4 transition-all hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md hover:shadow-slate-900/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 active:scale-[0.99] dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-blue-500/40",
+        "flex h-full cursor-pointer flex-col rounded-2xl border-y border-r border-l-4 border-slate-200 bg-white p-4 transition-all hover:-translate-y-0.5 hover:border-primary-300 hover:shadow-md hover:shadow-slate-900/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 active:scale-[0.99] dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-primary-500/40",
         enquiry.enquiryCategory && CATEGORY_ACCENT[enquiry.enquiryCategory]
       )}
     >

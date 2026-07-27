@@ -33,7 +33,7 @@ function ActionRequiredListImpl({ data }: { data: ReturnType<typeof useReminders
             <Link
               key={enquiry.id}
               to={`/leads/${enquiry.leadId}`}
-              className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-slate-50/60 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-indigo-500 dark:hover:bg-white/[0.02]"
+              className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-slate-50/60 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary-500 dark:hover:bg-white/[0.02]"
             >
               <Avatar name={enquiry.lead.name} size="sm" />
               <div className="min-w-0 flex-1">

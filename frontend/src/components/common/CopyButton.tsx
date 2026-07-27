@@ -24,7 +24,7 @@ export function CopyButton({ value, label, className }: { value?: string | null;
       onClick={copy}
       aria-label={copied ? "Copied" : (label ?? "Copy")}
       className={clsx(
-        "inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:hover:bg-slate-800 dark:hover:text-slate-200",
+        "inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 dark:hover:bg-slate-800 dark:hover:text-slate-200",
         className
       )}
     >

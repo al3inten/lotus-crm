@@ -26,12 +26,13 @@ export function BottomNav({ onMore }: { onMore: () => void }) {
           <NavLink
             key={item.to}
             to={item.to}
+            end
             className={({ isActive }) =>
               clsx(
                 itemClass,
                 "transition-colors",
                 isActive
-                  ? "text-blue-600 dark:text-blue-400"
+                  ? "text-primary-600 dark:text-primary-400"
                   : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
               )
             }
@@ -41,7 +42,7 @@ export function BottomNav({ onMore }: { onMore: () => void }) {
                 <span
                   className={clsx(
                     "flex h-8 w-14 items-center justify-center rounded-full transition-colors",
-                    isActive && "bg-blue-50 dark:bg-blue-500/10"
+                    isActive && "bg-primary-50 dark:bg-primary-500/10"
                   )}
                 >
                   <item.icon size={20} />

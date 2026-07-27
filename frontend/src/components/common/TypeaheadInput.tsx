@@ -59,7 +59,7 @@ export const TypeaheadInput = forwardRef<HTMLInputElement, TypeaheadInputProps>(
           onFocus={() => setOpen(true)}
           onChange={(e) => onChange(e.target.value)}
           className={clsx(
-            "w-full rounded-lg border px-3 py-2.5 text-sm shadow-sm transition-all bg-white text-slate-900 dark:bg-slate-950 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:cursor-not-allowed disabled:opacity-60",
+            "w-full rounded-lg border px-3 py-2.5 text-sm shadow-sm transition-all bg-white text-slate-900 dark:bg-slate-950 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/50 disabled:cursor-not-allowed disabled:opacity-60",
             error ? "border-red-400 dark:border-red-500/50" : "border-slate-300 dark:border-slate-700"
           )}
         />
@@ -75,7 +75,7 @@ export const TypeaheadInput = forwardRef<HTMLInputElement, TypeaheadInputProps>(
                   onChange(opt.value);
                   setOpen(false);
                 }}
-                className="flex w-full items-center justify-between gap-2 px-2.5 py-1.5 text-left text-slate-700 transition-colors hover:bg-blue-50 hover:text-blue-700 dark:text-slate-300 dark:hover:bg-blue-500/15 dark:hover:text-blue-300"
+                className="flex w-full items-center justify-between gap-2 px-2.5 py-1.5 text-left text-slate-700 transition-colors hover:bg-primary-50 hover:text-primary-700 dark:text-slate-300 dark:hover:bg-primary-500/15 dark:hover:text-primary-300"
               >
                 <span>{opt.label}</span>
                 {opt.hint && <span className="text-[10px] text-slate-400">{opt.hint}</span>}

@@ -31,7 +31,7 @@ export function StatTile({
   deltaLabel,
   upIsGood = true,
   icon,
-  iconClassName = "bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 bg-gradient-to-br from-blue-500/20 to-blue-500/5",
+  iconClassName = "bg-primary-500/10 text-primary-600 dark:bg-primary-500/20 dark:text-primary-400",
   sparkline,
   sparkColor = VIZ.series1,
 }: StatTileProps) {
@@ -44,8 +44,8 @@ export function StatTile({
         "group relative overflow-hidden rounded-2xl p-5 transition-all duration-300 glass-panel",
         "shadow-[0_1px_2px_rgb(0,0,0,0.04),0_8px_24px_-12px_rgb(0,0,0,0.12)]",
         "dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)]",
-        "hover:-translate-y-1 hover:border-blue-200/50 hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)]",
-        "dark:hover:border-blue-500/30 dark:hover:shadow-[0_20px_40px_rgb(0,0,0,0.4)]"
+        "hover:-translate-y-1 hover:border-primary-200/50 hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)]",
+        "dark:hover:border-primary-500/30 dark:hover:shadow-[0_20px_40px_rgb(0,0,0,0.4)]"
       )}
     >
       <div className="flex items-start justify-between gap-3">

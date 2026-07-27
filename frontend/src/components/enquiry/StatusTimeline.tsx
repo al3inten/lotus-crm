@@ -10,7 +10,7 @@ export function StatusTimeline({ history }: { history: EnquiryStatusHistoryEntry
     <ol className="flex flex-col gap-3">
       {history.map((entry) => (
         <li key={entry.id} className="flex items-start gap-3 text-sm">
-          <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-blue-500" />
+          <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary-500" />
           <div>
             <div className="flex items-center gap-2">
               <StatusBadge status={entry.toStatus} />

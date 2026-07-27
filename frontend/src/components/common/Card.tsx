@@ -20,7 +20,7 @@ export function Card({ interactive, padded = true, glow = true, className, child
         "dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)]",
         padded && "p-6",
         interactive &&
-          "cursor-pointer hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-1 hover:border-blue-200/50 dark:hover:border-blue-500/30 dark:hover:shadow-[0_20px_40px_rgb(0,0,0,0.4)]",
+          "cursor-pointer hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-1 hover:border-primary-200/50 dark:hover:border-primary-500/30 dark:hover:shadow-[0_20px_40px_rgb(0,0,0,0.4)]",
         className
       )}
       {...props}
@@ -29,7 +29,7 @@ export function Card({ interactive, padded = true, glow = true, className, child
           rather than the whole card, so dropdowns/popovers in children aren't cut off. */}
       {glow && (
         <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
-          <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-blue-500/10 blur-[40px] dark:bg-blue-500/20" />
+          <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-primary-500/10 blur-[40px] dark:bg-primary-500/20" />
         </div>
       )}
 
@@ -45,12 +45,12 @@ interface CardHeaderProps {
   icon?: ReactNode;
   title: string;
   subtitle?: string;
-  /** Tailwind classes for the icon badge, e.g. "bg-blue-50 text-blue-600". */
+  /** Tailwind classes for the icon badge, e.g. "bg-primary-50 text-primary-600". */
   iconClassName?: string;
   actions?: ReactNode;
 }
 
-export function CardHeader({ icon, title, subtitle, iconClassName = "bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400", actions }: CardHeaderProps) {
+export function CardHeader({ icon, title, subtitle, iconClassName = "bg-primary-50 text-primary-600 dark:bg-primary-500/20 dark:text-primary-400", actions }: CardHeaderProps) {
   return (
     <div className="mb-5 flex items-start justify-between gap-4">
       <div className="flex items-center gap-3">

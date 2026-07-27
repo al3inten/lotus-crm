@@ -22,7 +22,7 @@ export function ConversationList({
             onClick={() => onSelect(c.id)}
             className={clsx(
               "w-full rounded-md border p-3 text-left text-sm",
-              selectedId === c.id ? "border-blue-400 bg-blue-50" : "border-gray-200 bg-white hover:bg-gray-50"
+              selectedId === c.id ? "border-primary-400 bg-primary-50" : "border-gray-200 bg-white hover:bg-gray-50"
             )}
           >
             <div className="flex items-center justify-between">

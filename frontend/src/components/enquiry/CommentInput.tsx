@@ -59,7 +59,7 @@ export function CommentInput({ enquiryId }: { enquiryId: string }) {
         value={body}
         onChange={(e) => setBody(e.target.value)}
         placeholder="Add a comment or note..."
-        className="block w-full resize-none rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500"
+        className="block w-full resize-none rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500"
       />
 
       <div className="flex items-center justify-between">

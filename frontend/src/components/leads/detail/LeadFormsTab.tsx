@@ -75,7 +75,7 @@ export function LeadFormsTab({
                 aria-selected={active}
                 onClick={() => setActiveSubTab(tab)}
                 className={clsx(
-                  "relative flex shrink-0 items-center gap-1.5 rounded-t-lg px-3.5 py-2.5 text-[13px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-indigo-500",
+                  "relative flex shrink-0 items-center gap-1.5 rounded-t-lg px-3.5 py-2.5 text-[13px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary-500",
                   active
                     ? "text-slate-900 dark:text-white"
                     : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
@@ -84,7 +84,7 @@ export function LeadFormsTab({
                 {active && (
                   <motion.span
                     layoutId="formsSubTab"
-                    className="absolute inset-x-0 bottom-0 h-[2px] bg-indigo-500"
+                    className="absolute inset-x-0 bottom-0 h-[2px] bg-primary-500"
                     transition={{ type: "spring", stiffness: 500, damping: 38 }}
                   />
                 )}

@@ -35,7 +35,7 @@ const SettingsPage = lazy(() => import("../pages/SettingsPage").then(named("Sett
 function PageFallback() {
   return (
     <div className="flex min-h-[60vh] w-full items-center justify-center" role="status" aria-label="Loading">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-300 border-t-blue-600 dark:border-slate-700 dark:border-t-blue-500" />
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-300 border-t-primary-600 dark:border-slate-700 dark:border-t-primary-500" />
     </div>
   );
 }

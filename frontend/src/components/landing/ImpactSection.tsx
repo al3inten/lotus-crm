@@ -6,7 +6,7 @@ export function ImpactSection() {
     <section id="impact" className="relative scroll-mt-24 bg-white py-24 dark:bg-slate-950">
       <div className="mx-auto max-w-7xl px-6">
         <Reveal className="mx-auto max-w-2xl text-center">
-          <span className="text-sm font-semibold uppercase tracking-widest text-blue-600 dark:text-blue-400">Built for scale</span>
+          <span className="text-sm font-semibold uppercase tracking-widest text-primary-600 dark:text-primary-400">Built for scale</span>
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl dark:text-white">Numbers that move showrooms</h2>
         </Reveal>
 
@@ -26,7 +26,7 @@ export function ImpactSection() {
               { icon: <Sparkles size={18} />, title: "AI that follows up", desc: "Voice and chat agents keep momentum going around the clock." },
             ].map((v) => (
               <div key={v.title} className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-white/10 dark:bg-white/[0.03]">
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary-500/10 text-primary-600 dark:bg-primary-500/15 dark:text-primary-300">
                   {v.icon}
                 </span>
                 <h3 className="mt-4 font-semibold text-slate-900 dark:text-white">{v.title}</h3>

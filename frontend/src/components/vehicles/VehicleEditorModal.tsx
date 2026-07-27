@@ -150,7 +150,7 @@ export function VehicleEditorModal({ vehicle, onClose }: VehicleEditorModalProps
                 placeholder="e.g. Creta"
                 value={modelName}
                 onChange={(e) => setModelName(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
               />
             </div>
             {isEditing && (
@@ -160,7 +160,7 @@ export function VehicleEditorModal({ vehicle, onClose }: VehicleEditorModalProps
                     type="checkbox"
                     checked={isActive}
                     onChange={(e) => setIsActive(e.target.checked)}
-                    className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600 dark:border-slate-600 dark:bg-slate-900"
+                    className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-600 dark:border-slate-600 dark:bg-slate-900"
                   />
                   Model is Active
                 </label>
@@ -200,7 +200,7 @@ export function VehicleEditorModal({ vehicle, onClose }: VehicleEditorModalProps
                     placeholder="Variant Name (e.g. 1.5 MPI MT EX)"
                     value={variant.name}
                     onChange={(e) => handleUpdateVariant(index, "name", e.target.value)}
-                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                   />
                 </div>
                 
@@ -208,7 +208,7 @@ export function VehicleEditorModal({ vehicle, onClose }: VehicleEditorModalProps
                   <select
                     value={variant.transmissionType}
                     onChange={(e) => handleUpdateVariant(index, "transmissionType", e.target.value)}
-                    className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                    className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs focus:border-primary-500 focus:ring-1 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                   >
                     <option value="MANUAL">Manual</option>
                     <option value="AUTOMATIC">Automatic</option>
@@ -217,7 +217,7 @@ export function VehicleEditorModal({ vehicle, onClose }: VehicleEditorModalProps
                   <select
                     value={variant.fuelType}
                     onChange={(e) => handleUpdateVariant(index, "fuelType", e.target.value)}
-                    className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                    className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs focus:border-primary-500 focus:ring-1 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                   >
                     <option value="PETROL">Petrol</option>
                     <option value="DIESEL">Diesel</option>
@@ -231,7 +231,7 @@ export function VehicleEditorModal({ vehicle, onClose }: VehicleEditorModalProps
                         type="checkbox"
                         checked={variant.isActive}
                         onChange={(e) => handleUpdateVariant(index, "isActive", e.target.checked)}
-                        className="h-3.5 w-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-600 dark:border-slate-600 dark:bg-slate-900"
+                        className="h-3.5 w-3.5 rounded border-slate-300 text-primary-600 focus:ring-primary-600 dark:border-slate-600 dark:bg-slate-900"
                       />
                       Active
                     </label>

@@ -25,7 +25,7 @@ function UpcomingFollowUpsCardImpl({ data, isLoading }: { data: ReturnType<typeo
         </div>
         <Link
           to="/follow-ups"
-          className="group inline-flex items-center gap-0.5 rounded-md text-[12px] font-medium text-slate-500 transition-colors hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 dark:text-slate-400 dark:hover:text-slate-100"
+          className="group inline-flex items-center gap-0.5 rounded-md text-[12px] font-medium text-slate-500 transition-colors hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500 dark:text-slate-400 dark:hover:text-slate-100"
         >
           All follow-ups
           <ChevronRight size={13} className="opacity-60 transition-transform duration-200 group-hover:translate-x-0.5" />

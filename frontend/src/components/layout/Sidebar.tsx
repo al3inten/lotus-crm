@@ -1,13 +1,17 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { NavLink } from "react-router-dom";
 import clsx from "clsx";
 import {
   PanelLeftClose,
   PanelLeftOpen,
   LogOut,
+  Camera,
+  Coffee,
+  Loader2,
 } from "lucide-react";
 import { useNavGroups } from "./navConfig";
 import { useAuth } from "../../context/AuthContext";
+import { useUploadAvatar, useSetBreak } from "../../hooks/useUsers";
 import { Avatar } from "../common/Avatar";
 import { LogoutConfirmModal } from "../common/LogoutConfirmModal";
 
@@ -20,7 +24,25 @@ export function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }: SidebarProps)
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const groups = useNavGroups();
-  const { user, logout } = useAuth();
+  const { user, logout, patchUser } = useAuth();
+
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const uploadAvatar = useUploadAvatar();
+  const setBreak = useSetBreak();
+
+  const onPickAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !user) return;
+    const updated = await uploadAvatar.mutateAsync({ userId: user.id, file });
+    patchUser({ avatarUrl: updated.avatarUrl });
+  };
+
+  const toggleBreak = async () => {
+    if (!user) return;
+    const updated = await setBreak.mutateAsync(!user.onBreak);
+    patchUser({ onBreak: updated.onBreak, isAvailableForRouting: updated.isAvailableForRouting });
+  };
 
   const handleLogoutConfirm = () => {
     setIsLogoutModalOpen(false);
@@ -50,7 +72,7 @@ export function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }: SidebarProps)
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
           aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className="absolute -right-3.5 top-5 z-50 hidden h-7 w-7 items-center justify-center rounded-full border border-slate-600 bg-slate-800 text-slate-300 shadow-sm transition-all hover:border-blue-400 hover:text-blue-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 md:flex"
+          className="absolute -right-3.5 top-5 z-50 hidden h-7 w-7 items-center justify-center rounded-full border border-slate-600 bg-slate-800 text-slate-300 shadow-sm transition-all hover:border-primary-400 hover:text-primary-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 md:flex"
         >
           {isCollapsed ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}
         </button>
@@ -89,14 +111,15 @@ export function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }: SidebarProps)
                   <NavLink
                     key={item.to}
                     to={item.to}
+                    end
                     title={isCollapsed ? item.label : undefined}
                     onClick={() => setIsMobileMenuOpen(false)}
                     className={({ isActive }) =>
                       clsx(
-                        "group relative flex items-center rounded-md px-2 py-1.5 text-[13px] font-medium transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40",
+                        "group relative flex items-center rounded-md px-2 py-1.5 text-[13px] font-medium transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40",
                         isCollapsed ? "justify-center" : "gap-3",
                         isActive
-                          ? "bg-blue-500/20 text-blue-300"
+                          ? "bg-primary-500/20 text-primary-300"
                           : "text-slate-300 hover:bg-slate-800/80 hover:text-white"
                       )
                     }
@@ -105,13 +128,13 @@ export function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }: SidebarProps)
                       <>
                         {/* Zoho style active indicator rail on the left */}
                         {isActive && (
-                          <div className="absolute left-0 top-0 bottom-0 w-[3px] rounded-r-full bg-blue-400" />
+                          <div className="absolute left-0 top-0 bottom-0 w-[3px] rounded-r-full bg-primary-400" />
                         )}
                         <span
                           className={clsx(
                             "flex h-6 w-6 shrink-0 items-center justify-center transition-colors duration-150",
                             isActive
-                              ? "text-blue-300"
+                              ? "text-primary-300"
                               : "text-slate-400 group-hover:text-slate-200"
                           )}
                         >
@@ -131,9 +154,32 @@ export function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }: SidebarProps)
         <div className="shrink-0 border-t border-slate-700/50 bg-slate-900/90 p-3">
           {isCollapsed ? (
             <div className="flex flex-col items-center gap-3">
-              <div title={user ? `${user.name} · ${user.role.replaceAll("_", " ")}` : undefined}>
-                <Avatar name={user?.name ?? "?"} size="sm" />
-              </div>
+              <span className="relative" title={user ? `${user.name} · ${user.role.replaceAll("_", " ")}` : undefined}>
+                <Avatar name={user?.name ?? "?"} size="sm" src={user?.avatarUrl} />
+                <button
+                  type="button"
+                  onClick={() => avatarInputRef.current?.click()}
+                  disabled={uploadAvatar.isPending}
+                  title="Change photo"
+                  className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-slate-900 bg-white text-slate-900 transition-colors hover:bg-slate-200 disabled:opacity-60"
+                >
+                  {uploadAvatar.isPending ? <Loader2 size={8} className="animate-spin" /> : <Camera size={8} />}
+                </button>
+              </span>
+              <button
+                type="button"
+                onClick={toggleBreak}
+                disabled={setBreak.isPending}
+                title={user?.onBreak ? "End break — I'm back" : "Go on break"}
+                className={clsx(
+                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors disabled:opacity-60",
+                  user?.onBreak
+                    ? "text-emerald-400 hover:bg-emerald-500/10"
+                    : "text-amber-400 hover:bg-amber-500/10"
+                )}
+              >
+                {setBreak.isPending ? <Loader2 size={16} className="animate-spin" /> : <Coffee size={16} />}
+              </button>
               <button
                 type="button"
                 onClick={() => setIsLogoutModalOpen(true)}
@@ -145,29 +191,70 @@ export function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }: SidebarProps)
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-3">
-              <Avatar name={user?.name ?? "?"} size="sm" />
-              <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-                <span className="truncate text-[13px] font-semibold leading-tight text-white">
-                  {user?.name ?? "Guest"}
+            <div className="flex flex-col gap-2.5">
+              <div className="flex items-center gap-3">
+                <span className="relative">
+                  <Avatar name={user?.name ?? "?"} size="sm" src={user?.avatarUrl} />
+                  <button
+                    type="button"
+                    onClick={() => avatarInputRef.current?.click()}
+                    disabled={uploadAvatar.isPending}
+                    title="Change photo"
+                    className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-slate-900 bg-white text-slate-900 transition-colors hover:bg-slate-200 disabled:opacity-60"
+                  >
+                    {uploadAvatar.isPending ? <Loader2 size={8} className="animate-spin" /> : <Camera size={8} />}
+                  </button>
                 </span>
-                {user?.role && (
-                  <span className="truncate text-[11px] text-slate-400">
-                    {user.role.replaceAll("_", " ")}
+                <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+                  <span className="truncate text-[13px] font-semibold leading-tight text-white">
+                    {user?.name ?? "Guest"}
                   </span>
-                )}
+                  {user?.role && (
+                    <span className="truncate text-[11px] text-slate-400">
+                      {user.role.replaceAll("_", " ")}
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsLogoutModalOpen(true)}
+                  aria-label="Log out"
+                  title="Log out"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-rose-500/20 hover:text-rose-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/40"
+                >
+                  <LogOut size={16} />
+                </button>
               </div>
+
               <button
                 type="button"
-                onClick={() => setIsLogoutModalOpen(true)}
-                aria-label="Log out"
-                title="Log out"
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-rose-500/20 hover:text-rose-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/40"
+                onClick={toggleBreak}
+                disabled={setBreak.isPending}
+                className={clsx(
+                  "flex w-full items-center justify-between gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors disabled:opacity-60",
+                  user?.onBreak
+                    ? "text-emerald-400 hover:bg-emerald-500/10"
+                    : "text-amber-400 hover:bg-amber-500/10"
+                )}
               >
-                <LogOut size={16} />
+                <span className="flex items-center gap-2">
+                  {setBreak.isPending ? <Loader2 size={14} className="animate-spin" /> : <Coffee size={14} />}
+                  {user?.onBreak ? "End break — I'm back" : "Go on break"}
+                </span>
+                <span
+                  className={clsx(
+                    "rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+                    user?.onBreak
+                      ? "bg-amber-500/20 text-amber-300"
+                      : "bg-emerald-500/20 text-emerald-300"
+                  )}
+                >
+                  {user?.onBreak ? "On break" : "Working"}
+                </span>
               </button>
             </div>
           )}
+          <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={onPickAvatar} />
         </div>
       </aside>
 

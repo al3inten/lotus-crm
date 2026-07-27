@@ -15,7 +15,7 @@ export function PipelineSection() {
     <section id="pipeline" className="relative scroll-mt-24 border-y border-slate-200 bg-slate-50 py-24 dark:border-white/5 dark:bg-slate-900/40">
       <div className="mx-auto max-w-7xl px-6">
         <Reveal className="mx-auto max-w-2xl text-center">
-          <span className="text-sm font-semibold uppercase tracking-widest text-blue-600 dark:text-blue-400">The journey</span>
+          <span className="text-sm font-semibold uppercase tracking-widest text-primary-600 dark:text-primary-400">The journey</span>
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl dark:text-white">
             From enquiry to key handover
           </h2>
@@ -27,14 +27,14 @@ export function PipelineSection() {
 
         <div className="relative mt-16">
           {/* connecting line */}
-          <div className="absolute left-0 right-0 top-7 hidden h-px bg-gradient-to-r from-transparent via-slate-300 to-transparent lg:block dark:via-white/15" />
+          <div className="absolute left-0 right-0 top-7 hidden h-px bg-slate-300 lg:block dark:bg-white/15" />
           <div className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:grid-cols-6">
             {STEPS.map((s, i) => (
               <Reveal key={s.title} delay={i * 0.07} className="relative text-center">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-200 bg-white text-blue-600 dark:border-white/10 dark:bg-slate-950 dark:text-blue-300">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-200 bg-white text-primary-600 dark:border-white/10 dark:bg-slate-950 dark:text-primary-300">
                   {s.icon}
                 </div>
-                <div className="mt-2 text-xs font-semibold uppercase tracking-wider text-blue-600/80 dark:text-blue-400/80">
+                <div className="mt-2 text-xs font-semibold uppercase tracking-wider text-primary-600/80 dark:text-primary-400/80">
                   Step {i + 1}
                 </div>
                 <h3 className="mt-1 text-base font-semibold text-slate-900 dark:text-white">{s.title}</h3>

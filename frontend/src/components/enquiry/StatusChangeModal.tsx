@@ -2,7 +2,22 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DateTimePicker, DatePickerField } from "../common/DateTimePicker";
 import { useState, useEffect } from "react";
-import { ArrowRight, CalendarClock, Check, Save, Trophy, XCircle } from "lucide-react";
+import {
+  ArrowRight,
+  BadgeCheck,
+  CalendarClock,
+  Car,
+  Check,
+  CircleSlash,
+  FileCheck2,
+  PackageCheck,
+  PhoneCall,
+  Save,
+  Sparkles,
+  Trophy,
+  XCircle,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import clsx from "clsx";
 import { Modal } from "../common/Modal";
 import { Input, Select, Textarea } from "../common/Input";
@@ -15,6 +30,20 @@ import { ALLOWED_TRANSITIONS, LOSS_REASONS, STATUS_LABELS } from "../../types";
 import type { EnquiryStatus, Enquiry } from "../../types";
 import { useChangeStatus, useUpdateBookingDetails, useUpdateRetailDetails, useUpdateRtoDetails, useUpdateEnquiryDetails } from "../../hooks/useEnquiry";
 import { useBranchStaff } from "../../hooks/useUsers";
+
+/** One icon per pipeline stage — used on the "Move to" pills and section headers so
+ * every status reads consistently instead of a bare text label. */
+const STATUS_ICONS: Record<EnquiryStatus, LucideIcon> = {
+  NEW: Sparkles,
+  UNDER_FOLLOW_UP: PhoneCall,
+  APPOINTMENT_FIXED: CalendarClock,
+  TEST_DRIVE: Car,
+  BOOKED: BadgeCheck,
+  RETAIL_DONE: FileCheck2,
+  RTO_DONE: FileCheck2,
+  DELIVERED: PackageCheck,
+  CLOSED: CircleSlash,
+};
 
 /** A compact Yes/No pair for the finance checklist. */
 function YesNo({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
@@ -31,7 +60,7 @@ function YesNo({ label, checked, onChange }: { label: string; checked: boolean; 
               "px-3 py-1 text-xs font-semibold transition-colors",
               checked === val
                 ? val
-                  ? "bg-emerald-600 text-white"
+                  ? "bg-primary-600 text-white"
                   : "bg-slate-600 text-white"
                 : "bg-white text-slate-500 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800"
             )}
@@ -265,12 +294,27 @@ export function StatusChangeModal({
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Update status" maxWidth="max-w-md">
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Update status"
+      maxWidth="max-w-md"
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" form="status-change-form" isLoading={isSubmitting}>
+            Update status
+          </Button>
+        </div>
+      }
+    >
+      <form id="status-change-form" onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
         {/* Current → New summary */}
-        <div className="flex items-center justify-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800/50">
+        <div className="flex items-center justify-center gap-3 rounded-xl border border-primary-100 bg-primary-50/60 px-4 py-3.5 dark:border-primary-500/20 dark:bg-primary-500/5">
           <StatusBadge status={currentStatus} />
-          <ArrowRight size={16} className="text-slate-400" />
+          <ArrowRight size={16} className="shrink-0 text-primary-400 dark:text-primary-500" />
           {toStatus ? (
             <StatusBadge status={toStatus} lossReason={toStatus === "CLOSED" ? (outcome === "LOST" ? "pending" : null) : undefined} />
           ) : (
@@ -278,13 +322,35 @@ export function StatusChangeModal({
           )}
         </div>
 
-        <Select label="Move to" error={errors.toStatus?.message} {...register("toStatus")}>
-          {allowedNext.map((status) => (
-            <option key={status} value={status}>
-              {STATUS_LABELS[status]}
-            </option>
-          ))}
-        </Select>
+        {/* Move to — icon pills instead of a plain dropdown, so every option (usually
+            just 1-3) is visible and selectable at a glance. */}
+        <div>
+          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Move to</p>
+          <div className="flex flex-wrap gap-2">
+            {allowedNext.map((status) => {
+              const Icon = STATUS_ICONS[status];
+              const active = toStatus === status;
+              return (
+                <button
+                  key={status}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => setValue("toStatus", status, { shouldValidate: true })}
+                  className={clsx(
+                    "flex items-center gap-1.5 rounded-xl border px-3 py-2 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50",
+                    active
+                      ? "border-primary-600 bg-primary-600 text-white shadow-sm shadow-primary-600/25"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-primary-200 hover:bg-primary-50 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:border-primary-500/30 dark:hover:bg-primary-500/10"
+                  )}
+                >
+                  <Icon size={14} />
+                  {STATUS_LABELS[status]}
+                </button>
+              );
+            })}
+          </div>
+          {errors.toStatus?.message && <p className="mt-1.5 text-xs font-medium text-red-600 dark:text-red-400">{errors.toStatus.message}</p>}
+        </div>
 
         {/* Booking details (date + finance) — editable inline at the Booked stage; saved on the
             same "Update status" click before the status move is applied. */}
@@ -297,7 +363,7 @@ export function StatusChangeModal({
                 <DatePickerField label="Booking date" value={field.value} onChange={field.onChange} />
               )}
             />
-            <div className="flex flex-col gap-3 rounded-xl border border-emerald-200 bg-emerald-50/60 p-3 dark:border-emerald-500/25 dark:bg-emerald-500/10">
+            <div className="flex flex-col gap-3 rounded-xl border border-primary-100 bg-primary-50/60 p-3 dark:border-primary-500/20 dark:bg-primary-500/10">
               <Switch
                 checked={!!financeRequired}
                 onChange={(v) => setValue("financeRequired", v)}
@@ -305,7 +371,7 @@ export function StatusChangeModal({
                 description="Turn on if the customer is financing this purchase."
               />
               {financeRequired && (
-                <div className="flex flex-col gap-2 border-t border-emerald-200 pt-3 dark:border-emerald-500/25">
+                <div className="flex flex-col gap-2 border-t border-primary-100 pt-3 dark:border-primary-500/20">
                   <YesNo
                     label="Documents collected"
                     checked={!!watch("financeDocumentCollected")}
@@ -330,8 +396,8 @@ export function StatusChangeModal({
                       setProgressSaved(false);
                     }}
                   />
-                  <div className="mt-1 flex flex-wrap items-center justify-between gap-2 border-t border-emerald-200 pt-3 dark:border-emerald-500/25">
-                    <p className="text-xs text-emerald-700/80 dark:text-emerald-300/80">
+                  <div className="mt-1 flex flex-wrap items-center justify-between gap-2 border-t border-primary-100 pt-3 dark:border-primary-500/20">
+                    <p className="text-xs text-primary-700/80 dark:text-primary-300/80">
                       Finance paperwork can take a few days — save what's done so far without changing the status.
                     </p>
                     <Button
@@ -386,8 +452,8 @@ export function StatusChangeModal({
           )}
 
         {toStatus === "TEST_DRIVE" && (
-          <div className="flex flex-col gap-3 rounded-xl border border-teal-200 bg-teal-50/60 p-3 dark:border-teal-500/25 dark:bg-teal-500/10">
-            <p className="flex items-center gap-1.5 text-xs font-semibold text-teal-700 dark:text-teal-300">
+          <div className="flex flex-col gap-3 rounded-xl border border-primary-100 bg-primary-50/60 p-3 dark:border-primary-500/20 dark:bg-primary-500/10">
+            <p className="flex items-center gap-1.5 text-xs font-semibold text-primary-700 dark:text-primary-300">
               <CalendarClock size={13} /> Schedule the test drive
             </p>
             <Controller
@@ -418,7 +484,7 @@ export function StatusChangeModal({
                 </option>
               ))}
             </Select>
-            <p className="text-xs font-medium text-teal-600 dark:text-teal-400">
+            <p className="text-xs font-medium text-primary-600 dark:text-primary-400">
               This logs the first test drive. Log each additional drive and mark one Done from the Test Drives card below.
             </p>
           </div>
@@ -433,7 +499,7 @@ export function StatusChangeModal({
 
         {/* CR/ARM confirmation: all test drives on the Test Drives card are marked Done */}
         {toStatus === "BOOKED" && hasCompletedTestDrive && (
-          <div className="rounded-xl border border-teal-200 bg-teal-50/60 p-3 dark:border-teal-500/25 dark:bg-teal-500/10">
+          <div className="rounded-xl border border-primary-100 bg-primary-50/60 p-3 dark:border-primary-500/20 dark:bg-primary-500/10">
             <Switch
               checked={testDrivesConfirmed}
               onChange={setTestDrivesConfirmed}
@@ -462,8 +528,8 @@ export function StatusChangeModal({
 
         {/* Delivery: mandatory customer details for post-sale birthday/anniversary celebrations. */}
         {toStatus === "DELIVERED" && (
-          <div className="flex flex-col gap-3 rounded-xl border border-violet-200 bg-violet-50/60 p-3 dark:border-violet-500/25 dark:bg-violet-500/10">
-            <p className="text-xs font-semibold text-violet-700 dark:text-violet-300">
+          <div className="flex flex-col gap-3 rounded-xl border border-primary-100 bg-primary-50/60 p-3 dark:border-primary-500/20 dark:bg-primary-500/10">
+            <p className="text-xs font-semibold text-primary-700 dark:text-primary-300">
               Customer details — used for birthday &amp; anniversary celebrations.
             </p>
             <Controller
@@ -487,8 +553,8 @@ export function StatusChangeModal({
 
         {/* Appointment scheduling (G3) */}
         {toStatus === "APPOINTMENT_FIXED" && (
-          <div className="flex flex-col gap-3 rounded-xl border border-indigo-200 bg-indigo-50/60 p-3 dark:border-indigo-500/25 dark:bg-indigo-500/10">
-            <p className="flex items-center gap-1.5 text-xs font-semibold text-indigo-700 dark:text-indigo-300">
+          <div className="flex flex-col gap-3 rounded-xl border border-primary-100 bg-primary-50/60 p-3 dark:border-primary-500/20 dark:bg-primary-500/10">
+            <p className="flex items-center gap-1.5 text-xs font-semibold text-primary-700 dark:text-primary-300">
               <CalendarClock size={13} /> Schedule the appointment
             </p>
             <Controller
@@ -554,7 +620,7 @@ export function StatusChangeModal({
                 className={clsx(
                   "flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors",
                   outcome === "WON"
-                    ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/15 dark:text-emerald-300"
+                    ? "border-primary-600 bg-primary-600 text-white"
                     : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-400"
                 )}
               >
@@ -567,7 +633,7 @@ export function StatusChangeModal({
                 className={clsx(
                   "flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors",
                   outcome === "LOST"
-                    ? "border-red-300 bg-red-50 text-red-700 dark:border-red-500/40 dark:bg-red-500/15 dark:text-red-300"
+                    ? "border-slate-500 bg-slate-600 text-white dark:border-slate-500 dark:bg-slate-600"
                     : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-400"
                 )}
               >
@@ -589,15 +655,6 @@ export function StatusChangeModal({
         )}
 
         <Textarea label="Note (optional)" error={errors.note?.message} {...register("note")} />
-
-        <div className="mt-1 flex justify-end gap-2">
-          <Button type="button" variant="secondary" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" isLoading={isSubmitting}>
-            Update status
-          </Button>
-        </div>
       </form>
     </Modal>
   );

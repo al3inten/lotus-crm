@@ -4,24 +4,26 @@ import { useNavigate } from "react-router-dom";
 import type { Enquiry, EnquiryCategory } from "../../types";
 import { Avatar } from "../common/Avatar";
 
+/** Single primary-blue family throughout — temperature reads via intensity (HOT
+ * darkest/strongest, COLD lightest) rather than switching hues. */
 export const CATEGORY_STYLES: Record<EnquiryCategory, string> = {
-  HOT: "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300",
-  WARM: "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300",
-  COLD: "bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300",
+  HOT: "bg-primary-600 text-white dark:bg-primary-500 dark:text-white",
+  WARM: "bg-primary-100 text-primary-700 dark:bg-primary-500/25 dark:text-primary-300",
+  COLD: "bg-primary-50 text-primary-500 dark:bg-primary-500/10 dark:text-primary-400",
 };
 
 /** A colored ring around the avatar so temperature reads at a glance while scanning the list. */
 export const CATEGORY_RING: Record<EnquiryCategory, string> = {
-  HOT: "ring-red-300 dark:ring-red-500/40",
-  WARM: "ring-amber-300 dark:ring-amber-500/40",
-  COLD: "ring-sky-300 dark:ring-sky-500/40",
+  HOT: "ring-primary-500 dark:ring-primary-400/60",
+  WARM: "ring-primary-300 dark:ring-primary-500/40",
+  COLD: "ring-primary-200 dark:ring-primary-500/25",
 };
 
 /** Left-edge accent for lead cards, same temperature language as the ring. */
 export const CATEGORY_ACCENT: Record<EnquiryCategory, string> = {
-  HOT: "border-l-red-400 dark:border-l-red-500/60",
-  WARM: "border-l-amber-400 dark:border-l-amber-500/60",
-  COLD: "border-l-sky-400 dark:border-l-sky-500/60",
+  HOT: "border-l-primary-600 dark:border-l-primary-400",
+  WARM: "border-l-primary-300 dark:border-l-primary-500/50",
+  COLD: "border-l-primary-100 dark:border-l-primary-500/25",
 };
 
 export function AvatarWithTemperature({ name, category, size }: { name: string; category?: EnquiryCategory | null; size: "sm" | "md" }) {
@@ -50,12 +52,25 @@ export function contactsBadge(enquiry: Enquiry) {
   const count = Math.max(enquiry.lead._count?.enquiries ?? 1, enquiry.lead._count?.touches ?? 0);
   if (count > 1) {
     return (
-      <span className="inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-500/20 dark:text-amber-300">
+      <span className="inline-block rounded-full bg-primary-100 px-2 py-0.5 text-xs font-medium text-primary-700 dark:bg-primary-500/20 dark:text-primary-300">
         ×{count} contacts
       </span>
     );
   }
   return <span className="text-xs text-slate-400 dark:text-slate-500">1st</span>;
+}
+
+export type FollowUpUrgency = "overdue" | "today" | "future" | null;
+
+/** Shared with the kanban board's card urgency logic — kept here too so the table
+ * view can surface the same "overdue / due today" signal without duplicating dates. */
+export function getFollowUpUrgency(iso?: string | null): FollowUpUrgency {
+  if (!iso) return null;
+  const due = new Date(iso);
+  const now = new Date();
+  if (due < now && due.toDateString() !== now.toDateString()) return "overdue";
+  if (due.toDateString() === now.toDateString()) return "today";
+  return "future";
 }
 
 /** Space/Enter activates a row or card the same way a click would. */

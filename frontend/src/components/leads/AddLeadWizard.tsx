@@ -35,7 +35,7 @@ import { ConfirmCloseModal } from "./wizard/ConfirmCloseModal";
 /** Section order for the flattened, single-scroll form, matching the dealership's
  * intake flow. */
 const SECTIONS = [
-  { title: "Enquiry & Source", icon: Building2, iconClassName: "bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400" },
+  { title: "Enquiry & Source", icon: Building2, iconClassName: "bg-primary-50 text-primary-600 dark:bg-primary-500/20 dark:text-primary-400" },
   { title: "Customer Details", icon: UserCircle2, iconClassName: "bg-violet-50 text-violet-600 dark:bg-violet-500/20 dark:text-violet-400" },
   { title: "Vehicle Interest", icon: Car, iconClassName: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400" },
   { title: "Exchange Car", icon: RefreshCw, iconClassName: "bg-cyan-50 text-cyan-600 dark:bg-cyan-500/20 dark:text-cyan-400" },
@@ -594,7 +594,7 @@ export function AddLeadWizard({
                     <div
                       className={clsx(
                         "mx-1.5 h-[3px] flex-1 rounded-full transition-colors duration-300",
-                        i <= step ? "bg-blue-500" : "bg-slate-200 dark:bg-slate-700"
+                        i <= step ? "bg-primary-500" : "bg-slate-200 dark:bg-slate-700"
                       )}
                     />
                   )}
@@ -606,10 +606,10 @@ export function AddLeadWizard({
                     title={section.title}
                     className={clsx(
                       "relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-200",
-                      done && "bg-blue-500 text-white",
-                      active && "bg-blue-600 text-white shadow-lg shadow-blue-600/30 ring-4 ring-blue-100 dark:ring-blue-500/25",
+                      done && "bg-primary-500 text-white",
+                      active && "bg-primary-600 text-white shadow-lg shadow-primary-600/30 ring-4 ring-primary-100 dark:ring-primary-500/25",
                       !done && !active &&
-                        "border-2 border-slate-200 bg-white text-slate-400 hover:border-blue-300 hover:text-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-blue-500/50"
+                        "border-2 border-slate-200 bg-white text-slate-400 hover:border-primary-300 hover:text-primary-500 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-primary-500/50"
                     )}
                   >
                     {done ? <Check size={15} strokeWidth={3} /> : <Icon size={16} />}
@@ -623,11 +623,11 @@ export function AddLeadWizard({
           <form onSubmit={handleSubmit((values) => onSubmit(values, false), onInvalid)} className="flex flex-col gap-4">
             <div className="flex items-baseline justify-between gap-3">
               {singlePage ? (
-                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-blue-600 dark:text-blue-400">
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary-600 dark:text-primary-400">
                   All details
                 </p>
               ) : (
-                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-blue-600 dark:text-blue-400">
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary-600 dark:text-primary-400">
                   Step {step + 1} <span className="text-slate-300 dark:text-slate-600">/ {totalSteps}</span>
                 </p>
               )}
@@ -718,7 +718,7 @@ export function AddLeadWizard({
                 {saveError}
               </p>
             )}
-            {draftMessage && <p className="text-sm font-medium text-blue-600 dark:text-blue-400">{draftMessage}</p>}
+            {draftMessage && <p className="text-sm font-medium text-primary-600 dark:text-primary-400">{draftMessage}</p>}
           </form>
         </div>
       </Modal>

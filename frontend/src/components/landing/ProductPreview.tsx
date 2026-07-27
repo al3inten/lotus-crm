@@ -24,7 +24,7 @@ export function ProductPreview() {
                   key={item}
                   className={clsx(
                     "flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium",
-                    i === 2 ? "bg-blue-600 text-white" : "text-slate-500 dark:text-slate-400"
+                    i === 2 ? "bg-primary-600 text-white" : "text-slate-500 dark:text-slate-400"
                   )}
                 >
                   <span className="h-1.5 w-1.5 rounded-full bg-current" />

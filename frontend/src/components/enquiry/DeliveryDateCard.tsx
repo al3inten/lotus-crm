@@ -30,7 +30,7 @@ export function DeliveryDateCard({
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
       <div className="flex items-center gap-2">
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400">
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-50 text-primary-600 dark:bg-primary-500/15 dark:text-primary-400">
           <PackageCheck size={16} />
         </span>
         <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">Delivery Details</h3>

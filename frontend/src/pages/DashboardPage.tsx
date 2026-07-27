@@ -6,9 +6,7 @@ import {
   CircleX,
   PhoneOutgoing,
   UserPlus,
-  Inbox,
   BarChart3,
-  PhoneCall,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -46,8 +44,6 @@ const REPORT_VISIBLE_ROLES = ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"];
 
 const QUICK_ACTIONS = [
   { to: "/leads", icon: <UserPlus size={15} strokeWidth={1.75} />, title: "New lead", roles: undefined },
-  { to: "/social-inbox", icon: <Inbox size={15} strokeWidth={1.75} />, title: "Inbox", roles: ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER", "CR_TEAM"] },
-  { to: "/call-campaigns", icon: <PhoneCall size={15} strokeWidth={1.75} />, title: "Campaigns", roles: ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER", "CR_TEAM"] },
   { to: "/reports", icon: <BarChart3 size={15} strokeWidth={1.75} />, title: "Reports", roles: REPORT_VISIBLE_ROLES },
 ];
 
@@ -142,7 +138,7 @@ export function DashboardPage() {
               key={action.to}
               to={action.to}
               className={clsx(
-                "inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-[13px] font-medium transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 active:scale-[0.98]",
+                "inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-[13px] font-medium transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500 active:scale-[0.98]",
                 i === 0
                   ? "bg-slate-900 text-white shadow-sm hover:bg-slate-700 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
                   : "border border-slate-200/80 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-white/[0.08] dark:bg-white/[0.03] dark:text-slate-300 dark:hover:bg-white/[0.06]"

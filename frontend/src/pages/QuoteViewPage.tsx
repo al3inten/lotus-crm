@@ -10,7 +10,7 @@ export function QuoteViewPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-4">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600"></div>
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary-200 border-t-primary-600"></div>
           <p className="text-sm font-medium text-slate-500">Loading your quotation...</p>
         </div>
       </div>
@@ -54,7 +54,7 @@ export function QuoteViewPage() {
         {/* Action Bar (Hidden when printing) */}
         <div className="mb-6 flex items-center justify-between print:hidden">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-600/20">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-600 text-white shadow-lg shadow-primary-600/20">
               <Building size={20} />
             </div>
             <div>
@@ -149,7 +149,7 @@ export function QuoteViewPage() {
               <tfoot>
                 <tr>
                   <td className="pt-6 text-lg font-bold text-slate-900">Final On-Road Price</td>
-                  <td className="pt-6 text-right text-2xl font-black text-blue-600 print:text-slate-900">
+                  <td className="pt-6 text-right text-2xl font-black text-primary-600 print:text-slate-900">
                     {formatCurrency(quote.finalPrice)}
                   </td>
                 </tr>

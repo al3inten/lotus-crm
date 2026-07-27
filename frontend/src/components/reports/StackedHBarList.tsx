@@ -25,7 +25,7 @@ export interface StackedLegendItem {
  */
 export function StackedHBarList({ rows, legend }: { rows: StackedBarRow[]; legend: StackedLegendItem[] }) {
   if (rows.length === 0) {
-    return <p className="text-sm text-gray-400">No data in this range.</p>;
+    return <p className="text-sm text-gray-400 dark:text-slate-500">No data in this range.</p>;
   }
 
   const maxTotal = Math.max(1, ...rows.map((r) => r.total));
@@ -47,7 +47,7 @@ export function StackedHBarList({ rows, legend }: { rows: StackedBarRow[]; legen
             <span className="truncate text-right text-xs text-gray-600 dark:text-slate-400" title={row.label}>
               {row.label}
             </span>
-            <div className="flex h-4 flex-1 overflow-hidden rounded-r" style={{ maxWidth: "100%" }}>
+            <div className="flex h-4 flex-1 overflow-hidden rounded-r bg-gray-100 dark:bg-slate-800/60" style={{ maxWidth: "100%" }}>
               {row.segments.map(
                 (seg) =>
                   seg.value > 0 && (

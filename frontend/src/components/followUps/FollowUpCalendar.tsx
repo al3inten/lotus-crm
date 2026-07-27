@@ -132,23 +132,23 @@ export function FollowUpCalendar({ currentDate, counts, onSelectDate, selectedDa
               type="button"
               onClick={() => onSelectDate(d.iso)}
               className={clsx(
-                "relative min-h-[2.75rem] bg-white p-1.5 text-left hover:bg-blue-50 focus:outline-none dark:bg-slate-900 dark:hover:bg-blue-900/20 transition-colors",
+                "relative min-h-[2.75rem] bg-white p-1.5 text-left hover:bg-primary-50 focus:outline-none dark:bg-slate-900 dark:hover:bg-primary-900/20 transition-colors",
                 !d.isCurrentMonth && "text-slate-400 dark:text-slate-600 bg-slate-50/50 dark:bg-slate-900/50",
-                isSelected && "bg-blue-50/50 ring-1 ring-inset ring-blue-500 dark:bg-blue-500/10 dark:ring-blue-500/50 z-10"
+                isSelected && "bg-primary-50/50 ring-1 ring-inset ring-primary-500 dark:bg-primary-500/10 dark:ring-primary-500/50 z-10"
               )}
             >
               <div className="flex items-center justify-between">
                 <span
                   className={clsx(
                     "flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-medium",
-                    isToday ? "bg-blue-600 text-white" : d.isCurrentMonth ? "text-slate-900 dark:text-slate-200" : "text-slate-400 dark:text-slate-600"
+                    isToday ? "bg-primary-600 text-white" : d.isCurrentMonth ? "text-slate-900 dark:text-slate-200" : "text-slate-400 dark:text-slate-600"
                   )}
                 >
                   {d.date.getDate()}
                 </span>
                 {count > 0 && (
                   <span className={clsx("rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums", 
-                    isSelected ? "bg-blue-600 text-white" : "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300"
+                    isSelected ? "bg-primary-600 text-white" : "bg-primary-100 text-primary-700 dark:bg-primary-500/20 dark:text-primary-300"
                   )}>
                     {count}
                   </span>

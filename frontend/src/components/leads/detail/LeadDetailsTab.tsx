@@ -96,7 +96,7 @@ export function LeadDetailsTab({
                 aria-selected={active}
                 onClick={() => setActiveSubTab(tab)}
                 className={clsx(
-                  "relative flex shrink-0 items-center gap-1.5 rounded-t-lg px-3.5 py-2.5 text-[13px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-indigo-500",
+                  "relative flex shrink-0 items-center gap-1.5 rounded-t-lg px-3.5 py-2.5 text-[13px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary-500",
                   active
                     ? "text-slate-900 dark:text-white"
                     : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
@@ -105,7 +105,7 @@ export function LeadDetailsTab({
                 {active && (
                   <motion.span
                     layoutId="detailsSubTab"
-                    className="absolute inset-x-0 bottom-0 h-[2px] bg-indigo-500"
+                    className="absolute inset-x-0 bottom-0 h-[2px] bg-primary-500"
                     transition={{ type: "spring", stiffness: 500, damping: 38 }}
                   />
                 )}
@@ -215,7 +215,7 @@ export function LeadDetailsTab({
                         ? "bg-red-50/70 dark:bg-red-500/10"
                         : followUpUrgency === "today"
                           ? "bg-amber-50/70 dark:bg-amber-500/10"
-                          : "bg-blue-50/70 dark:bg-blue-500/10"
+                          : "bg-primary-50/70 dark:bg-primary-500/10"
                     )}
                   >
                     <Zap
@@ -227,7 +227,7 @@ export function LeadDetailsTab({
                           ? "text-red-500 dark:text-red-400"
                           : followUpUrgency === "today"
                             ? "text-amber-500 dark:text-amber-400"
-                            : "text-blue-500 dark:text-blue-400"
+                            : "text-primary-500 dark:text-primary-400"
                       )}
                     />
                     <span
@@ -237,7 +237,7 @@ export function LeadDetailsTab({
                           ? "text-red-900 dark:text-red-200"
                           : followUpUrgency === "today"
                             ? "text-amber-900 dark:text-amber-200"
-                            : "text-blue-900 dark:text-blue-200"
+                            : "text-primary-900 dark:text-primary-200"
                       )}
                     >
                       Next Follow-up
@@ -249,7 +249,7 @@ export function LeadDetailsTab({
                           ? "text-red-700 dark:text-red-300"
                           : followUpUrgency === "today"
                             ? "text-amber-700 dark:text-amber-300"
-                            : "text-blue-700 dark:text-blue-300"
+                            : "text-primary-700 dark:text-primary-300"
                       )}
                     >
                       {enquiry.followUpDueAt ? new Date(enquiry.followUpDueAt).toLocaleDateString() : "—"}
@@ -268,7 +268,7 @@ export function LeadDetailsTab({
                         type="button"
                         onClick={() => setShowContactHistoryModal(true)}
                         aria-label="View all contact history"
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-blue-400"
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-primary-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-primary-400"
                       >
                         <Eye size={16} />
                       </button>
@@ -282,7 +282,7 @@ export function LeadDetailsTab({
                             {Object.entries(lead.touchesBySource).map(([source, count]) => (
                               <span
                                 key={source}
-                                className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 dark:bg-blue-500/15 dark:text-blue-300"
+                                className="rounded-full bg-primary-50 px-2.5 py-1 text-xs font-medium text-primary-700 dark:bg-primary-500/15 dark:text-primary-300"
                               >
                                 {source.replaceAll("_", " ")} ×{count}
                               </span>
@@ -303,7 +303,7 @@ export function LeadDetailsTab({
                               key={touch.id}
                               className="flex gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-3.5 py-3 text-xs dark:border-slate-800/60 dark:bg-slate-900/20"
                             >
-                              <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400">
+                              <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600 dark:bg-primary-500/15 dark:text-primary-400">
                                 <MessagesSquare size={13} />
                               </span>
                               <div className="min-w-0 flex-1">
@@ -333,7 +333,7 @@ export function LeadDetailsTab({
                         type="button"
                         onClick={() => setShowCallHistoryModal(true)}
                         aria-label="View all call history"
-                        className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-blue-400"
+                        className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-primary-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-primary-400"
                       >
                         <Eye size={16} />
                       </button>

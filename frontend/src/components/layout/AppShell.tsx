@@ -18,11 +18,11 @@ export function AppShell() {
   }, [location.pathname]);
 
   return (
-    <div className="relative flex h-screen w-screen overflow-hidden bg-slate-50 dark:bg-[#0a0a0a] transition-colors selection:bg-blue-500/30 font-sans">
+    <div className="relative flex h-screen w-screen overflow-hidden bg-slate-50 dark:bg-[#0a0a0a] transition-colors selection:bg-primary-500/30 font-sans">
       
       {/* Precision Glow (Subtle, professional background depth) */}
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 h-[600px] w-[800px] rounded-[100%] bg-blue-500/5 blur-[120px] dark:bg-blue-500/10 mix-blend-screen" />
+        <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 h-[600px] w-[800px] rounded-[100%] bg-primary-500/5 blur-[120px] dark:bg-primary-500/10 mix-blend-screen" />
       </div>
 
       <div className="z-10 flex h-full w-full">

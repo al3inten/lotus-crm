@@ -14,7 +14,7 @@ export function Switch({ checked, onChange, label, description, disabled }: Swit
       className={clsx(
         "flex items-center justify-between gap-4 rounded-xl border px-4 py-3 transition-colors",
         checked
-          ? "border-blue-200 bg-blue-50/60 dark:border-blue-500/30 dark:bg-blue-500/10"
+          ? "border-primary-200 bg-primary-50/60 dark:border-primary-500/30 dark:bg-primary-500/10"
           : "border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-950",
         disabled && "opacity-60"
       )}
@@ -33,8 +33,8 @@ export function Switch({ checked, onChange, label, description, disabled }: Swit
         disabled={disabled}
         onClick={() => onChange(!checked)}
         className={clsx(
-          "relative h-6 w-11 shrink-0 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 disabled:cursor-not-allowed",
-          checked ? "bg-blue-600" : "bg-slate-300 dark:bg-slate-600"
+          "relative h-6 w-11 shrink-0 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 disabled:cursor-not-allowed",
+          checked ? "bg-primary-600" : "bg-slate-300 dark:bg-slate-600"
         )}
       >
         <span

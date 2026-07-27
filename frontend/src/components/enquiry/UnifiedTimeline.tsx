@@ -66,8 +66,8 @@ export function UnifiedTimeline({
           const isCreation = !h.fromStatus;
           return (
             <motion.div variants={itemVariants} key={`status-${h.id}`} className="relative pl-6">
-              <span className="absolute -left-[13px] top-1 flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 ring-4 ring-white">
-                {isCreation ? <User size={12} className="text-blue-600" /> : <CheckCircle2 size={12} className="text-blue-600" />}
+              <span className="absolute -left-[13px] top-1 flex h-6 w-6 items-center justify-center rounded-full bg-primary-100 ring-4 ring-white">
+                {isCreation ? <User size={12} className="text-primary-600" /> : <CheckCircle2 size={12} className="text-primary-600" />}
               </span>
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                 <h3 className="text-sm font-semibold text-gray-900">
@@ -75,7 +75,7 @@ export function UnifiedTimeline({
                     "Lead Created"
                   ) : (
                     <>
-                      Moved to <span className="text-blue-600">{h.toStatus.replaceAll("_", " ")}</span>
+                      Moved to <span className="text-primary-600">{h.toStatus.replaceAll("_", " ")}</span>
                     </>
                   )}
                 </h3>
@@ -123,7 +123,7 @@ export function UnifiedTimeline({
                 {/* Simple bolding for @mentions */}
                 {displayBody.split(/(@[\w\s]+?)(?=\s|$|[^\w\s])/).map((part, i) => {
                   if (part.startsWith('@')) {
-                    return <span key={i} className="font-semibold text-blue-600 dark:text-blue-400">{part}</span>;
+                    return <span key={i} className="font-semibold text-primary-600 dark:text-primary-400">{part}</span>;
                   }
                   return <span key={i}>{part}</span>;
                 })}
@@ -162,8 +162,8 @@ export function UnifiedTimeline({
         } else {
           const f = item.data;
           let Icon = Phone;
-          let bgColor = "bg-indigo-100";
-          let iconColor = "text-indigo-600";
+          let bgColor = "bg-primary-100";
+          let iconColor = "text-primary-600";
           
           if (f.type === "EMAIL") {
             Icon = Mail;
@@ -195,7 +195,7 @@ export function UnifiedTimeline({
                   <span>{f.remark}</span>
                 </div>
                 {f.nextFollowUpDate && (
-                  <div className="flex items-center gap-1 text-indigo-600 mt-1">
+                  <div className="flex items-center gap-1 text-primary-600 mt-1">
                     <Calendar size={12} />
                     <span>Next follow-up planned for {new Date(f.nextFollowUpDate).toLocaleDateString()} {f.nextFollowUpTime || ""}</span>
                   </div>

@@ -42,7 +42,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
         <Plus
           size={18}
           className={clsx(
-            "shrink-0 text-blue-600 transition-transform duration-300 dark:text-blue-400",
+            "shrink-0 text-primary-600 transition-transform duration-300 dark:text-primary-400",
             open && "rotate-45"
           )}
         />
@@ -69,7 +69,7 @@ export function FaqSection() {
     <section className="relative bg-white py-24 dark:bg-slate-950">
       <div className="mx-auto max-w-3xl px-6">
         <Reveal className="text-center">
-          <span className="text-sm font-semibold uppercase tracking-widest text-blue-600 dark:text-blue-400">FAQ</span>
+          <span className="text-sm font-semibold uppercase tracking-widest text-primary-600 dark:text-primary-400">FAQ</span>
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl dark:text-white">
             Answers before you sign in
           </h2>

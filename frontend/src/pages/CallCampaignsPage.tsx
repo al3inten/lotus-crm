@@ -140,7 +140,7 @@ function CallLogTable() {
                   </td>
                   <td className="px-4 py-2">
                     <button
-                      className="text-blue-600 hover:underline disabled:text-gray-300 disabled:no-underline"
+                      className="text-primary-600 hover:underline disabled:text-gray-300 disabled:no-underline"
                       disabled={!log.transcript}
                       onClick={() => setDetail({ log, field: "transcript" })}
                     >
@@ -149,7 +149,7 @@ function CallLogTable() {
                   </td>
                   <td className="px-4 py-2">
                     <button
-                      className="text-blue-600 hover:underline disabled:text-gray-300 disabled:no-underline"
+                      className="text-primary-600 hover:underline disabled:text-gray-300 disabled:no-underline"
                       disabled={!log.insights}
                       onClick={() => setDetail({ log, field: "insights" })}
                     >
@@ -258,15 +258,16 @@ export function CallCampaignsPage() {
   return (
     <div className="mx-auto w-full max-w-7xl flex flex-col gap-6">
       {/* Hero Section */}
-      <div className="relative overflow-hidden rounded-3xl bg-slate-900 px-6 py-8 shadow-xl dark:bg-slate-950 sm:px-8 sm:py-10">
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -left-[10%] -top-[50%] h-[200%] w-[50%] rounded-full bg-indigo-600/30 blur-[100px] dark:bg-indigo-600/20" />
-          <div className="absolute -right-[20%] top-[-20%] h-[150%] w-[60%] rounded-full bg-violet-500/20 blur-[120px] dark:bg-violet-500/10" />
-        </div>
+      <div className="relative overflow-hidden rounded-3xl bg-[#0B0F19] px-6 py-8 shadow-2xl shadow-primary-900/10 ring-1 ring-slate-900/5 dark:bg-slate-950 dark:ring-white/10 sm:px-9 sm:py-9">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.03] dark:opacity-[0.05]"
+          style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h1v1H0V0zm23 23h1v1h-1v-1z' fill='white'/%3E%3C/svg%3E\")", backgroundSize: "24px 24px" }}
+        />
+        <div className="pointer-events-none absolute -left-20 -top-20 h-[300px] w-[300px] rounded-full bg-primary-500/10 blur-[80px]" />
 
         <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
-            <span className="inline-flex items-center rounded-full bg-indigo-500/10 px-2.5 py-0.5 text-xs sm:text-sm font-medium text-indigo-300 ring-1 ring-inset ring-indigo-500/20 backdrop-blur-md">
+            <span className="inline-flex items-center rounded-full bg-primary-500/10 px-2.5 py-0.5 text-xs sm:text-sm font-medium text-primary-300 ring-1 ring-inset ring-primary-500/20 backdrop-blur-md">
               Voice Outbound
             </span>
             <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
@@ -290,7 +291,7 @@ export function CallCampaignsPage() {
           <button
             className={`flex shrink-0 items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
               tab === "campaigns"
-                ? "bg-blue-600 text-white shadow-md"
+                ? "bg-primary-600 text-white shadow-md"
                 : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
             }`}
             onClick={() => setTab("campaigns")}
@@ -300,7 +301,7 @@ export function CallCampaignsPage() {
           <button
             className={`flex shrink-0 items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
               tab === "call-log"
-                ? "bg-blue-600 text-white shadow-md"
+                ? "bg-primary-600 text-white shadow-md"
                 : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
             }`}
             onClick={() => setTab("call-log")}

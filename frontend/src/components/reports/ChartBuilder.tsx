@@ -5,7 +5,7 @@ import type { BreakdownDimension, BreakdownMeasure, ReportFilters } from "../../
 import { HBarList } from "./HBarList";
 import { DonutChart } from "./DonutChart";
 import { StackedHBarList } from "./StackedHBarList";
-import { CATEGORICAL, VIZ } from "./vizTheme";
+import { CATEGORICAL, VIZ, useIsDarkMode } from "./vizTheme";
 import { Select } from "../common/Input";
 import { cn } from "../../lib/utils";
 
@@ -65,6 +65,8 @@ const NONE = "__none__" as const;
 type SplitOption = BreakdownDimension | typeof NONE;
 
 export function ChartBuilder({ filters }: { filters: ReportFilters }) {
+  const isDark = useIsDarkMode();
+  const palette = isDark ? CATEGORICAL.dark : CATEGORICAL.light;
   const [dimension, setDimension] = useState<BreakdownDimension>("source");
   const [splitBy, setSplitBy] = useState<SplitOption>(NONE);
   const [measure, setMeasure] = useState<BreakdownMeasure>("total");
@@ -112,7 +114,7 @@ export function ChartBuilder({ filters }: { filters: ReportFilters }) {
   // Stacked-view legend/segment colors — fixed slot order per series key, "Other" always
   // the muted deEmphasis gray regardless of slot.
   const seriesColor = (key: string, index: number) =>
-    key === "__other__" ? VIZ.deEmphasis : CATEGORICAL.light[index % CATEGORICAL.light.length];
+    key === "__other__" ? VIZ.deEmphasis : palette[index % palette.length];
 
   const stackedRows = useMemo(() => {
     if (!splitData) return [];
@@ -126,7 +128,8 @@ export function ChartBuilder({ filters }: { filters: ReportFilters }) {
         color: seriesColor(s.key, i),
       })),
     }));
-  }, [splitData, dimension, splitBy]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [splitData, dimension, splitBy, palette]);
 
   const legend = useMemo(() => {
     if (!splitData) return [];
@@ -135,7 +138,8 @@ export function ChartBuilder({ filters }: { filters: ReportFilters }) {
       label: label(splitBy === NONE ? dimension : splitBy, s.label),
       color: seriesColor(s.key, i),
     }));
-  }, [splitData, dimension, splitBy]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [splitData, dimension, splitBy, palette]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -202,7 +206,7 @@ export function ChartBuilder({ filters }: { filters: ReportFilters }) {
       <div className={cn("min-h-[200px] transition-opacity", isFetching && "opacity-60")}>
         {splitActive ? (
           stackedRows.length === 0 ? (
-            <p className="py-10 text-center text-sm text-gray-400">
+            <p className="py-10 text-center text-sm text-gray-400 dark:text-slate-500">
               {isFetching ? "Loading…" : `No enquiries to break down by ${dimensionLabel.toLowerCase()} in this range.`}
             </p>
           ) : effectiveView === "table" ? (
@@ -211,14 +215,14 @@ export function ChartBuilder({ filters }: { filters: ReportFilters }) {
             <StackedHBarList rows={stackedRows} legend={legend} />
           )
         ) : rows.length === 0 ? (
-          <p className="py-10 text-center text-sm text-gray-400">
+          <p className="py-10 text-center text-sm text-gray-400 dark:text-slate-500">
             {isFetching ? "Loading…" : `No enquiries to break down by ${dimensionLabel.toLowerCase()} in this range.`}
           </p>
         ) : effectiveView === "table" ? (
           <FlatTable dimensionLabel={dimensionLabel} rows={flatData ?? []} dimension={dimension} />
         ) : effectiveView === "bar" ? (
           <HBarList
-            color={measure === "lost" ? VIZ.series6 : measure === "converted" ? VIZ.series2 : CATEGORICAL.light[0]}
+            color={measure === "lost" ? VIZ.series6 : measure === "converted" ? VIZ.series2 : palette[0]}
             rows={rows.map((r) => ({
               label: r.label,
               value: r.value,
@@ -246,9 +250,9 @@ function FlatTable({
   dimension: BreakdownDimension;
 }) {
   return (
-    <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-slate-800">
+    <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-slate-800">
       <table className="w-full text-sm">
-        <thead className="bg-gray-50 text-left text-xs font-medium text-gray-500 dark:bg-slate-800/50 dark:text-slate-400">
+        <thead className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:bg-slate-800/50 dark:text-slate-400">
           <tr>
             <th className="px-4 py-2">{dimensionLabel}</th>
             <th className="px-4 py-2">Total</th>
@@ -259,7 +263,7 @@ function FlatTable({
         </thead>
         <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
           {rows.map((row) => (
-            <tr key={row.key} className="hover:bg-gray-50/60 dark:hover:bg-slate-800/30">
+            <tr key={row.key} className="transition-colors hover:bg-primary-50/60 dark:hover:bg-primary-500/[0.06]">
               <td className="px-4 py-2 font-medium text-gray-900 dark:text-slate-100">{label(dimension, row.label)}</td>
               <td className="px-4 py-2 tabular-nums text-gray-700 dark:text-slate-300">{row.total.toLocaleString()}</td>
               <td className="px-4 py-2 tabular-nums text-gray-700 dark:text-slate-300">{row.converted.toLocaleString()}</td>
@@ -284,9 +288,9 @@ function PivotTable({
   legend: { key: string; label: string }[];
 }) {
   return (
-    <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-slate-800">
+    <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-slate-800">
       <table className="w-full text-sm">
-        <thead className="bg-gray-50 text-left text-xs font-medium text-gray-500 dark:bg-slate-800/50 dark:text-slate-400">
+        <thead className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:bg-slate-800/50 dark:text-slate-400">
           <tr>
             <th className="px-4 py-2">{dimensionLabel}</th>
             {legend.map((s) => (
@@ -299,7 +303,7 @@ function PivotTable({
         </thead>
         <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
           {rows.map((row) => (
-            <tr key={row.label} className="hover:bg-gray-50/60 dark:hover:bg-slate-800/30">
+            <tr key={row.label} className="transition-colors hover:bg-primary-50/60 dark:hover:bg-primary-500/[0.06]">
               <td className="px-4 py-2 font-medium text-gray-900 dark:text-slate-100">{row.label}</td>
               {legend.map((s) => {
                 const seg = row.segments.find((seg) => seg.key === s.key);
@@ -368,7 +372,7 @@ function DimensionDropdown({
         className={cn(
           "flex min-w-[210px] items-center justify-between gap-2 rounded-lg border px-3 py-2.5 text-left text-sm shadow-sm transition-all",
           "bg-white text-slate-900 dark:bg-slate-950 dark:text-white",
-          "border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+          "border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
         )}
       >
         <span className="truncate">{selected ? selected.label : "None"}</span>
@@ -409,7 +413,7 @@ function DimensionDropdown({
                 className={cn(
                   "flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors",
                   value === NONE
-                    ? "bg-blue-50 font-medium text-blue-700 dark:bg-blue-500/10 dark:text-blue-300"
+                    ? "bg-primary-50 font-medium text-primary-700 dark:bg-primary-500/10 dark:text-primary-300"
                     : "text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
                 )}
               >
@@ -433,7 +437,7 @@ function DimensionDropdown({
                   className={cn(
                     "flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors",
                     active
-                      ? "bg-blue-50 font-medium text-blue-700 dark:bg-blue-500/10 dark:text-blue-300"
+                      ? "bg-primary-50 font-medium text-primary-700 dark:bg-primary-500/10 dark:text-primary-300"
                       : "text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
                   )}
                 >
@@ -473,7 +477,7 @@ function ViewButton({
       aria-pressed={active}
       className={cn(
         "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
-        active ? "bg-blue-600 text-white shadow-sm" : "text-gray-600 hover:bg-gray-100 dark:text-slate-400 dark:hover:bg-slate-800",
+        active ? "bg-primary-600 text-white shadow-sm" : "text-gray-600 hover:bg-gray-100 dark:text-slate-400 dark:hover:bg-slate-800",
         disabled && "cursor-not-allowed opacity-40 hover:bg-transparent dark:hover:bg-transparent"
       )}
     >

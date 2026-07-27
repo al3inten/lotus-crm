@@ -140,7 +140,7 @@ export function LeadHeroHeader({
         <nav className="flex items-center gap-1.5 text-sm">
           <Link
             to="/leads"
-            className="flex items-center gap-1.5 rounded-md px-1.5 py-0.5 -ml-1.5 font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:text-slate-400 dark:hover:bg-white/[0.06] dark:hover:text-white"
+            className="flex items-center gap-1.5 rounded-md px-1.5 py-0.5 -ml-1.5 font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500 dark:text-slate-400 dark:hover:bg-white/[0.06] dark:hover:text-white"
           >
             <ArrowLeft size={15} />
             Leads
@@ -215,7 +215,7 @@ export function LeadHeroHeader({
                 type="button"
                 onClick={() => setShowCustomerView(true)}
                 title="Customer view"
-                className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition-all hover:-translate-y-0.5 hover:bg-white hover:text-slate-900 hover:shadow-md active:scale-95 active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-white"
+                className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition-all hover:-translate-y-0.5 hover:bg-white hover:text-slate-900 hover:shadow-md active:scale-95 active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-white"
               >
                 <Eye size={16} />
               </button>
@@ -226,7 +226,7 @@ export function LeadHeroHeader({
                   type="button"
                   onClick={() => setAssignOpen((o) => !o)}
                   disabled={!enquiry}
-                  className="flex h-9 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold text-slate-700 transition-all hover:-translate-y-0.5 hover:bg-white hover:shadow-md active:scale-95 active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:pointer-events-none disabled:opacity-40 dark:text-slate-300 dark:hover:bg-slate-700"
+                  className="flex h-9 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold text-slate-700 transition-all hover:-translate-y-0.5 hover:bg-white hover:shadow-md active:scale-95 active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500 disabled:pointer-events-none disabled:opacity-40 dark:text-slate-300 dark:hover:bg-slate-700"
                 >
                   <UserPlus size={15} />
                   <span className="hidden md:inline">Assign</span>
@@ -292,7 +292,7 @@ export function LeadHeroHeader({
                         <a
                           href={`tel:${lead.phoneRaw}`}
                           title="Call"
-                          className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-blue-600 transition-colors hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-800 dark:text-blue-400 dark:hover:bg-slate-700"
+                          className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-primary-600 transition-colors hover:bg-primary-50 dark:border-slate-700 dark:bg-slate-800 dark:text-primary-400 dark:hover:bg-slate-700"
                         >
                           <Phone size={12} />
                         </a>
@@ -325,7 +325,7 @@ export function LeadHeroHeader({
                           <a
                             href={`mailto:${lead.email}`}
                             title="Send email"
-                            className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-blue-600 transition-colors hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-800 dark:text-blue-400 dark:hover:bg-slate-700"
+                            className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-primary-600 transition-colors hover:bg-primary-50 dark:border-slate-700 dark:bg-slate-800 dark:text-primary-400 dark:hover:bg-slate-700"
                           >
                             <Mail size={12} />
                           </a>
@@ -375,7 +375,7 @@ export function LeadHeroHeader({
                         onUpdateConsultant(consultantValue);
                         setConsultantEdit(false);
                       }}
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-blue-600 text-white transition-colors hover:bg-blue-500 disabled:opacity-40"
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary-600 text-white transition-colors hover:bg-primary-500 disabled:opacity-40"
                     >
                       <Check size={14} />
                     </button>
@@ -400,7 +400,7 @@ export function LeadHeroHeader({
                           setConsultantValue(enquiry.consultantId ?? "");
                           setConsultantEdit(true);
                         }}
-                        className="text-xs font-medium text-blue-600 transition-colors hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+                        className="text-xs font-medium text-primary-600 transition-colors hover:text-primary-700 hover:underline dark:text-primary-400 dark:hover:text-primary-300"
                       >
                         Change
                       </button>

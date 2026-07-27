@@ -16,13 +16,13 @@ export function AiInsightsCard({ leadScore, insights }: AiInsightsCardProps) {
   return (
     <motion.div variants={fadeUp}>
       <Card className="relative overflow-hidden">
-        <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-gradient-to-br from-blue-500/15 to-indigo-500/10 blur-2xl" />
+        <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary-500/10 blur-2xl" />
         <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center">
           <div className="flex items-center gap-4">
             <ScoreRing score={leadScore} />
             <div>
               <div className="flex items-center gap-1.5">
-                <Sparkles size={16} className="text-blue-500 dark:text-blue-400" />
+                <Sparkles size={16} className="text-primary-500 dark:text-primary-400" />
                 <h2 className="text-base font-bold text-slate-900 dark:text-white">AI Insights</h2>
               </div>
               <p className="mt-1 max-w-[16rem] text-xs text-slate-500 dark:text-slate-400">

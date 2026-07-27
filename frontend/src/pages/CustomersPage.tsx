@@ -58,9 +58,9 @@ function StatTile({
       onClick={onClick}
       aria-pressed={active}
       className={clsx(
-        "group relative flex items-center gap-3.5 overflow-hidden rounded-2xl border p-4 text-left transition-all hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+        "group relative flex items-center gap-3.5 overflow-hidden rounded-2xl border p-4 text-left transition-all hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
         active
-          ? "border-blue-400 bg-blue-50/60 ring-1 ring-blue-300 dark:border-blue-500/50 dark:bg-blue-500/10 dark:ring-blue-500/30"
+          ? "border-primary-400 bg-primary-50/60 ring-1 ring-primary-300 dark:border-primary-500/50 dark:bg-primary-500/10 dark:ring-primary-500/30"
           : "border-slate-200 bg-white hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900/50 dark:hover:border-slate-700"
       )}
     >
@@ -107,11 +107,12 @@ export function CustomersPage() {
   return (
     <motion.div variants={staggerContainer} initial="hidden" animate="show" className="flex flex-col gap-5">
       {/* ---------- HERO HEADER ---------- */}
-      <motion.div variants={fadeUp} className="relative overflow-hidden rounded-3xl bg-slate-900 px-6 py-8 shadow-xl dark:bg-slate-950 sm:px-9">
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -left-[10%] -top-[60%] h-[220%] w-[45%] rounded-full bg-blue-600/25 blur-[110px] dark:bg-blue-600/12" />
-          <div className="absolute -right-[15%] top-[-30%] h-[170%] w-[55%] rounded-full bg-indigo-500/20 blur-[120px] dark:bg-indigo-500/10" />
-        </div>
+      <motion.div variants={fadeUp} className="relative overflow-hidden rounded-3xl bg-[#0B0F19] px-6 py-8 shadow-2xl shadow-primary-900/10 ring-1 ring-slate-900/5 dark:bg-slate-950 dark:ring-white/10 sm:px-9 sm:py-9">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.03] dark:opacity-[0.05]"
+          style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h1v1H0V0zm23 23h1v1h-1v-1z' fill='white'/%3E%3C/svg%3E\")", backgroundSize: "24px 24px" }}
+        />
+        <div className="pointer-events-none absolute -left-20 -top-20 h-[300px] w-[300px] rounded-full bg-primary-500/10 blur-[80px]" />
         <div className="relative z-10 flex items-center gap-4">
           <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-white shadow-inner ring-1 ring-white/20 backdrop-blur-md">
             <Contact size={26} />
@@ -119,7 +120,7 @@ export function CustomersPage() {
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-white">Customers</h1>
             <p className="mt-1.5 flex items-center gap-2 text-sm font-medium text-slate-300">
-              <Users size={15} className="text-blue-400" />
+              <Users size={15} className="text-primary-400" />
               {isLoading ? (
                 <span className="inline-block h-4 w-32 animate-pulse rounded bg-white/15" />
               ) : (
@@ -136,8 +137,8 @@ export function CustomersPage() {
       {/* ---------- KPI STAT TILES (double as tier filters) ---------- */}
       <motion.div variants={fadeUp} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatTile
-          icon={<Users size={20} className="text-blue-600 dark:text-blue-400" />}
-          tone="bg-blue-100 dark:bg-blue-500/15"
+          icon={<Users size={20} className="text-primary-600 dark:text-primary-400" />}
+          tone="bg-primary-100 dark:bg-primary-500/15"
           label="All customers"
           value={stats?.total ?? 0}
           active={!filters.tier}
@@ -181,7 +182,7 @@ export function CustomersPage() {
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                   placeholder="Search by name or phone number"
-                  className="block w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-900 transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500"
+                  className="block w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-900 transition-colors placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/15 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500"
                 />
               </div>
             </div>
@@ -216,7 +217,7 @@ export function CustomersPage() {
             )}
           </p>
           {isFetching && (
-            <span className="flex items-center gap-1.5 text-xs font-medium text-blue-600 dark:text-blue-400">
+            <span className="flex items-center gap-1.5 text-xs font-medium text-primary-600 dark:text-primary-400">
               <Loader2 size={13} className="animate-spin" /> Updating…
             </span>
           )}
@@ -246,7 +247,7 @@ export function CustomersPage() {
                 aria-label={`Open customer ${c.name}`}
                 onClick={() => open(c)}
                 onKeyDown={(e) => onKey(e, c)}
-                className="group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white transition-all hover:-translate-y-1 hover:border-blue-300 hover:shadow-[0_16px_40px_rgb(0,0,0,0.08)] focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-blue-500/40"
+                className="group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white transition-all hover:-translate-y-1 hover:border-primary-300 hover:shadow-[0_16px_40px_rgb(0,0,0,0.08)] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-primary-500/40"
               >
                 <span className={clsx("h-1 w-full", TIER_ACCENT[c.tier])} />
                 <div className="flex flex-1 flex-col gap-3 p-4">
@@ -305,7 +306,7 @@ export function CustomersPage() {
                   aria-label="Previous page"
                   disabled={page <= 1}
                   onClick={() => goToPage(page - 1)}
-                  className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:pointer-events-none disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:pointer-events-none disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
                 >
                   <ChevronLeft size={16} />
                 </button>
@@ -320,9 +321,9 @@ export function CustomersPage() {
                       aria-current={p === page}
                       onClick={() => goToPage(p)}
                       className={clsx(
-                        "flex h-9 min-w-9 items-center justify-center rounded-lg px-2 text-sm font-semibold tabular-nums transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50",
+                        "flex h-9 min-w-9 items-center justify-center rounded-lg px-2 text-sm font-semibold tabular-nums transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50",
                         p === page
-                          ? "bg-blue-600 text-white shadow-sm shadow-blue-600/25"
+                          ? "bg-primary-600 text-white shadow-sm shadow-primary-600/25"
                           : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
                       )}
                     >
@@ -335,7 +336,7 @@ export function CustomersPage() {
                   aria-label="Next page"
                   disabled={page >= totalPages}
                   onClick={() => goToPage(page + 1)}
-                  className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:pointer-events-none disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:pointer-events-none disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
                 >
                   <ChevronRight size={16} />
                 </button>

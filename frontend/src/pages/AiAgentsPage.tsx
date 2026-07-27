@@ -53,9 +53,9 @@ function GeneratePromptModal({
 
 const THEME_MAP: Record<AgentType, { bg: string; border: string; iconBg: string; icon: React.ReactNode }> = {
   VOICE: {
-    bg: "bg-indigo-50/50 dark:bg-indigo-950/20",
-    border: "border-indigo-100 dark:border-indigo-900/50",
-    iconBg: "bg-indigo-100 text-indigo-600 dark:bg-indigo-900 dark:text-indigo-400",
+    bg: "bg-primary-50/50 dark:bg-primary-950/20",
+    border: "border-primary-100 dark:border-primary-900/50",
+    iconBg: "bg-primary-100 text-primary-600 dark:bg-primary-900 dark:text-primary-400",
     icon: <Phone size={24} />,
   },
   WHATSAPP_CHATBOT: {
@@ -131,7 +131,7 @@ function AgentConfigCard({ config }: { config: AgentConfig }) {
         <input
            value={name}
            onChange={(e) => setName(e.target.value)}
-           className="w-full bg-transparent text-lg font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md px-1 -mx-1 transition-colors hover:bg-black/5"
+           className="w-full bg-transparent text-lg font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-md px-1 -mx-1 transition-colors hover:bg-black/5"
            placeholder="Agent Name"
         />
         <p className="text-xs font-medium text-gray-500 mt-0.5 pl-1">{LABELS[config.type]}</p>
@@ -157,7 +157,7 @@ function AgentConfigCard({ config }: { config: AgentConfig }) {
             {isPromptVisible && (
               <button
                 onClick={() => setShowGenerate(true)}
-                className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-md transition-colors ring-1 ring-inset ring-blue-600/10"
+                className="text-[11px] font-semibold text-primary-600 hover:text-primary-700 flex items-center gap-1 bg-primary-50 hover:bg-primary-100 px-2 py-1 rounded-md transition-colors ring-1 ring-inset ring-primary-600/10"
               >
                 <Sparkles size={11} /> Auto-Generate
               </button>
@@ -169,7 +169,7 @@ function AgentConfigCard({ config }: { config: AgentConfig }) {
               rows={6}
               value={systemPrompt}
               onChange={(e) => setSystemPrompt(e.target.value)}
-              className="w-full rounded-xl border border-gray-200 bg-gray-50/50 p-3 text-xs text-gray-700 shadow-inner focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-mono resize-none transition-all leading-relaxed"
+              className="w-full rounded-xl border border-gray-200 bg-gray-50/50 p-3 text-xs text-gray-700 shadow-inner focus:border-primary-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/20 font-mono resize-none transition-all leading-relaxed"
               placeholder="You are a helpful AI assistant..."
               spellCheck={false}
             />
@@ -184,13 +184,13 @@ function AgentConfigCard({ config }: { config: AgentConfig }) {
         </div>
 
         {config.type === "VOICE" && (
-          <div className="flex items-start gap-2.5 rounded-xl border border-indigo-100 bg-indigo-50/30 p-3">
+          <div className="flex items-start gap-2.5 rounded-xl border border-primary-100 bg-primary-50/30 p-3">
             <div className="mt-0.5">
               <Toggle checked={autoCallEnabled} onChange={handleToggleAutoCall} />
             </div>
             <div>
-              <p className="text-xs font-medium text-indigo-900">Auto-call new digital leads</p>
-              <p className="text-[10px] text-indigo-700/70 mt-0.5 leading-relaxed">
+              <p className="text-xs font-medium text-primary-900">Auto-call new digital leads</p>
+              <p className="text-[10px] text-primary-700/70 mt-0.5 leading-relaxed">
                 Automatically trigger voice calls for fresh leads (score 0). Branch auto-call must also be enabled.
               </p>
             </div>
@@ -226,15 +226,16 @@ export function AiAgentsPage() {
   return (
     <div className="mx-auto w-full max-w-7xl flex flex-col gap-6">
       {/* Hero Section */}
-      <div className="relative overflow-hidden rounded-3xl bg-slate-900 px-6 py-8 shadow-xl dark:bg-slate-950 sm:px-8 sm:py-10">
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -left-[10%] -top-[50%] h-[200%] w-[50%] rounded-full bg-violet-600/30 blur-[100px] dark:bg-violet-600/20" />
-          <div className="absolute -right-[20%] top-[-20%] h-[150%] w-[60%] rounded-full bg-blue-500/20 blur-[120px] dark:bg-blue-500/10" />
-        </div>
+      <div className="relative overflow-hidden rounded-3xl bg-[#0B0F19] px-6 py-8 shadow-2xl shadow-primary-900/10 ring-1 ring-slate-900/5 dark:bg-slate-950 dark:ring-white/10 sm:px-9 sm:py-9">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.03] dark:opacity-[0.05]"
+          style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h1v1H0V0zm23 23h1v1h-1v-1z' fill='white'/%3E%3C/svg%3E\")", backgroundSize: "24px 24px" }}
+        />
+        <div className="pointer-events-none absolute -left-20 -top-20 h-[300px] w-[300px] rounded-full bg-primary-500/10 blur-[80px]" />
 
         <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
-            <span className="inline-flex items-center rounded-full bg-violet-500/10 px-2.5 py-0.5 text-xs sm:text-sm font-medium text-violet-300 ring-1 ring-inset ring-violet-500/20 backdrop-blur-md">
+            <span className="inline-flex items-center rounded-full bg-primary-500/10 px-2.5 py-0.5 text-xs sm:text-sm font-medium text-primary-300 ring-1 ring-inset ring-primary-500/20 backdrop-blur-md">
               Intelligence Engine
             </span>
             <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-white sm:text-3xl">

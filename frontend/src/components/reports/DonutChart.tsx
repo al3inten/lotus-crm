@@ -1,4 +1,4 @@
-import { VIZ, CATEGORICAL } from "./vizTheme";
+import { CATEGORICAL, useIsDarkMode } from "./vizTheme";
 
 export interface DonutSlice {
   label: string;
@@ -21,10 +21,12 @@ const GAP = 2;
  * measures that sum to a meaningful whole (counts), not rates.
  */
 export function DonutChart({ slices }: { slices: DonutSlice[] }) {
+  const isDark = useIsDarkMode();
+  const palette = isDark ? CATEGORICAL.dark : CATEGORICAL.light;
   const total = slices.reduce((sum, s) => sum + s.value, 0);
 
   if (slices.length === 0 || total === 0) {
-    return <p className="text-sm text-gray-400">No data in this range.</p>;
+    return <p className="text-sm text-gray-400 dark:text-slate-500">No data in this range.</p>;
   }
 
   let offset = 0;
@@ -33,7 +35,7 @@ export function DonutChart({ slices }: { slices: DonutSlice[] }) {
     const len = Math.max(fraction * CIRCUMFERENCE - GAP, 0);
     const arc = {
       slice,
-      color: CATEGORICAL.light[i % CATEGORICAL.light.length],
+      color: palette[i % palette.length],
       dash: `${len} ${CIRCUMFERENCE - len}`,
       // Negative offset walks clockwise from 12 o'clock.
       dashOffset: -offset,
@@ -67,12 +69,13 @@ export function DonutChart({ slices }: { slices: DonutSlice[] }) {
           x="50%"
           y="47%"
           textAnchor="middle"
-          className="tabular-nums"
-          style={{ fontSize: 22, fontWeight: 700, fill: VIZ.inkPrimary }}
+          fill="currentColor"
+          className="tabular-nums text-slate-900 dark:text-white"
+          style={{ fontSize: 22, fontWeight: 700 }}
         >
           {total.toLocaleString()}
         </text>
-        <text x="50%" y="60%" textAnchor="middle" style={{ fontSize: 11, fill: VIZ.inkMuted }}>
+        <text x="50%" y="60%" textAnchor="middle" fill="currentColor" className="text-slate-400 dark:text-slate-500" style={{ fontSize: 11 }}>
           Total
         </text>
       </svg>
@@ -81,10 +84,10 @@ export function DonutChart({ slices }: { slices: DonutSlice[] }) {
         {arcs.map((arc) => (
           <li key={arc.slice.label} className="flex items-center gap-2 text-xs">
             <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ backgroundColor: arc.color }} />
-            <span className="flex-1 truncate text-gray-700" title={arc.slice.label}>
+            <span className="flex-1 truncate text-gray-700 dark:text-slate-300" title={arc.slice.label}>
               {arc.slice.label}
             </span>
-            <span className="shrink-0 tabular-nums text-gray-500">
+            <span className="shrink-0 tabular-nums text-gray-500 dark:text-slate-400">
               {arc.slice.valueLabel} · {arc.percent}%
             </span>
           </li>

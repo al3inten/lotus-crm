@@ -81,7 +81,7 @@ export const SearchableSelect = forwardRef<HTMLInputElement, SearchableSelectPro
           className={clsx(
             "flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm shadow-sm transition-all bg-white dark:bg-slate-950",
             error ? "border-red-400 dark:border-red-500/50" : "border-slate-300 dark:border-slate-700",
-            open && "ring-2 ring-blue-500/50",
+            open && "ring-2 ring-primary-500/50",
             disabled && "cursor-not-allowed opacity-60"
           )}
         >
@@ -137,7 +137,7 @@ export const SearchableSelect = forwardRef<HTMLInputElement, SearchableSelectPro
                   className={clsx(
                     "flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors",
                     i === highlight
-                      ? "bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300"
+                      ? "bg-primary-50 text-primary-700 dark:bg-primary-500/15 dark:text-primary-300"
                       : "text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
                   )}
                 >

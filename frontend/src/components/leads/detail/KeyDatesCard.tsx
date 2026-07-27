@@ -33,7 +33,7 @@ export function KeyDatesCard({ keyDates, followUpUrgency, followUpDueAt }: KeyDa
                 ? "bg-red-50/70 dark:bg-red-500/10"
                 : followUpUrgency === "today"
                   ? "bg-amber-50/70 dark:bg-amber-500/10"
-                  : "bg-blue-50/70 dark:bg-blue-500/10"
+                  : "bg-primary-50/70 dark:bg-primary-500/10"
             )}
           >
             <span
@@ -43,7 +43,7 @@ export function KeyDatesCard({ keyDates, followUpUrgency, followUpDueAt }: KeyDa
                   ? "text-red-900 dark:text-red-200"
                   : followUpUrgency === "today"
                     ? "text-amber-900 dark:text-amber-200"
-                    : "text-blue-900 dark:text-blue-200"
+                    : "text-primary-900 dark:text-primary-200"
               )}
             >
               Next Follow-up
@@ -55,7 +55,7 @@ export function KeyDatesCard({ keyDates, followUpUrgency, followUpDueAt }: KeyDa
                   ? "text-red-700 dark:text-red-300"
                   : followUpUrgency === "today"
                     ? "text-amber-700 dark:text-amber-300"
-                    : "text-blue-700 dark:text-blue-300"
+                    : "text-primary-700 dark:text-primary-300"
               )}
             >
               {followUpDueAt ? new Date(followUpDueAt).toLocaleDateString() : "—"}

@@ -88,7 +88,7 @@ export function FollowUpTable({
       <div className="p-4 pb-3">
         <CardHeader
           icon={<Calendar size={18} />}
-          iconClassName="bg-indigo-50 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400"
+          iconClassName="bg-primary-50 text-primary-600 dark:bg-primary-500/20 dark:text-primary-400"
           title="Follow-up History"
           subtitle={`${followUps.length} recorded`}
           actions={

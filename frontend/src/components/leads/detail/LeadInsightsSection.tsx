@@ -19,12 +19,12 @@ export function LeadInsightsSection({ enquiry, leadScore, insights }: LeadInsigh
   return (
     <motion.div
       variants={fadeUp}
-      className="flex flex-col gap-3 rounded-2xl border border-blue-100/80 bg-gradient-to-br from-blue-50/80 via-white to-white p-3.5 sm:flex-row sm:items-center sm:gap-5 dark:border-blue-500/15 dark:from-blue-500/10 dark:via-slate-900/40 dark:to-slate-900/40"
+      className="flex flex-col gap-3 rounded-2xl border border-primary-100/80 bg-primary-50/80 p-3.5 sm:flex-row sm:items-center sm:gap-5 dark:border-primary-500/15 dark:bg-primary-500/10"
     >
       <div className="flex items-center gap-2.5 shrink-0">
         <ScoreRing score={leadScore} />
         <h2 className="flex items-center gap-1.5 text-sm font-semibold text-slate-900 dark:text-white">
-          <Sparkles size={14} className="text-blue-500 dark:text-blue-400" />
+          <Sparkles size={14} className="text-primary-500 dark:text-primary-400" />
           AI Insights
         </h2>
       </div>

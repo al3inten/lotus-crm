@@ -30,7 +30,7 @@ export function EnquirySummaryCard({ enquiry, canReassign, consultants, isUpdati
             <button
               type="button"
               onClick={() => setShowNewEnquiry(true)}
-              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 transition-colors hover:border-blue-300 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:border-slate-700 dark:text-slate-300 dark:hover:border-blue-500/40 dark:hover:text-blue-400"
+              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 transition-colors hover:border-primary-300 hover:text-primary-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 dark:border-slate-700 dark:text-slate-300 dark:hover:border-primary-500/40 dark:hover:text-primary-400"
             >
               <Plus size={13} /> New enquiry
             </button>
@@ -69,7 +69,7 @@ export function EnquirySummaryCard({ enquiry, canReassign, consultants, isUpdati
                     onUpdateConsultant(consultantValue);
                     setConsultantEdit(false);
                   }}
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white transition-colors hover:bg-blue-500 disabled:opacity-40"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-600 text-white transition-colors hover:bg-primary-500 disabled:opacity-40"
                 >
                   <Check size={15} />
                 </button>
@@ -92,7 +92,7 @@ export function EnquirySummaryCard({ enquiry, canReassign, consultants, isUpdati
                       setConsultantValue(enquiry.consultantId ?? "");
                       setConsultantEdit(true);
                     }}
-                    className="text-xs font-semibold text-blue-600 transition-colors hover:underline dark:text-blue-400"
+                    className="text-xs font-semibold text-primary-600 transition-colors hover:underline dark:text-primary-400"
                   >
                     Change
                   </button>

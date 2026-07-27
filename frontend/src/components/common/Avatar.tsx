@@ -1,16 +1,5 @@
 import clsx from "clsx";
 
-const PALETTE = [
-  "bg-blue-600",
-  "bg-emerald-600",
-  "bg-violet-600",
-  "bg-amber-600",
-  "bg-rose-600",
-  "bg-cyan-600",
-  "bg-blue-600",
-  "bg-teal-600",
-];
-
 function initials(name: string): string {
   return name
     .split(" ")
@@ -19,12 +8,6 @@ function initials(name: string): string {
     .slice(0, 2)
     .join("")
     .toUpperCase();
-}
-
-function colorFor(name: string): string {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  return PALETTE[Math.abs(hash) % PALETTE.length];
 }
 
 const SIZE_CLASSES = {
@@ -57,9 +40,8 @@ export function Avatar({
   return (
     <span
       className={clsx(
-        "flex shrink-0 items-center justify-center rounded-full font-bold text-white",
-        SIZE_CLASSES[size],
-        colorFor(name)
+        "flex shrink-0 items-center justify-center rounded-full bg-primary-600 font-bold text-white",
+        SIZE_CLASSES[size]
       )}
     >
       {initials(name) || "?"}

@@ -17,7 +17,7 @@ const PAGE_SIZE = 20;
 
 const TIMEFRAMES: { key: FollowUpTimeframe; label: string; icon: ReactNode; tone: string; statKey: "overdue" | "today" | "thisWeek" | "later" | "total" }[] = [
   { key: "overdue", label: "Overdue", icon: <AlertTriangle size={20} />, tone: "bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-400", statKey: "overdue" },
-  { key: "today", label: "Due today", icon: <CalendarDays size={20} />, tone: "bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400", statKey: "today" },
+  { key: "today", label: "Due today", icon: <CalendarDays size={20} />, tone: "bg-primary-100 text-primary-600 dark:bg-primary-500/15 dark:text-primary-400", statKey: "today" },
   { key: "week", label: "This week", icon: <CalendarRange size={20} />, tone: "bg-violet-100 text-violet-600 dark:bg-violet-500/15 dark:text-violet-400", statKey: "thisWeek" },
   { key: "later", label: "Later", icon: <Clock size={20} />, tone: "bg-slate-100 text-slate-600 dark:bg-slate-700/40 dark:text-slate-300", statKey: "later" },
   { key: "all", label: "All", icon: <Layers size={20} />, tone: "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400", statKey: "total" },
@@ -45,9 +45,9 @@ function TimeframeTile({
       onClick={onClick}
       aria-pressed={active}
       className={clsx(
-        "group relative flex items-center gap-3.5 overflow-hidden rounded-2xl border p-4 text-left transition-all hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+        "group relative flex items-center gap-3.5 overflow-hidden rounded-2xl border p-4 text-left transition-all hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
         active
-          ? "border-blue-400 bg-blue-50/60 ring-1 ring-blue-300 dark:border-blue-500/50 dark:bg-blue-500/10 dark:ring-blue-500/30"
+          ? "border-primary-400 bg-primary-50/60 ring-1 ring-primary-300 dark:border-primary-500/50 dark:bg-primary-500/10 dark:ring-primary-500/30"
           : "border-slate-200 bg-white hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900/50 dark:hover:border-slate-700"
       )}
     >
@@ -128,11 +128,12 @@ export function FollowUpsPage() {
   return (
     <motion.div variants={staggerContainer} initial="hidden" animate="show" className="flex flex-col gap-5">
       {/* ---------- HERO HEADER ---------- */}
-      <motion.div variants={fadeUp} className="relative overflow-hidden rounded-3xl bg-slate-900 px-6 py-8 shadow-xl dark:bg-slate-950 sm:px-9">
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -left-[10%] -top-[60%] h-[220%] w-[45%] rounded-full bg-blue-600/25 blur-[110px] dark:bg-blue-600/12" />
-          <div className="absolute -right-[15%] top-[-30%] h-[170%] w-[55%] rounded-full bg-indigo-500/20 blur-[120px] dark:bg-indigo-500/10" />
-        </div>
+      <motion.div variants={fadeUp} className="relative overflow-hidden rounded-3xl bg-[#0B0F19] px-6 py-8 shadow-2xl shadow-primary-900/10 ring-1 ring-slate-900/5 dark:bg-slate-950 dark:ring-white/10 sm:px-9 sm:py-9">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.03] dark:opacity-[0.05]"
+          style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h1v1H0V0zm23 23h1v1h-1v-1z' fill='white'/%3E%3C/svg%3E\")", backgroundSize: "24px 24px" }}
+        />
+        <div className="pointer-events-none absolute -left-20 -top-20 h-[300px] w-[300px] rounded-full bg-primary-500/10 blur-[80px]" />
         <div className="relative z-10 flex items-center gap-4">
           <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-white shadow-inner ring-1 ring-white/20 backdrop-blur-md">
             <CalendarClock size={26} />
@@ -140,7 +141,7 @@ export function FollowUpsPage() {
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-white">Follow-ups</h1>
             <p className="mt-1.5 flex items-center gap-2 text-sm font-medium text-slate-300">
-              <CalendarClock size={15} className="text-blue-400" />
+              <CalendarClock size={15} className="text-primary-400" />
               {isLoading ? (
                 <span className="inline-block h-4 w-40 animate-pulse rounded bg-white/15" />
               ) : canSeeOthers ? (
@@ -225,7 +226,7 @@ export function FollowUpsPage() {
             )}
           </p>
           {isFetching && (
-            <span className="flex items-center gap-1.5 text-xs font-medium text-blue-600 dark:text-blue-400">
+            <span className="flex items-center gap-1.5 text-xs font-medium text-primary-600 dark:text-primary-400">
               <Loader2 size={13} className="animate-spin" /> Updating…
             </span>
           )}

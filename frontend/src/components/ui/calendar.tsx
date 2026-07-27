@@ -28,18 +28,18 @@ export function Calendar({ className, classNames, showOutsideDays = true, ...pro
         week: "flex w-full mt-1",
         day: "h-9 w-9 p-0 text-center text-sm",
         day_button:
-          "inline-flex h-9 w-9 items-center justify-center rounded-lg font-medium text-slate-700 transition-colors hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-slate-200 dark:hover:bg-slate-800",
+          "inline-flex h-9 w-9 items-center justify-center rounded-lg font-medium text-slate-700 transition-colors hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:text-slate-200 dark:hover:bg-slate-800",
         selected:
-          "[&>button]:bg-blue-600 [&>button]:text-white [&>button]:hover:bg-blue-600 dark:[&>button]:bg-blue-500 dark:[&>button]:hover:bg-blue-500",
-        today: "[&>button]:ring-1 [&>button]:ring-blue-500/50 [&>button]:font-semibold",
+          "[&>button]:bg-primary-600 [&>button]:text-white [&>button]:hover:bg-primary-600 dark:[&>button]:bg-primary-500 dark:[&>button]:hover:bg-primary-500",
+        today: "[&>button]:ring-1 [&>button]:ring-primary-500/50 [&>button]:font-semibold",
         outside: "[&>button]:text-slate-300 dark:[&>button]:text-slate-600",
         disabled: "[&>button]:opacity-30 [&>button]:cursor-not-allowed [&>button]:hover:bg-transparent",
         hidden: "invisible",
         range_middle:
-          "[&>button]:rounded-none [&>button]:bg-blue-50 [&>button]:text-blue-900 dark:[&>button]:bg-blue-500/15 dark:[&>button]:text-blue-100",
+          "[&>button]:rounded-none [&>button]:bg-primary-50 [&>button]:text-primary-900 dark:[&>button]:bg-primary-500/15 dark:[&>button]:text-primary-100",
         dropdowns: "flex items-center justify-center gap-1.5 mt-0.5",
         dropdown:
-          "h-7 rounded-lg border border-slate-200/80 bg-slate-50/50 px-2 py-0.5 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-100/70 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/25 dark:border-slate-800 dark:bg-slate-900/50 dark:hover:bg-slate-800/70 dark:text-slate-300 cursor-pointer",
+          "h-7 rounded-lg border border-slate-200/80 bg-slate-50/50 px-2 py-0.5 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-100/70 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-primary-500/25 dark:border-slate-800 dark:bg-slate-900/50 dark:hover:bg-slate-800/70 dark:text-slate-300 cursor-pointer",
         ...classNames,
       }}
       components={{

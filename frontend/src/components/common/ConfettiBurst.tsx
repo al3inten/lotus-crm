@@ -174,7 +174,7 @@ export function ConfettiBurst({ customerName, crName, carModel, onDone }: Confet
         transition={{ type: "spring", stiffness: 280, damping: 18 }}
         className="absolute left-1/2 top-[34%] w-[min(90vw,26rem)] -translate-x-1/2"
       >
-        <div className="flex items-center gap-4 rounded-3xl border border-white/20 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 px-6 py-5 text-white shadow-2xl shadow-blue-950/50">
+        <div className="flex items-center gap-4 rounded-3xl border border-white/20 bg-primary-700 px-6 py-5 text-white shadow-2xl shadow-primary-950/50">
           <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-inset ring-white/25">
             <motion.span
               initial={{ rotate: -20, scale: 0.6 }}
@@ -185,9 +185,9 @@ export function ConfettiBurst({ customerName, crName, carModel, onDone }: Confet
             </motion.span>
           </span>
           <div className="min-w-0">
-            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-200">Retail Done</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-primary-200">Retail Done</p>
             <h2 className="truncate text-xl font-extrabold leading-tight">{headline}</h2>
-            {sub && <p className="mt-0.5 truncate text-sm font-medium text-blue-100">{sub}</p>}
+            {sub && <p className="mt-0.5 truncate text-sm font-medium text-primary-100">{sub}</p>}
           </div>
         </div>
       </motion.div>

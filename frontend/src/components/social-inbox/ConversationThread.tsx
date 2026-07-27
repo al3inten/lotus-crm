@@ -13,11 +13,11 @@ export function ConversationThread({ conversation }: { conversation: Conversatio
           key={message.id}
           className={clsx(
             "max-w-[75%] rounded-lg px-3 py-2 text-sm",
-            message.direction === "INBOUND" ? "self-start bg-gray-100 text-gray-800" : "self-end bg-blue-600 text-white"
+            message.direction === "INBOUND" ? "self-start bg-gray-100 text-gray-800" : "self-end bg-primary-600 text-white"
           )}
         >
           <p>{message.body}</p>
-          <p className={clsx("mt-1 text-[10px]", message.direction === "INBOUND" ? "text-gray-400" : "text-blue-100")}>
+          <p className={clsx("mt-1 text-[10px]", message.direction === "INBOUND" ? "text-gray-400" : "text-primary-100")}>
             {new Date(message.createdAt).toLocaleString()}
           </p>
         </div>

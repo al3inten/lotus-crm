@@ -13,7 +13,7 @@ const HERO_SLIDES = [
       <>
         Every lead. Every call.
         <br />
-        <span className="bg-gradient-to-r from-blue-400 via-sky-300 to-indigo-400 bg-clip-text text-transparent">
+        <span className="text-primary-300">
           One drive to close.
         </span>
       </>
@@ -26,7 +26,7 @@ const HERO_SLIDES = [
       <>
         AI that follows up,
         <br />
-        <span className="bg-gradient-to-r from-cyan-300 via-blue-300 to-indigo-400 bg-clip-text text-transparent">
+        <span className="text-primary-300">
           so you never have to.
         </span>
       </>
@@ -39,7 +39,7 @@ const HERO_SLIDES = [
       <>
         From first enquiry
         <br />
-        <span className="bg-gradient-to-r from-indigo-300 via-blue-300 to-sky-300 bg-clip-text text-transparent">
+        <span className="text-primary-300">
           to key handover.
         </span>
       </>
@@ -82,8 +82,8 @@ export function HeroSection() {
         {/* Keep the video clearly visible: only a light top scrim for nav
             legibility and a fade to the page background at the very bottom.
             Text legibility comes from the blurred glow behind the slide content. */}
-        <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black/40 to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-b from-transparent to-white dark:to-slate-950" />
+        <div className="absolute inset-x-0 top-0 h-40 bg-black/20" />
+        <div className="absolute inset-x-0 bottom-0 h-2/5 bg-white/60 dark:bg-slate-950/60" />
       </div>
 
       {/* Prev / next slide controls */}
@@ -93,7 +93,7 @@ export function HeroSection() {
         aria-label="Previous slide"
         className={clsx(
           "absolute left-3 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white backdrop-blur-md transition-colors hover:bg-white/15 sm:flex md:left-6",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-950"
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-950"
         )}
       >
         <ChevronLeft size={20} />
@@ -104,7 +104,7 @@ export function HeroSection() {
         aria-label="Next slide"
         className={clsx(
           "absolute right-3 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white backdrop-blur-md transition-colors hover:bg-white/15 sm:flex md:right-6",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-950"
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-950"
         )}
       >
         <ChevronRight size={20} />
@@ -132,8 +132,8 @@ export function HeroSection() {
             exit={reduceMotion ? undefined : { opacity: 0, y: -18 }}
             transition={{ duration: 0.5, ease: EASE }}
           >
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-xs font-medium tracking-wide text-blue-200 backdrop-blur-md">
-              <Sparkles size={14} className="text-blue-300" />
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-xs font-medium tracking-wide text-primary-200 backdrop-blur-md">
+              <Sparkles size={14} className="text-primary-300" />
               {HERO_SLIDES[activeSlide].badge}
             </div>
 
@@ -156,7 +156,7 @@ export function HeroSection() {
           <Link
             to="/login"
             className={clsx(
-              "group inline-flex items-center gap-2 rounded-xl bg-blue-600 px-7 py-3.5 text-base font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-blue-500",
+              "group inline-flex items-center gap-2 rounded-xl bg-primary-600 px-7 py-3.5 text-base font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-primary-500",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-0"
             )}
           >

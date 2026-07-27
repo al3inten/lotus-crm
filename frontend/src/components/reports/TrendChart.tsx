@@ -18,7 +18,7 @@ function formatBucket(bucket: string) {
 
 export function TrendChart({ points }: { points: TrendPoint[] }) {
   if (points.length === 0) {
-    return <p className="text-sm text-slate-400">No data in this range.</p>;
+    return <p className="text-sm text-slate-400 dark:text-slate-500">No data in this range.</p>;
   }
 
   const max = Math.max(1, ...points.map((p) => p.total));

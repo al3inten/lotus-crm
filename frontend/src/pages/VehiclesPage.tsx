@@ -106,24 +106,31 @@ export function VehiclesPage() {
   // using the wrong name leaves every child stuck in `hidden`, i.e. opacity 0.
   return (
     <motion.div initial="hidden" animate="show" variants={staggerContainer} className="flex flex-col gap-5">
-      {/* Header — plain page header consistent with the rest of the app */}
-      <motion.div variants={fadeUp} className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600 ring-1 ring-inset ring-blue-500/20 dark:bg-blue-500/10 dark:text-blue-400">
-            <CarFront size={22} />
-          </span>
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-white">Vehicle Models</h1>
-            <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
-              Browse models, variants and configurations available at your showrooms.
-            </p>
+      {/* ---------- HERO HEADER ---------- */}
+      <motion.div variants={fadeUp} className="relative overflow-hidden rounded-3xl bg-[#0B0F19] px-6 py-8 shadow-2xl shadow-primary-900/10 ring-1 ring-slate-900/5 dark:bg-slate-950 dark:ring-white/10 sm:px-9 sm:py-9">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.03] dark:opacity-[0.05]"
+          style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h1v1H0V0zm23 23h1v1h-1v-1z' fill='white'/%3E%3C/svg%3E\")", backgroundSize: "24px 24px" }}
+        />
+        <div className="pointer-events-none absolute -left-20 -top-20 h-[300px] w-[300px] rounded-full bg-primary-500/10 blur-[80px]" />
+        <div className="relative z-10 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-white shadow-inner ring-1 ring-white/20 backdrop-blur-md">
+              <CarFront size={26} />
+            </span>
+            <div>
+              <h1 className="text-3xl font-extrabold tracking-tight text-white">Vehicle Models</h1>
+              <p className="mt-1.5 text-sm font-medium text-slate-300">
+                Browse models, variants and configurations available at your showrooms.
+              </p>
+            </div>
           </div>
+          {isSuperAdmin && (
+            <Button icon={<Plus size={16} />} onClick={handleCreate}>
+              Add Vehicle
+            </Button>
+          )}
         </div>
-        {isSuperAdmin && (
-          <Button icon={<Plus size={16} />} onClick={handleCreate}>
-            Add Vehicle
-          </Button>
-        )}
       </motion.div>
 
       {/* Filter bar */}
@@ -138,7 +145,7 @@ export function VehiclesPage() {
             placeholder="Search models…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-900 shadow-sm transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/15 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500"
+            className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-900 shadow-sm transition-colors placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/15 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500"
           />
         </div>
 
@@ -193,7 +200,7 @@ export function VehiclesPage() {
             <button
               type="button"
               onClick={clearFilters}
-              className="mt-3 text-sm font-semibold text-blue-600 hover:underline dark:text-blue-400"
+              className="mt-3 text-sm font-semibold text-primary-600 hover:underline dark:text-primary-400"
             >
               Clear filters
             </button>

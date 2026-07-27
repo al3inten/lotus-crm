@@ -20,14 +20,14 @@ export function ChannelBand() {
           </p>
         </Reveal>
         <Reveal delay={0.1}>
-          <div className="mt-7 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]">
+          <div className="mt-7 overflow-hidden">
             <div className="flex w-max animate-marquee gap-3 sm:gap-4">
               {[...CHANNELS, ...CHANNELS].map((c, i) => (
                 <span
                   key={`${c.label}-${i}`}
-                  className="inline-flex shrink-0 items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-blue-300 hover:text-blue-700 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300 dark:hover:border-white/20 dark:hover:text-white"
+                  className="inline-flex shrink-0 items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-primary-300 hover:text-primary-700 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300 dark:hover:border-white/20 dark:hover:text-white"
                 >
-                  <span className="text-blue-500 dark:text-blue-400">{c.icon}</span>
+                  <span className="text-primary-500 dark:text-primary-400">{c.icon}</span>
                   {c.label}
                 </span>
               ))}

@@ -63,7 +63,7 @@ export function Step2CustomerDetails({
           />
           {lookupLoading && (
             <div className="absolute right-3 top-[38px]">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600" />
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-primary-600" />
             </div>
           )}
         </div>
@@ -118,7 +118,7 @@ export function Step2CustomerDetails({
           />
           {cityLoading && (
             <div className="absolute right-3 top-[38px]">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600" />
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-primary-600" />
             </div>
           )}
         </div>

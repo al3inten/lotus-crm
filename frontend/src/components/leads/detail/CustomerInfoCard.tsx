@@ -9,7 +9,7 @@ export function CustomerInfoCard({ lead, enquiry }: { lead: LeadWithHistory; enq
     <Card className="flex h-full flex-col">
       <CardHeader
         icon={<UserCircle2 size={18} />}
-        iconClassName="bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400"
+        iconClassName="bg-primary-50 text-primary-600 dark:bg-primary-500/20 dark:text-primary-400"
         title="Customer Information"
         subtitle="Who you're speaking with"
       />

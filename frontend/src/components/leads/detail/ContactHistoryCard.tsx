@@ -16,7 +16,7 @@ export function ContactHistoryCard({ lead }: { lead: LeadWithHistory }) {
         />
         <div className="mb-3 flex flex-wrap gap-1.5">
           {Object.entries(lead.touchesBySource).map(([source, count]) => (
-            <span key={source} className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 dark:bg-blue-500/15 dark:text-blue-300">
+            <span key={source} className="rounded-full bg-primary-50 px-2.5 py-1 text-xs font-medium text-primary-700 dark:bg-primary-500/15 dark:text-primary-300">
               {source.replaceAll("_", " ")} ×{count}
             </span>
           ))}

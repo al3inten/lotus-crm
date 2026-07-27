@@ -154,7 +154,7 @@ export function PhoneInput({
     <FieldWrapper label={label} error={error} required={required}>
       <div
         className={clsx(
-          "flex rounded-lg border shadow-sm transition-all focus-within:ring-2 focus-within:ring-blue-500/50",
+          "flex rounded-lg border shadow-sm transition-all focus-within:ring-2 focus-within:ring-primary-500/50",
           error ? "border-red-400 dark:border-red-500/50" : "border-slate-300 dark:border-slate-700",
           disabled && "opacity-60"
         )}

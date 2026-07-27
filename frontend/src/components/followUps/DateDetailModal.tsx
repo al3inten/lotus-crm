@@ -39,14 +39,14 @@ export function DateDetailModal({
           type="button"
           disabled={popupTotal === 0}
           onClick={onViewAll}
-          className="w-full rounded-xl bg-blue-600 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:pointer-events-none disabled:opacity-40"
+          className="w-full rounded-xl bg-primary-600 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-700 disabled:pointer-events-none disabled:opacity-40"
         >
           View all {popupTotal} follow-up{popupTotal === 1 ? "" : "s"}
         </button>
       }
     >
       <div className="mb-4 flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-        <CalendarClock size={15} className="text-blue-500" />
+        <CalendarClock size={15} className="text-primary-500" />
         <span className="font-semibold text-slate-900 tabular-nums dark:text-white">{popupTotal}</span>
         follow-up{popupTotal === 1 ? "" : "s"} scheduled
       </div>
@@ -68,13 +68,13 @@ export function DateDetailModal({
               key={cr.id}
               type="button"
               onClick={() => onSelectCr(cr.id)}
-              className="flex items-center justify-between gap-2 rounded-xl border border-transparent px-3 py-2.5 text-left transition-colors hover:border-blue-300 hover:bg-blue-50 dark:hover:border-blue-500/40 dark:hover:bg-blue-500/10"
+              className="flex items-center justify-between gap-2 rounded-xl border border-transparent px-3 py-2.5 text-left transition-colors hover:border-primary-300 hover:bg-primary-50 dark:hover:border-primary-500/40 dark:hover:bg-primary-500/10"
             >
               <span className="flex min-w-0 items-center gap-2.5">
                 <Avatar name={cr.name} size="sm" />
                 <span className="truncate text-sm font-medium text-slate-700 dark:text-slate-200">{cr.name}</span>
               </span>
-              <span className="shrink-0 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-bold tabular-nums text-blue-700 dark:bg-blue-500/20 dark:text-blue-300">
+              <span className="shrink-0 rounded-full bg-primary-100 px-2.5 py-0.5 text-xs font-bold tabular-nums text-primary-700 dark:bg-primary-500/20 dark:text-primary-300">
                 {cr.count}
               </span>
             </button>

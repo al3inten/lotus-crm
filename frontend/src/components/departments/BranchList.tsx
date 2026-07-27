@@ -98,12 +98,12 @@ export function BranchList({ branches, selectedBranchId, onSelect }: BranchListP
           <Card
             key={branch.id}
             padded={false}
-            className={clsx("p-4", selectedBranchId === branch.id && "border-blue-300 ring-1 ring-blue-200", !branch.isActive && "opacity-60")}
+            className={clsx("p-4", selectedBranchId === branch.id && "border-primary-300 ring-1 ring-primary-200", !branch.isActive && "opacity-60")}
             onClick={() => onSelect(branch.id)}
           >
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-50 text-primary-600">
                   <Building2 size={20} />
                 </span>
                 <div>

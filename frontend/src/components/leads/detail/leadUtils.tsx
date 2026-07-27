@@ -59,22 +59,22 @@ export const INSIGHT_TONE: Record<InsightTone, string> = {
   urgent: "bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-300",
   warn: "bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-300",
   positive: "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300",
-  info: "bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300",
+  info: "bg-primary-100 text-primary-600 dark:bg-primary-500/15 dark:text-primary-300",
 };
 
 export type Mood = "blue" | "emerald" | "red";
 export type MoodStyle = { base: string; blobA: string; blobB: string; blobC: string; border: string; glow: string };
 export const MOOD_STYLES: Record<Mood, MoodStyle> = {
   blue: {
-    base: "from-slate-950 via-indigo-950 to-slate-900",
-    blobA: "bg-indigo-500",
+    base: "bg-slate-900",
+    blobA: "bg-primary-500",
     blobB: "bg-sky-400",
     blobC: "bg-violet-500",
-    border: "border-l-blue-500",
+    border: "border-l-primary-500",
     glow: "shadow-[0_30px_80px_-25px_rgba(79,70,229,0.5)] dark:shadow-[0_30px_80px_-25px_rgba(79,70,229,0.35)]",
   },
   emerald: {
-    base: "from-slate-950 via-emerald-950 to-slate-900",
+    base: "bg-slate-900",
     blobA: "bg-emerald-400",
     blobB: "bg-teal-400",
     blobC: "bg-cyan-400",
@@ -82,7 +82,7 @@ export const MOOD_STYLES: Record<Mood, MoodStyle> = {
     glow: "shadow-[0_30px_80px_-25px_rgba(5,150,105,0.5)] dark:shadow-[0_30px_80px_-25px_rgba(5,150,105,0.35)]",
   },
   red: {
-    base: "from-slate-950 via-rose-950 to-slate-900",
+    base: "bg-slate-900",
     blobA: "bg-rose-500",
     blobB: "bg-orange-400",
     blobC: "bg-red-500",
@@ -185,9 +185,9 @@ export function computeLeadScore(lead: LeadWithHistory, enquiry: Enquiry): numbe
   return Math.max(5, Math.min(100, Math.round(score)));
 }
 
-export function scoreTier(score: number): { stops: [string, string]; glow: string; text: string } {
-  if (score >= 70) return { stops: ["#34d399", "#0d9488"], glow: "rgba(16,185,129,0.45)", text: "from-emerald-500 to-teal-500 dark:from-emerald-400 dark:to-teal-400" };
-  if (score >= 45) return { stops: ["#60a5fa", "#4f46e5"], glow: "rgba(59,130,246,0.45)", text: "from-blue-500 to-indigo-500 dark:from-blue-400 dark:to-indigo-400" };
-  if (score >= 25) return { stops: ["#fbbf24", "#ea580c"], glow: "rgba(217,119,6,0.45)", text: "from-amber-500 to-orange-600 dark:from-amber-400 dark:to-orange-400" };
-  return { stops: ["#fb7185", "#dc2626"], glow: "rgba(220,38,38,0.45)", text: "from-rose-500 to-red-600 dark:from-rose-400 dark:to-red-400" };
+export function scoreTier(score: number): { color: string; glow: string; text: string } {
+  if (score >= 70) return { color: "#0d9488", glow: "rgba(16,185,129,0.45)", text: "text-teal-600 dark:text-teal-400" };
+  if (score >= 45) return { color: "#4f46e5", glow: "rgba(59,130,246,0.45)", text: "text-primary-600 dark:text-primary-400" };
+  if (score >= 25) return { color: "#ea580c", glow: "rgba(217,119,6,0.45)", text: "text-orange-600 dark:text-orange-400" };
+  return { color: "#dc2626", glow: "rgba(220,38,38,0.45)", text: "text-red-600 dark:text-red-400" };
 }

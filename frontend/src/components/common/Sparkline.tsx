@@ -1,4 +1,3 @@
-import { useId } from "react";
 import { motion } from "framer-motion";
 
 interface SparklineProps {
@@ -9,9 +8,8 @@ interface SparklineProps {
   className?: string;
 }
 
-/** Tiny SVG trend line with a soft gradient area fill and an animated draw-in stroke. */
+/** Tiny SVG trend line with a flat translucent area fill and an animated draw-in stroke. */
 export function Sparkline({ data, color = "#2563EB", width = 100, height = 36, className }: SparklineProps) {
-  const gid = useId();
   if (!data || data.length < 2) return null;
 
   const pad = 3;
@@ -37,13 +35,7 @@ export function Sparkline({ data, color = "#2563EB", width = 100, height = 36, c
       preserveAspectRatio="none"
       aria-hidden="true"
     >
-      <defs>
-        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity={0.2} />
-          <stop offset="100%" stopColor={color} stopOpacity={0} />
-        </linearGradient>
-      </defs>
-      <path d={area} fill={`url(#${gid})`} />
+      <path d={area} fill={color} fillOpacity={0.1} />
       <motion.path
         d={line}
         stroke={color}

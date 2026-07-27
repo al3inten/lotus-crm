@@ -41,7 +41,7 @@ export function RepBreakdownPanel({
         <Card className="flex h-full flex-col">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
-              <UserIcon size={15} className="text-blue-500" /> By rep
+              <UserIcon size={15} className="text-primary-500" /> By rep
             </h2>
             <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold tabular-nums text-slate-600 dark:bg-slate-800 dark:text-slate-300">
               {(calendar?.total ?? 0).toLocaleString()}
@@ -66,7 +66,7 @@ export function RepBreakdownPanel({
                     className={clsx(
                       "flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left transition-colors",
                       active
-                        ? "border-blue-400 bg-blue-50 dark:border-blue-500/50 dark:bg-blue-500/10"
+                        ? "border-primary-400 bg-primary-50 dark:border-primary-500/50 dark:bg-primary-500/10"
                         : "border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/60"
                     )}
                   >
@@ -78,7 +78,7 @@ export function RepBreakdownPanel({
                       className={clsx(
                         "shrink-0 rounded-full px-2 py-0.5 text-xs font-bold tabular-nums",
                         active
-                          ? "bg-blue-600 text-white"
+                          ? "bg-primary-600 text-white"
                           : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
                       )}
                     >

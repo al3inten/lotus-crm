@@ -68,16 +68,17 @@ export function IntegrationsPage() {
       {/* Hero Section */}
       <motion.div 
         variants={itemVariants}
-        className="relative overflow-hidden rounded-3xl bg-slate-900 px-6 py-8 shadow-xl dark:bg-slate-950 sm:px-8 sm:py-10"
+        className="relative overflow-hidden rounded-3xl bg-[#0B0F19] px-6 py-8 shadow-2xl shadow-primary-900/10 ring-1 ring-slate-900/5 dark:bg-slate-950 dark:ring-white/10 sm:px-9 sm:py-9"
       >
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -left-[10%] -top-[50%] h-[200%] w-[50%] rounded-full bg-blue-600/30 blur-[100px] dark:bg-blue-600/20" />
-          <div className="absolute -right-[20%] top-[-20%] h-[150%] w-[60%] rounded-full bg-fuchsia-500/20 blur-[120px] dark:bg-fuchsia-500/10" />
-        </div>
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.03] dark:opacity-[0.05]"
+          style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h1v1H0V0zm23 23h1v1h-1v-1z' fill='white'/%3E%3C/svg%3E\")", backgroundSize: "24px 24px" }}
+        />
+        <div className="pointer-events-none absolute -left-20 -top-20 h-[300px] w-[300px] rounded-full bg-primary-500/10 blur-[80px]" />
 
         <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
-            <span className="inline-flex items-center rounded-full bg-blue-500/10 px-2.5 py-0.5 text-xs sm:text-sm font-medium text-blue-300 ring-1 ring-inset ring-blue-500/20 backdrop-blur-md">
+            <span className="inline-flex items-center rounded-full bg-primary-500/10 px-2.5 py-0.5 text-xs sm:text-sm font-medium text-primary-300 ring-1 ring-inset ring-primary-500/20 backdrop-blur-md">
               Integration Hub
             </span>
             <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
@@ -98,7 +99,7 @@ export function IntegrationsPage() {
               id="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="block w-full rounded-xl border-0 bg-white/10 py-3 pl-11 pr-4 text-white shadow-sm ring-1 ring-inset ring-white/20 backdrop-blur-md placeholder:text-slate-400 focus:bg-white/20 focus:ring-2 focus:ring-inset focus:ring-blue-500 sm:text-sm sm:leading-6 transition-all"
+              className="block w-full rounded-xl border-0 bg-white/10 py-3 pl-11 pr-4 text-white shadow-sm ring-1 ring-inset ring-white/20 backdrop-blur-md placeholder:text-slate-400 focus:bg-white/20 focus:ring-2 focus:ring-inset focus:ring-primary-500 sm:text-sm sm:leading-6 transition-all"
               placeholder="Search integrations…"
             />
           </div>
@@ -155,7 +156,7 @@ export function IntegrationsPage() {
             onClick={() => setCategory(c)}
             className={clsx(
               "rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
-              category === c ? "bg-blue-600 text-white shadow-sm" : "bg-white text-slate-600 ring-1 ring-inset ring-slate-200 hover:bg-slate-50"
+              category === c ? "bg-primary-600 text-white shadow-sm" : "bg-white text-slate-600 ring-1 ring-inset ring-slate-200 hover:bg-slate-50"
             )}
           >
             {c}

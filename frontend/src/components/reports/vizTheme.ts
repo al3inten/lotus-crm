@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 // Chart palette — validated with the dataviz skill's validate_palette.js:
 // categorical [blue, aqua, red] passes (aqua is sub-3:1 on light surface, so charts
 // using it must carry visible labels or a table view — the relief rule).
@@ -30,6 +32,25 @@ export function formatCompact(value: number): string {
   if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
   if (Math.abs(value) >= 10_000) return `${(value / 1_000).toFixed(1)}K`;
   return value.toLocaleString();
+}
+
+/**
+ * Tracks the `.dark` class on <html> so chart components can pick CATEGORICAL.dark vs
+ * .light — those are re-stepped hues, not the same palette, so getting this wrong means
+ * donut/stacked-bar colors look muddy against a dark surface. Watches via MutationObserver
+ * since the theme toggle lives in a separate component (no shared context to read from).
+ */
+export function useIsDarkMode(): boolean {
+  const getIsDark = () => typeof document !== "undefined" && document.documentElement.classList.contains("dark");
+  const [isDark, setIsDark] = useState(getIsDark);
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => setIsDark(getIsDark()));
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
+
+  return isDark;
 }
 
 export function formatHours(hours: number): string {

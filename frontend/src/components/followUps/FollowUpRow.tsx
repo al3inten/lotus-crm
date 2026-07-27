@@ -34,7 +34,7 @@ export function dueMeta(iso: string): { label: string; className: string } {
     const n = Math.abs(days);
     return { label: `${dateStr} · ${n} day${n === 1 ? "" : "s"} overdue`, className: "text-red-600 dark:text-red-400" };
   }
-  if (days === 0) return { label: `${dateStr} · today`, className: "text-blue-600 dark:text-blue-400 font-semibold" };
+  if (days === 0) return { label: `${dateStr} · today`, className: "text-primary-600 dark:text-primary-400 font-semibold" };
   if (days === 1) return { label: `${dateStr} · tomorrow`, className: "text-violet-600 dark:text-violet-400" };
   return { label: dateStr, className: "text-slate-500 dark:text-slate-400" };
 }
@@ -63,7 +63,7 @@ function FollowUpRowImpl({
       aria-label={`Open follow-up for ${item.leadName}`}
       onClick={() => onOpen(item)}
       onKeyDown={onKey}
-      className="group flex cursor-pointer flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 transition-all hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-[0_12px_30px_rgb(0,0,0,0.07)] focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-blue-500/40 sm:flex-row sm:items-center"
+      className="group flex cursor-pointer flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 transition-all hover:-translate-y-0.5 hover:border-primary-300 hover:shadow-[0_12px_30px_rgb(0,0,0,0.07)] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-primary-500/40 sm:flex-row sm:items-center"
     >
       {/* Identity */}
       <div className="flex min-w-0 flex-1 items-center gap-3">

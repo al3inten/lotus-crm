@@ -39,9 +39,9 @@ export function LoginPage() {
   };
 
   const inputBase =
-    "glass-input w-full rounded-xl border py-3 pl-11 text-sm text-white shadow-sm transition-all duration-200 placeholder:text-slate-300/70 focus:outline-none focus:ring-4 focus:ring-blue-400/20";
+    "glass-input w-full rounded-xl border py-3 pl-11 text-sm text-white shadow-sm transition-all duration-200 placeholder:text-slate-300/70 focus:outline-none focus:ring-4 focus:ring-primary-400/20";
   const inputResting =
-    "border-white/15 bg-slate-950/40 hover:border-white/25 hover:bg-slate-950/30 focus:border-blue-300/70 focus:bg-slate-950/30";
+    "border-white/15 bg-slate-950/40 hover:border-white/25 hover:bg-slate-950/30 focus:border-primary-300/70 focus:bg-slate-950/30";
   const inputError =
     "border-white/40 bg-slate-950/40 focus:border-white/60 focus:ring-white/20";
 
@@ -51,7 +51,7 @@ export function LoginPage() {
       <div className="pointer-events-none absolute inset-0">
         <img src="/Hyundai-showroom.jpeg" alt="" className="h-full w-full object-cover" />
         <div className="absolute inset-0 bg-black/40" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-black/10" />
+        <div className="absolute inset-0 bg-black/40" />
       </div>
 
       <Link
@@ -73,7 +73,7 @@ export function LoginPage() {
       >
         <motion.span
           variants={fadeUp}
-          className="inline-flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] font-medium text-blue-100 backdrop-blur-sm"
+          className="inline-flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] font-medium text-primary-100 backdrop-blur-sm"
         >
           <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px] shadow-emerald-400" />
           Hyundai Dealership Suite
@@ -81,7 +81,7 @@ export function LoginPage() {
 
         <motion.h2 variants={fadeUp} className="text-3xl font-semibold leading-[1.15] tracking-tight xl:text-4xl">
           Every lead, call, and conversion —{" "}
-          <span className="bg-gradient-to-r from-blue-300 to-indigo-200 bg-clip-text text-transparent">
+          <span className="text-primary-200">
             in one place.
           </span>
         </motion.h2>
@@ -96,7 +96,7 @@ export function LoginPage() {
               variants={fadeUp}
               className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3 backdrop-blur-sm transition-colors hover:bg-white/[0.07]"
             >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/30 to-blue-500/5 text-blue-200 ring-1 ring-inset ring-white/10">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-500/15 text-primary-200 ring-1 ring-inset ring-white/10">
                 <Icon size={16} />
               </span>
               <span className="flex flex-col">
@@ -121,7 +121,7 @@ export function LoginPage() {
         >
           <div className="mb-7 flex flex-col items-center text-center">
             <span className="relative mb-5 flex items-center justify-center rounded-3xl bg-white px-5 py-3 shadow-md">
-              <span className="pointer-events-none absolute inset-0 -z-10 rounded-3xl bg-blue-400/30 blur-xl" />
+              <span className="pointer-events-none absolute inset-0 -z-10 rounded-3xl bg-primary-400/30 blur-xl" />
               <img
                 src="/logo.png"
                 alt="Lotus D-CRM · Hyundai"
@@ -203,7 +203,7 @@ export function LoginPage() {
               type="submit"
               isLoading={isSubmitting}
               icon={<LogIn size={16} />}
-              className="mt-2 w-full shadow-lg shadow-blue-600/20"
+              className="mt-2 w-full shadow-lg shadow-primary-600/20"
               size="lg"
             >
               Sign In
