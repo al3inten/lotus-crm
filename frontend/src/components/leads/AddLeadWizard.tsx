@@ -295,7 +295,9 @@ export function AddLeadWizard({
 
   useEffect(() => {
     if (lookupResult && phone && phone !== autofilledPhone && !isComplete) {
-      if (lookupResult.name) setValue("name", lookupResult.name);
+      // Name is deliberately never auto-filled from a phone match — the CR always types
+      // the customer's name fresh, so a stale/mismatched name from a prior enquiry (e.g.
+      // when this visit is a Referral for the same phone) never silently overwrites it.
       if (lookupResult.email) setValue("email", lookupResult.email);
       if (lookupResult.alternateMobile) setValue("alternateMobile", lookupResult.alternateMobile);
       if (lookupResult.dob) setValue("dob", lookupResult.dob.slice(0, 10));
