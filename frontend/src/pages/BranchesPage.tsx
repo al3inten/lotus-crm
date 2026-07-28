@@ -187,17 +187,21 @@ function RolesTab() {
                   >
                     <Pencil size={15} />
                   </button>
-                  {!role.isSystemDefault && (
-                    <button
-                      className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-40"
-                      onClick={() => deleteRole.mutate(role.id)}
-                      disabled={(role._count?.users ?? 0) > 0}
-                      title={(role._count?.users ?? 0) > 0 ? "Reassign members before deleting" : "Delete role"}
-                      aria-label="Delete role"
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  )}
+                  <button
+                    className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-40"
+                    onClick={() => deleteRole.mutate(role.id)}
+                    disabled={!role.isSystemDefault && (role._count?.users ?? 0) > 0}
+                    title={
+                      role.isSystemDefault
+                        ? "The built-in CR role can't be deleted"
+                        : (role._count?.users ?? 0) > 0
+                          ? "Reassign members before deleting"
+                          : "Delete role"
+                    }
+                    aria-label="Delete role"
+                  >
+                    <Trash2 size={15} />
+                  </button>
                 </div>
               </div>
 
