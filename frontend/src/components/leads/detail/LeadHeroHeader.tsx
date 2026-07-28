@@ -84,6 +84,8 @@ interface LeadHeroHeaderProps {
   crTeam?: User[];
   consultants?: User[];
   canReassign: boolean;
+  /** False when a CR_TEAM user is viewing a lead not assigned to them — view-only. */
+  canAct: boolean;
   completeDetailsNeeded: boolean;
   setShowCustomerView: (v: boolean) => void;
   openFollowUp: () => void;
@@ -99,6 +101,7 @@ export function LeadHeroHeader({
   crTeam,
   consultants,
   canReassign,
+  canAct,
   completeDetailsNeeded,
   setShowCustomerView,
   openFollowUp,
@@ -212,9 +215,9 @@ export function LeadHeroHeader({
               label="Follow-up"
               onClick={openFollowUp}
               tone="primary"
-              disabled={!enquiry || enquiry.status === "CLOSED"}
+              disabled={!enquiry || enquiry.status === "CLOSED" || !canAct}
             />
-            <ActionButton icon={<Pencil size={16} />} label="Edit" onClick={() => setShowDetailsWizard(true)} disabled={!enquiry} />
+            <ActionButton icon={<Pencil size={16} />} label="Edit" onClick={() => setShowDetailsWizard(true)} disabled={!enquiry || !canAct} />
             {enquiry && (
               <button
                 type="button"
@@ -267,8 +270,20 @@ export function LeadHeroHeader({
           </div>
         </div>
 
+        {/* Read-only notice — CR_TEAM viewing a lead not assigned to them */}
+        {!canAct && (
+          <div className="flex items-center gap-2.5 border-t border-slate-200/70 bg-slate-50 px-4 py-2.5 sm:px-5 dark:border-slate-800 dark:bg-slate-800/40">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400">
+              <UserCircle2 size={14} />
+            </span>
+            <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
+              This lead isn't assigned to you — you can view it, but only the assigned CR can make changes.
+            </p>
+          </div>
+        )}
+
         {/* Missing details banner */}
-        {completeDetailsNeeded && (
+        {canAct && completeDetailsNeeded && (
           <div className="flex flex-col gap-2.5 border-t border-amber-200/70 bg-amber-50 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-5 dark:border-amber-500/20 dark:bg-amber-500/10">
             <p className="flex items-center gap-2.5 text-sm font-medium text-amber-800 dark:text-amber-300">
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">

@@ -33,12 +33,15 @@ export function LeadPipelinePanel({
   enquiry,
   callLogs,
   settings,
+  canAct,
   followUpUrgency,
   nextStepCopy,
   keyDates,
   activeTab,
   setActiveTab,
   openFollowUp,
+  onCloseFollowUp,
+  isClosingFollowUp,
   handleQuickActionStatus,
   showStatusModal,
   setShowStatusModal,
@@ -56,12 +59,16 @@ export function LeadPipelinePanel({
   enquiry: Enquiry;
   callLogs?: CallLog[];
   settings: ReturnType<typeof useSettings>["data"];
+  /** False when a CR_TEAM user is viewing a lead not assigned to them — view-only. */
+  canAct: boolean;
   followUpUrgency: "overdue" | "today" | "future" | null;
   nextStepCopy: string;
   keyDates: { label: string; value: Date | null }[];
   activeTab: DetailTab;
   setActiveTab: (tab: DetailTab) => void;
   openFollowUp: () => void;
+  onCloseFollowUp: () => void;
+  isClosingFollowUp: boolean;
   handleQuickActionStatus: (target?: EnquiryStatus) => void;
   showStatusModal: boolean;
   setShowStatusModal: (v: boolean) => void;
@@ -94,14 +101,15 @@ export function LeadPipelinePanel({
   const editableFrom = (start: EnquiryStatus) =>
     enquiry.status !== "CLOSED" && STAGE_RANK[enquiry.status] >= STAGE_RANK[start];
 
-  const testDriveEditable = editableFrom("APPOINTMENT_FIXED");
-  const quotationEditable = editableFrom("TEST_DRIVE");
-  const exchangeEditable = editableFrom("BOOKED");
-  const bookingEditable = editableFrom("BOOKED");
+  const testDriveEditable = canAct && editableFrom("APPOINTMENT_FIXED");
+  const quotationEditable = canAct && editableFrom("TEST_DRIVE");
+  const exchangeEditable = canAct && editableFrom("BOOKED");
+  const bookingEditable = canAct && editableFrom("BOOKED");
 
   // Quotation card still respects the branch's quotationEnabled setting; the rest are always shown.
   const showQuotation = settings?.quotationEnabled !== false;
-  const lockedHint = (stage: string) => `Read-only — editable from the ${stage} stage.`;
+  const lockedHint = (stage: string) =>
+    canAct ? `Read-only — editable from the ${stage} stage.` : "Read-only — this lead isn't assigned to you.";
 
   const hasForms = true;
   const tabs: DetailTab[] = [...(hasForms ? (["forms"] as const) : []), "activity", "details"];
@@ -142,7 +150,7 @@ export function LeadPipelinePanel({
               statusHistory={enquiry.statusHistory}
               appointmentScheduled={enquiry.appointmentScheduled}
               testDriveBooked={enquiry.testDriveInterested || (enquiry.testDriveFeedbacks?.length ?? 0) > 0}
-              onStageClick={handleQuickActionStatus}
+              onStageClick={canAct ? handleQuickActionStatus : undefined}
             />
           </div>
 
@@ -174,20 +182,26 @@ export function LeadPipelinePanel({
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 shrink-0">
-                <Button size="sm" icon={<Zap size={13} />} onClick={openFollowUp}>
-                  Add follow-up
-                </Button>
-                <QuickActions status={enquiry.status} onChangeStatus={handleQuickActionStatus} />
-                <button
-                  type="button"
-                  onClick={() => handleQuickActionStatus(undefined)}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/80 bg-white px-3 py-1.5 text-[13px] font-medium text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500 dark:border-white/[0.08] dark:bg-white/[0.03] dark:text-slate-300 dark:hover:bg-white/[0.06]"
-                >
-                  <ArrowRightLeft size={13} />
-                  Change status
-                </button>
-              </div>
+              {canAct ? (
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  <Button size="sm" icon={<Zap size={13} />} onClick={openFollowUp}>
+                    Add follow-up
+                  </Button>
+                  <QuickActions status={enquiry.status} onChangeStatus={handleQuickActionStatus} />
+                  <button
+                    type="button"
+                    onClick={() => handleQuickActionStatus(undefined)}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/80 bg-white px-3 py-1.5 text-[13px] font-medium text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500 dark:border-white/[0.08] dark:bg-white/[0.03] dark:text-slate-300 dark:hover:bg-white/[0.06]"
+                  >
+                    <ArrowRightLeft size={13} />
+                    Change status
+                  </button>
+                </div>
+              ) : (
+                <span className="shrink-0 text-[13px] font-medium text-slate-400 dark:text-slate-500">
+                  Not assigned to you — view only
+                </span>
+              )}
             </div>
           )}
         </Card>
@@ -244,7 +258,10 @@ export function LeadPipelinePanel({
       {activeTab === "activity" && (
         <LeadActivityTab
           enquiry={enquiry}
+          canAct={canAct}
           openFollowUp={openFollowUp}
+          onCloseFollowUp={onCloseFollowUp}
+          isClosingFollowUp={isClosingFollowUp}
           setShowFollowUpsModal={setShowFollowUpsModal}
           setShowTimelineModal={setShowTimelineModal}
           consultants={consultants}

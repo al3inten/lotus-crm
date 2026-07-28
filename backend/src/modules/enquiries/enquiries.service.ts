@@ -118,13 +118,23 @@ export async function changeStatus(enquiryId: string, input: ChangeStatusInput, 
       }
     }
 
+    // The pipeline only ever moves forward (never back to a follow-up stage), so a
+    // followUpDueAt still set when the stage advances is stale — auto-close it rather
+    // than let it keep surfacing the enquiry in the Follow-ups queue indefinitely.
+    // UNDER_FOLLOW_UP is excluded since that branch below manages followUpDueAt itself.
+    const autoClosingFollowUp = input.toStatus !== "UNDER_FOLLOW_UP" && enquiry.followUpDueAt !== null;
+
     const updated = await tx.enquiry.update({
       where: { id: enquiryId },
       data: {
         status: input.toStatus,
         lossReason: input.toStatus === "CLOSED" ? input.lossReason : enquiry.lossReason,
         lossNote: input.toStatus === "CLOSED" ? input.note : enquiry.lossNote,
-        followUpDueAt: input.toStatus === "UNDER_FOLLOW_UP" ? (input.followUpDueAt ? new Date(input.followUpDueAt) : null) : enquiry.followUpDueAt,
+        followUpDueAt: input.toStatus === "UNDER_FOLLOW_UP"
+          ? (input.followUpDueAt ? new Date(input.followUpDueAt) : null)
+          : autoClosingFollowUp
+            ? null
+            : enquiry.followUpDueAt,
         // Capture WHEN the appointment is when fixing it, and flag it as scheduled.
         appointmentAt:
           input.toStatus === "APPOINTMENT_FIXED" && input.appointmentAt ? new Date(input.appointmentAt) : enquiry.appointmentAt,
@@ -151,6 +161,47 @@ export async function changeStatus(enquiryId: string, input: ChangeStatusInput, 
         toStatus: input.toStatus,
         changedById,
         note: input.note,
+      },
+    });
+
+    if (autoClosingFollowUp) {
+      await tx.comment.create({
+        data: {
+          enquiryId,
+          userId: changedById,
+          body: `🔒 Auto-closed follow-up — stage advanced to ${input.toStatus.replace(/_/g, " ")}`,
+        },
+      });
+    }
+
+    return updated;
+  }, TRANSACTION_OPTIONS);
+}
+
+/**
+ * Manually clears a pending follow-up due date without logging a new interaction —
+ * for when a CR decides no further follow-up is needed right now. Distinct from
+ * addFollowUp's auto-advance/scheduling: this never touches Enquiry.status, and
+ * unlike changeStatus's auto-close, it's an explicit user action, not a side effect.
+ */
+export async function closeFollowUp(enquiryId: string, closedById: string, note?: string) {
+  return prisma.$transaction(async (tx) => {
+    const enquiry = await tx.enquiry.findUnique({ where: { id: enquiryId } });
+    if (!enquiry) throw new NotFoundError("Enquiry not found");
+    if (enquiry.followUpDueAt === null) {
+      throw new ValidationError("No follow-up is currently pending on this enquiry.");
+    }
+
+    const updated = await tx.enquiry.update({
+      where: { id: enquiryId },
+      data: { followUpDueAt: null },
+    });
+
+    await tx.comment.create({
+      data: {
+        enquiryId,
+        userId: closedById,
+        body: note ? `🔒 Closed follow-up:\n${note}` : "🔒 Closed follow-up",
       },
     });
 

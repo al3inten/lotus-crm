@@ -5,7 +5,7 @@ import clsx from "clsx";
 import { AlertCircle, Car, Plus } from "lucide-react";
 
 import { useLeadHistory } from "../hooks/useLeads";
-import { useEnquiry, useReassign, useUpdateEnquiryDetails } from "../hooks/useEnquiry";
+import { useEnquiry, useReassign, useUpdateEnquiryDetails, useCloseFollowUp } from "../hooks/useEnquiry";
 import { useBranchStaff } from "../hooks/useUsers";
 import { useCallLogsForLead } from "../hooks/useVoice";
 import { useAuth } from "../context/AuthContext";
@@ -104,6 +104,7 @@ export function LeadDetailPage() {
   const { data: enquiry, isLoading: enquiryLoading, isError: enquiryError, refetch: refetchEnquiry } = useEnquiry(activeEnquiryId);
   const reassign = useReassign(activeEnquiryId ?? "");
   const updateDetails = useUpdateEnquiryDetails(activeEnquiryId ?? "");
+  const closeFollowUp = useCloseFollowUp(activeEnquiryId ?? "");
 
   // Open straight to the forms tab (Test Drive / Quotation) when the enquiry is at the
   // appointment/test-drive stage — that's where the CR needs to act, so it shouldn't be
@@ -174,6 +175,11 @@ export function LeadDetailPage() {
 
   const canReassign = !!(user && REASSIGN_ROLES.includes(user.role) && crTeam);
 
+  // CR_TEAM can view any lead, but may only act on ones assigned to them (mirrors the
+  // backend's requireEnquiryOwnership middleware on every enquiry mutation route). Every
+  // other role is unrestricted here.
+  const canAct = !enquiry || user?.role !== "CR_TEAM" || enquiry.assignedCrId === user?.id;
+
   const followUpUrgency = (() => {
     if (!enquiry?.followUpDueAt) return null;
     const due = new Date(enquiry.followUpDueAt);
@@ -230,6 +236,7 @@ export function LeadDetailPage() {
         crTeam={crTeam}
         consultants={consultants}
         canReassign={canReassign}
+        canAct={canAct}
         completeDetailsNeeded={completeDetailsNeeded}
         setShowCustomerView={setShowCustomerView}
         openFollowUp={openFollowUp}
@@ -305,12 +312,15 @@ export function LeadDetailPage() {
             enquiry={enquiry}
             callLogs={callLogs}
             settings={settings}
+            canAct={canAct}
             followUpUrgency={followUpUrgency}
             nextStepCopy={nextStepCopy}
             keyDates={keyDates}
             activeTab={activeTab}
             setActiveTab={setActiveTab}
             openFollowUp={openFollowUp}
+            onCloseFollowUp={() => closeFollowUp.mutate({})}
+            isClosingFollowUp={closeFollowUp.isPending}
             handleQuickActionStatus={handleQuickActionStatus}
             showStatusModal={showStatusModal}
             setShowStatusModal={setShowStatusModal}

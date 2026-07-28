@@ -25,9 +25,17 @@ function useInvalidateEnquiry(enquiryId: string) {
 
 export function useChangeStatus(enquiryId: string) {
   const invalidate = useInvalidateEnquiry(enquiryId);
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: enquiriesApi.ChangeStatusPayload) => enquiriesApi.changeEnquiryStatus(enquiryId, payload),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      invalidate();
+      // A stale followUpDueAt is auto-closed on the stage advance (see enquiries.service.ts
+      // changeStatus) and logged as a comment — refresh both so the Follow-ups queue and
+      // the Activity Timeline drop it immediately.
+      queryClient.invalidateQueries({ queryKey: enquiryKeys.comments(enquiryId) });
+      queryClient.invalidateQueries({ queryKey: ["follow-ups"] });
+    },
     meta: { successMessage: "Status updated" },
   });
 }
@@ -159,10 +167,32 @@ export function useSaveDeliveryDetails(enquiryId: string) {
 
 export function useSaveFollowUp(enquiryId: string) {
   const invalidate = useInvalidateEnquiry(enquiryId);
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: enquiriesApi.FollowUpPayload) => enquiriesApi.saveFollowUp(enquiryId, payload),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      invalidate();
+      // Also refresh the standalone Follow-ups queue/calendar — they key on their own
+      // filters, so a plain enquiryKeys.detail() invalidation above never reaches them.
+      queryClient.invalidateQueries({ queryKey: ["follow-ups"] });
+    },
     meta: { successMessage: "Follow-up saved" },
+  });
+}
+
+export function useCloseFollowUp(enquiryId: string) {
+  const invalidate = useInvalidateEnquiry(enquiryId);
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: enquiriesApi.CloseFollowUpPayload) => enquiriesApi.closeFollowUp(enquiryId, payload),
+    onSuccess: () => {
+      invalidate();
+      // Closing is logged as a comment (shows on the Activity Timeline) — refresh both
+      // it and the standalone Follow-ups queue/calendar.
+      queryClient.invalidateQueries({ queryKey: enquiryKeys.comments(enquiryId) });
+      queryClient.invalidateQueries({ queryKey: ["follow-ups"] });
+    },
+    meta: { successMessage: "Follow-up closed" },
   });
 }
 

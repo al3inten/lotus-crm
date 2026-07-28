@@ -15,6 +15,7 @@ import {
   CalendarClock,
   History,
   Loader2,
+  Lock,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -47,7 +48,11 @@ const PANEL_HEIGHT = "h-[380px]";
 
 interface LeadActivityTabProps {
   enquiry: Enquiry;
+  /** False when a CR_TEAM user is viewing a lead not assigned to them — view-only. */
+  canAct: boolean;
   openFollowUp: () => void;
+  onCloseFollowUp: () => void;
+  isClosingFollowUp: boolean;
   setShowFollowUpsModal: (v: boolean) => void;
   setShowTimelineModal: (v: boolean) => void;
   consultants?: { id: string; name: string }[];
@@ -58,7 +63,10 @@ interface LeadActivityTabProps {
 
 export function LeadActivityTab({
   enquiry,
+  canAct,
   openFollowUp,
+  onCloseFollowUp,
+  isClosingFollowUp,
   setShowFollowUpsModal,
   setShowTimelineModal,
   consultants,
@@ -324,11 +332,25 @@ export function LeadActivityTab({
               {/* ---------- FOLLOW-UP HISTORY ---------- */}
               {activeSubTab === "followups" && (
                 <div className={clsx(PANEL_HEIGHT, "flex flex-col")}>
-                  {followUps.length > 3 && (
-                    <div className="mb-3 flex justify-end">
-                      <Button size="sm" variant="secondary" icon={<Eye size={14} />} onClick={() => setShowFollowUpsModal(true)}>
-                        View all ({followUps.length})
-                      </Button>
+                  {(enquiry.followUpDueAt || followUps.length > 3) && (
+                    <div className="mb-3 flex items-center justify-end gap-2">
+                      {enquiry.followUpDueAt && (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          icon={<Lock size={14} />}
+                          onClick={onCloseFollowUp}
+                          isLoading={isClosingFollowUp}
+                          disabled={!canAct}
+                        >
+                          Close follow-up
+                        </Button>
+                      )}
+                      {followUps.length > 3 && (
+                        <Button size="sm" variant="secondary" icon={<Eye size={14} />} onClick={() => setShowFollowUpsModal(true)}>
+                          View all ({followUps.length})
+                        </Button>
+                      )}
                     </div>
                   )}
                   <div className="flex-1 overflow-y-auto [scrollbar-width:thin]">
