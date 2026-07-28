@@ -28,7 +28,14 @@ import { statusChangeFormSchema } from "../../schemas/enquiry.schema";
 import type { StatusChangeFormValues } from "../../schemas/enquiry.schema";
 import { ALLOWED_TRANSITIONS, LOSS_REASONS, STATUS_LABELS } from "../../types";
 import type { EnquiryStatus, Enquiry } from "../../types";
-import { useChangeStatus, useUpdateBookingDetails, useUpdateRetailDetails, useUpdateRtoDetails, useUpdateEnquiryDetails, enquiryKeys } from "../../hooks/useEnquiry";
+import {
+  useChangeStatus,
+  useUpdateBookingDetails,
+  useUpdateRetailDetails,
+  useUpdateRtoDetails,
+  useUpdateEnquiryDetails,
+  enquiryKeys,
+} from "../../hooks/useEnquiry";
 import { useBranchStaff } from "../../hooks/useUsers";
 import { useQueryClient } from "@tanstack/react-query";
 import * as enquiriesApi from "../../api/enquiries.api";
@@ -145,21 +152,31 @@ export function StatusChangeModal({
     resolver: zodResolver(statusChangeFormSchema),
   });
 
+  // Only re-seed the form when the modal actually opens (false -> true) — not on every
+  // enquiry refetch while it stays open. Save progress / Save milestone trigger a background
+  // invalidate+refetch, which changes the `enquiry` reference; re-running reset() on that
+  // would wipe the date the CR just picked (and saved) right back to whatever the stale
+  // closure held, and would also flash "Saved" back to "Save progress" and reset toStatus.
+  const wasOpenRef = useRef(false);
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !wasOpenRef.current) {
       reset({
         toStatus: initialTargetStatus && allowedNext.includes(initialTargetStatus) ? initialTargetStatus : allowedNext[0],
         consultantId: currentConsultantId,
         // Prefill the booking-details fields (shown at the Booked stage) from the enquiry.
-        bookedAt: enquiry?.bookedAt ?? undefined,
+        // DatePickerField parses strictly as "yyyy-MM-dd" — the server sends a full ISO
+        // timestamp, which date-fns' parse() rejects as Invalid Date, so slice it down to
+        // just the date (otherwise the saved date silently fails to render).
+        bookedAt: enquiry?.bookedAt ? enquiry.bookedAt.slice(0, 10) : undefined,
         financeRequired: enquiry?.financeRequired ?? false,
         financeDocumentCollected: enquiry?.financeDocumentCollected ?? undefined,
         financeLoanApproved: enquiry?.financeLoanApproved ?? undefined,
         financeDoReceived: enquiry?.financeDoReceived ?? undefined,
         // Prefill the retail date (shown at the Retail Done stage) from the enquiry.
-        retailDoneAt: enquiry?.retailDoneAt ?? undefined,
-        // Prefill the RTO date (shown at the RTO Done stage) from the enquiry.
-        rtoDoneAt: enquiry?.rtoDoneAt ?? undefined,
+        retailDoneAt: enquiry?.retailDoneAt ? enquiry.retailDoneAt.slice(0, 10) : undefined,
+        // Prefill the RTO date + vehicle colour (shown at the RTO Done stage) from the enquiry.
+        rtoDoneAt: enquiry?.rtoDoneAt ? enquiry.rtoDoneAt.slice(0, 10) : undefined,
+        colour: enquiry?.colour ?? undefined,
         // Delivery-stage customer details, prefilled from the lead.
         dob: enquiry?.lead?.dob ? enquiry.lead.dob.slice(0, 10) : undefined,
         profession: enquiry?.lead?.profession ?? undefined,
@@ -169,6 +186,7 @@ export function StatusChangeModal({
       setProgressSaved(false);
       setMilestoneSaved(null);
     }
+    wasOpenRef.current = isOpen;
   }, [isOpen, initialTargetStatus, allowedNext, currentConsultantId, enquiry, reset]);
 
   const toStatus = watch("toStatus");
@@ -240,8 +258,9 @@ export function StatusChangeModal({
         return;
       }
     }
-    // Delivery requires the details used for post-sale celebrations (birthday / anniversary):
-    // vehicle delivery date + customer DOB + customer job. All three are mandatory.
+    // The enquiry must not be marked Delivered (Won) until the customer's DOB and job are
+    // captured, alongside the vehicle delivery date — collecting these afterward would let
+    // the status read "Won" before the CR has actually gathered this information.
     if (values.toStatus === "DELIVERED") {
       if (!values.deliveredAt) {
         setError("deliveredAt", { message: "Vehicle delivery date is required" });
@@ -280,10 +299,10 @@ export function StatusChangeModal({
     if (currentStatus === "RETAIL_DONE") {
       await updateRetail.mutateAsync({ retailDoneAt: toIso(values.retailDoneAt) });
     }
-    // Same pattern at the RTO Done stage — the RTO date is edited here, not during the
-    // Retail Done -> RTO Done transition itself.
+    // Same pattern at the RTO Done stage — the RTO date and vehicle colour are edited here,
+    // not during the Retail Done -> RTO Done transition itself.
     if (currentStatus === "RTO_DONE") {
-      await updateRto.mutateAsync({ rtoDoneAt: toIso(values.rtoDoneAt) });
+      await updateRto.mutateAsync({ rtoDoneAt: toIso(values.rtoDoneAt), colour: values.colour?.trim() });
     }
     await changeStatus.mutateAsync({
       toStatus: values.toStatus,
@@ -322,16 +341,16 @@ export function StatusChangeModal({
     setTimeout(() => setProgressSaved(false), 3000);
   };
 
-  // Saves the Retail/RTO date as its own action, without moving the status — the "Move to"
-  // default from Retail Done / RTO Done is the next stage (RTO Done / Delivered), whose own
-  // requirements (Delivered needs date + customer DOB + job) would otherwise have to be
-  // satisfied just to correct a date on the CURRENT stage.
+  // Saves the Retail/RTO stage's own fields as a standalone action, without moving the
+  // status — the "Move to" default from Retail Done / RTO Done is the next stage, whose own
+  // requirements would otherwise have to be satisfied just to correct a value on the CURRENT
+  // stage.
   const handleSaveMilestone = async (stage: "RETAIL_DONE" | "RTO_DONE") => {
     const toIso = (v?: string) => (v ? new Date(v).toISOString() : undefined);
     if (stage === "RETAIL_DONE") {
       await updateRetail.mutateAsync({ retailDoneAt: toIso(getValues("retailDoneAt")) });
     } else {
-      await updateRto.mutateAsync({ rtoDoneAt: toIso(getValues("rtoDoneAt")) });
+      await updateRto.mutateAsync({ rtoDoneAt: toIso(getValues("rtoDoneAt")), colour: getValues("colour")?.trim() });
     }
     setMilestoneSaved(stage);
     setTimeout(() => setMilestoneSaved(null), 3000);
@@ -497,9 +516,9 @@ export function StatusChangeModal({
           </div>
         )}
 
-        {/* RTO date — editable inline at the RTO Done stage; saved either via the standalone
-            Save progress button (no status change) or on the "Update status" click. Needed
-            because the only next stage from here is Delivered, whose date/DOB/job are all
+        {/* RTO date + vehicle colour — editable inline at the RTO Done stage; saved either via
+            the standalone Save progress button (no status change) or on the "Update status"
+            click. Needed because the only next stage from here is Delivered, whose date is
             mandatory — without this button, saving the RTO date forced that validation too. */}
         {currentStatus === "RTO_DONE" && (
           <div className="flex flex-col gap-2">
@@ -510,6 +529,7 @@ export function StatusChangeModal({
                 <DatePickerField label="RTO date" value={field.value} onChange={field.onChange} />
               )}
             />
+            <Input label="Colour" placeholder="e.g. Pearl White" {...register("colour")} />
             <div className="flex justify-end">
               <Button
                 type="button"
@@ -610,7 +630,8 @@ export function StatusChangeModal({
           />
         )}
 
-        {/* Delivery: mandatory customer details for post-sale birthday/anniversary celebrations. */}
+        {/* Delivery: mandatory customer details for post-sale birthday/anniversary celebrations.
+            Required to reach Delivered — the enquiry must not read "Won" before these are captured. */}
         {toStatus === "DELIVERED" && (
           <div className="flex flex-col gap-3 rounded-xl border border-primary-100 bg-primary-50/60 p-3 dark:border-primary-500/20 dark:bg-primary-500/10">
             <p className="text-xs font-semibold text-primary-700 dark:text-primary-300">

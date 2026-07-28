@@ -7,6 +7,8 @@ export interface Reminder {
   title: string;
   body: string;
   linkUrl: string;
+  /** FOLLOW_UP only — true when the due date has already passed (vs. due later today). */
+  isOverdue?: boolean;
 }
 
 interface Ctx {
@@ -34,19 +36,21 @@ export async function getRemindersForUser(ctx: Ctx): Promise<Reminder[]> {
   }
 
   const now = new Date();
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
   const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 
   const [dueToday, withDob, delivered] = await Promise.all([
-    // Follow-ups due today — skip closed/delivered enquiries.
+    // Follow-ups due today OR already overdue — skip closed/delivered enquiries. Mirrors
+    // leads.service.getReminders' scoping/window so the bell matches what the rest of the
+    // app (Dashboard, ReminderModal) counts as "due".
     prisma.enquiry.findMany({
       where: {
         ...scope,
         status: { notIn: ["CLOSED", "DELIVERED"] },
-        followUpDueAt: { gte: startOfToday, lte: endOfToday },
+        followUpDueAt: { lte: endOfToday },
       },
       select: { id: true, leadId: true, followUpDueAt: true, lead: { select: { name: true } } },
       orderBy: { followUpDueAt: "asc" },
+      take: 50,
     }),
     // Candidates for a birthday today (month/day matched in JS below).
     prisma.enquiry.findMany({
@@ -63,12 +67,14 @@ export async function getRemindersForUser(ctx: Ctx): Promise<Reminder[]> {
   const reminders: Reminder[] = [];
 
   for (const e of dueToday) {
+    const isOverdue = !!e.followUpDueAt && e.followUpDueAt < now && e.followUpDueAt.toDateString() !== now.toDateString();
     reminders.push({
       id: `followup:${e.id}`,
       type: "FOLLOW_UP",
-      title: "Follow-up due today",
-      body: `${e.lead.name} has a follow-up due today.`,
+      title: isOverdue ? "Follow-up overdue" : "Follow-up due today",
+      body: isOverdue ? `${e.lead.name} has an overdue follow-up.` : `${e.lead.name} has a follow-up due today.`,
       linkUrl: leadLink(e.leadId, e.id),
+      isOverdue,
     });
   }
 

@@ -184,7 +184,7 @@ export function LeadDetailPage() {
   })();
 
   const bookingDate = enquiry?.statusHistory?.find((h) => h.toStatus === "BOOKED")?.createdAt;
-  const retailDate = enquiry?.statusHistory?.find((h) => h.toStatus === "RETAIL_DONE")?.createdAt;
+  const retailDate = enquiry?.retailDoneAt ?? enquiry?.statusHistory?.find((h) => h.toStatus === "RETAIL_DONE")?.createdAt;
   const tdFeedback = enquiry?.testDriveFeedbacks?.[0];
   const tdDate = tdFeedback?.completedAt ?? tdFeedback?.scheduledAt ?? null;
 

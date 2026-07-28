@@ -35,9 +35,6 @@ import {
 } from "../components/dashboard/DashboardPrimitives";
 import { StatCell } from "../components/dashboard/StatCell";
 import { ConversionRing } from "../components/dashboard/ConversionRing";
-import { ActionRequiredList } from "../components/dashboard/ActionRequiredList";
-import { ReminderStrip } from "../components/dashboard/ReminderStrip";
-import { UpcomingFollowUpsCard } from "../components/dashboard/UpcomingFollowUpsCard";
 import { PipelineRows } from "../components/dashboard/PipelineRows";
 
 const REPORT_VISIBLE_ROLES = ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"];
@@ -85,7 +82,7 @@ export function DashboardPage() {
   const { data: trend } = useTrendReport({ granularity: "week" }, canSeeStats);
   const { data: sources } = useSourcePerformanceReport({}, canSeeStats);
   const { data: recentLeads } = useLeads({ page: 1, pageSize: 6 });
-  const { data: upcomingFollowUps, isLoading: followUpsLoading } = useUpcomingFollowUps({
+  const { data: upcomingFollowUps } = useUpcomingFollowUps({
     timeframe: "week",
     pageSize: 8,
     sortBy: "dueDate",
@@ -297,36 +294,21 @@ export function DashboardPage() {
                   </div>
                 </Card>
               </motion.div>
-
-              <motion.div variants={variants.item}>
-                <ActionRequiredList data={actionItems} />
-              </motion.div>
             </div>
           </div>
         </>
       ) : (
         /* ── Focused view for CR / consultant roles ── */
-        <>
-          <motion.div variants={variants.item}>
-            <ReminderStrip stats={upcomingFollowUps?.stats} />
-          </motion.div>
-
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[60fr_40fr] lg:items-start">
-            <motion.div variants={variants.item}>
-              <UpcomingFollowUpsCard data={upcomingFollowUps} isLoading={followUpsLoading} />
-            </motion.div>
-            <motion.div variants={variants.item}>
-              <Card padded={false} className={clsx(SURFACE, "overflow-hidden")}>
-                <div className={clsx("border-b px-5 py-4", HAIRLINE)}>
-                  <SectionHeader title="Your recent leads" to="/leads" cta="All leads" />
-                </div>
-                <div className="divide-y divide-slate-100 dark:divide-white/[0.05]">
-                  <PipelineRows data={recentLeads} />
-                </div>
-              </Card>
-            </motion.div>
-          </div>
-        </>
+        <motion.div variants={variants.item}>
+          <Card padded={false} className={clsx(SURFACE, "overflow-hidden")}>
+            <div className={clsx("border-b px-5 py-4", HAIRLINE)}>
+              <SectionHeader title="Your recent leads" to="/leads" cta="All leads" />
+            </div>
+            <div className="divide-y divide-slate-100 dark:divide-white/[0.05]">
+              <PipelineRows data={recentLeads} />
+            </div>
+          </Card>
+        </motion.div>
       )}
     </motion.div>
   );

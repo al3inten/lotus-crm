@@ -46,7 +46,10 @@ export async function changeEnquiryStatus(enquiryId: string, payload: ChangeStat
   return data;
 }
 
-export async function updateEnquiryDetails(enquiryId: string, payload: LeadEnrichmentPayload): Promise<Enquiry> {
+export async function updateEnquiryDetails(
+  enquiryId: string,
+  payload: LeadEnrichmentPayload & { colour?: string }
+): Promise<Enquiry> {
   const { data } = await axiosClient.patch<Enquiry>(`/enquiries/${enquiryId}/details`, payload);
   return data;
 }
@@ -73,6 +76,7 @@ export async function updateRetailDetails(enquiryId: string, payload: RetailDeta
 
 export interface RtoDetailsPayload {
   rtoDoneAt?: string;
+  colour?: string;
 }
 export async function updateRtoDetails(enquiryId: string, payload: RtoDetailsPayload): Promise<Enquiry> {
   const { data } = await axiosClient.patch<Enquiry>(`/enquiries/${enquiryId}/rto`, payload);

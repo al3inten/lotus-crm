@@ -19,14 +19,115 @@ import {
   Inbox,
   PhoneMissed,
   PlayCircle,
+  Palette,
+  PackageCheck,
+  Pencil,
+  Check,
+  X,
 } from "lucide-react";
 
 import { Card } from "../../../components/common/Card";
 import { CopyButton } from "../../../components/common/CopyButton";
+import { Button } from "../../../components/common/Button";
+import { Input } from "../../../components/common/Input";
+import { DatePickerField } from "../../../components/common/DateTimePicker";
 import { InfoField } from "./InfoField";
 import { fadeUp } from "../../../lib/motion";
+import { useUpdateEnquiryDetails, useUpdateDeliveryDate } from "../../../hooks/useEnquiry";
 import type { LeadWithHistory, Enquiry } from "../../../types";
 import type { CallLog } from "../../../api/voice.api";
+
+/** Inline-editable "Purchased Vehicle" record — model/variant/colour + purchase date,
+ * shown once the enquiry is Delivered. Model/variant/colour save via the general enquiry
+ * details endpoint; purchase date reuses the dedicated delivery-date endpoint (same one
+ * the old Delivery Details card used), so both stay in sync with a single Save click. */
+function PurchasedVehicleCard({ enquiry }: { enquiry: Enquiry }) {
+  const [editing, setEditing] = useState(false);
+  const [carModel, setCarModel] = useState(enquiry.carModel ?? "");
+  const [variant, setVariant] = useState(enquiry.variant ?? "");
+  const [colour, setColour] = useState(enquiry.colour ?? "");
+  const [deliveredAt, setDeliveredAt] = useState(enquiry.deliveredAt?.slice(0, 10) ?? "");
+  const updateDetails = useUpdateEnquiryDetails(enquiry.id);
+  const updateDeliveryDate = useUpdateDeliveryDate(enquiry.id);
+  const isSaving = updateDetails.isPending || updateDeliveryDate.isPending;
+
+  const startEditing = () => {
+    setCarModel(enquiry.carModel ?? "");
+    setVariant(enquiry.variant ?? "");
+    setColour(enquiry.colour ?? "");
+    setDeliveredAt(enquiry.deliveredAt?.slice(0, 10) ?? "");
+    setEditing(true);
+  };
+
+  const onSave = async () => {
+    await Promise.all([
+      updateDetails.mutateAsync({
+        carModel: carModel.trim() || undefined,
+        variant: variant.trim() || undefined,
+        colour: colour.trim() || undefined,
+      }),
+      updateDeliveryDate.mutateAsync({
+        deliveredAt: deliveredAt ? new Date(deliveredAt).toISOString() : undefined,
+      }),
+    ]);
+    setEditing(false);
+  };
+
+  return (
+    <div className="mb-3 rounded-xl border border-primary-100 bg-primary-50/60 p-3.5 dark:border-primary-500/20 dark:bg-primary-500/10">
+      <div className="mb-2.5 flex items-center justify-between gap-2">
+        <p className="text-xs font-semibold uppercase tracking-wide text-primary-700 dark:text-primary-300">
+          Purchased Vehicle
+        </p>
+        {!editing && (
+          <button
+            type="button"
+            onClick={startEditing}
+            aria-label="Edit purchased vehicle details"
+            className="flex items-center gap-1 text-xs font-medium text-primary-700 transition-colors hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-200"
+          >
+            <Pencil size={12} /> Edit
+          </button>
+        )}
+      </div>
+
+      {editing ? (
+        <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-2 gap-3">
+            <Input label="Model" value={carModel} onChange={(e) => setCarModel(e.target.value)} />
+            <Input label="Variant" value={variant} onChange={(e) => setVariant(e.target.value)} />
+            <Input label="Colour" value={colour} onChange={(e) => setColour(e.target.value)} />
+            <DatePickerField label="Purchase Date" value={deliveredAt} onChange={(v) => setDeliveredAt(v ?? "")} />
+          </div>
+          <div className="flex items-center gap-2">
+            <Button type="button" size="sm" onClick={onSave} isLoading={isSaving} icon={<Check size={13} />}>
+              Save
+            </Button>
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              disabled={isSaving}
+              className="flex items-center gap-1 text-xs font-medium text-slate-500 transition-colors hover:text-slate-800 disabled:opacity-50 dark:text-slate-400 dark:hover:text-slate-200"
+            >
+              <X size={13} /> Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-3">
+          <InfoField icon={<Car size={13} />} label="Model" value={enquiry.carModel} />
+          <InfoField icon={<Tag size={13} />} label="Variant" value={enquiry.variant || "—"} />
+          <InfoField icon={<Palette size={13} />} label="Colour" value={enquiry.colour || "—"} />
+          <InfoField
+            icon={<PackageCheck size={13} />}
+            label="Purchase Date"
+            value={enquiry.deliveredAt ? new Date(enquiry.deliveredAt).toLocaleDateString() : "—"}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface LeadDetailsTabProps {
   lead: LeadWithHistory;
@@ -129,6 +230,10 @@ export function LeadDetailsTab({
               {activeSubTab === "info" && (
                 <div className={clsx(PANEL_HEIGHT, "flex flex-col")}>
                   <div className="flex-1 overflow-y-auto pr-1 [scrollbar-width:thin]">
+                    {/* Purchased vehicle — only once delivery is complete; the model/variant/colour
+                        the customer was interested in can change right up to delivery, so this is
+                        the actual purchase record, distinct from "Interested Vehicle" below. */}
+                    {enquiry.status === "DELIVERED" && <PurchasedVehicleCard enquiry={enquiry} />}
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-3.5 dark:border-slate-800/60 dark:bg-slate-900/20">
                         <InfoField
