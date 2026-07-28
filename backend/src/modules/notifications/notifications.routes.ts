@@ -43,6 +43,7 @@ router.delete("/reminders", applyBranchScope, asyncHandler(async (req, res) => {
   await dismissAllReminders({
     userId: req.user!.id,
     role: req.user!.role,
+    restrictLeadsToOwn: req.user!.restrictLeadsToOwn,
     branchFilter: req.branchFilter,
   });
   res.json({ success: true });
