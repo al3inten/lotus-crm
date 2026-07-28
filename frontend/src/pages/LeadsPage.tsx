@@ -19,8 +19,12 @@ import { Modal } from "../components/common/Modal";
 import { GoogleSheetsSyncForm } from "../components/integrations/GoogleSheetsSyncForm";
 import { useIntegrations } from "../hooks/useIntegrations";
 import { useLeadsViewMode, type LeadsViewMode } from "../hooks/useLeadsViewMode";
+import { useAuth } from "../context/AuthContext";
 import type { AddLeadFormValues } from "../schemas/lead.schema";
 import type { LeadDraft } from "../types";
+
+// Mirrors the backend's requireRole on GET /integrations — CR_TEAM/CONSULTANT can't call it.
+const INTEGRATIONS_VISIBLE_ROLES = ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"];
 
 const VIEW_OPTIONS: { mode: LeadsViewMode; label: string; icon: typeof Table2 }[] = [
   { mode: "table", label: "Table", icon: Table2 },
@@ -60,9 +64,10 @@ export function LeadsPage() {
   const [showSheetsSyncModal, setShowSheetsSyncModal] = useState(false);
   const [resumeDraft, setResumeDraft] = useState<LeadDraft | undefined>(undefined);
   const [view, setView] = useLeadsViewMode();
+  const { user } = useAuth();
 
   const { data, isLoading, isFetching } = useLeads(filters);
-  const { data: integrations } = useIntegrations();
+  const { data: integrations } = useIntegrations(!!user && INTEGRATIONS_VISIBLE_ROLES.includes(user.role));
   const googleSheetsConnected = integrations?.find((i) => i.key === "GOOGLE_SHEETS")?.hasCredentials ?? false;
 
   const page = data?.page ?? 1;

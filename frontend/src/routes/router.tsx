@@ -19,6 +19,7 @@ const LeadsPage = lazy(() => import("../pages/LeadsPage").then(named("LeadsPage"
 const LeadDetailPage = lazy(() => import("../pages/LeadDetailPage").then(named("LeadDetailPage")));
 const CustomersPage = lazy(() => import("../pages/CustomersPage").then(named("CustomersPage")));
 const FollowUpsPage = lazy(() => import("../pages/FollowUpsPage").then(named("FollowUpsPage")));
+const TestDrivesPage = lazy(() => import("../pages/TestDrivesPage").then(named("TestDrivesPage")));
 const BranchesPage = lazy(() => import("../pages/BranchesPage").then(named("BranchesPage")));
 const ReportsPage = lazy(() => import("../pages/ReportsPage").then(named("ReportsPage")));
 const VehiclePerformancePage = lazy(() => import("../pages/VehiclePerformancePage").then(named("VehiclePerformancePage")));
@@ -57,6 +58,7 @@ export const router = createBrowserRouter([
           { path: "/leads", element: suspense(<LeadsPage />) },
           { path: "/customers", element: suspense(<CustomersPage />) },
           { path: "/follow-ups", element: suspense(<FollowUpsPage />) },
+          { path: "/test-drives", element: suspense(<TestDrivesPage />) },
           { path: "/leads/:leadId", element: suspense(<LeadDetailPage />) },
           { path: "/leads/:leadId/enquiries/:enquiryId", element: suspense(<LeadDetailPage />) },
           { path: "/vehicles", element: suspense(<VehiclesPage />) },

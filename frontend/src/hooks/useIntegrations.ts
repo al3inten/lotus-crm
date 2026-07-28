@@ -2,10 +2,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as integrationsApi from "../api/integrations.api";
 import type { IntegrationKey } from "../api/integrations.api";
 
-export function useIntegrations() {
+export function useIntegrations(enabled = true) {
   return useQuery({
     queryKey: ["integrations"],
     queryFn: integrationsApi.fetchIntegrations,
+    // GET /integrations is SUPER_ADMIN/ADMIN/BRANCH_MANAGER only on the backend — callers
+    // outside that set (e.g. CR_TEAM on the Leads page) must pass enabled: false, otherwise
+    // every visit throws a 403 that the global QueryCache turns into an error toast.
+    enabled,
   });
 }
 

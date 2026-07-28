@@ -213,6 +213,15 @@ export async function saveFollowUp(enquiryId: string, payload: FollowUpPayload) 
   return data;
 }
 
+export interface CloseFollowUpPayload {
+  note?: string;
+}
+
+export async function closeFollowUp(enquiryId: string, payload: CloseFollowUpPayload) {
+  const { data } = await axiosClient.post(`/enquiries/${enquiryId}/follow-ups/close`, payload);
+  return data;
+}
+
 export interface CommentPayload {
   body: string;
   mentionedUserIds?: string[];

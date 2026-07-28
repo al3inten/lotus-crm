@@ -151,6 +151,7 @@ export const MODULES = [
   { key: "dashboard", label: "Dashboard" },
   { key: "leads", label: "Leads" },
   { key: "follow-ups", label: "Follow-ups" },
+  { key: "test-drives", label: "Test Drives" },
   { key: "social-inbox", label: "Social Inbox" },
   // Key stays "departments" — it's persisted in RoleDefinition.permissions, so renaming
   // it would orphan every existing role's saved permissions. Only the label changed.

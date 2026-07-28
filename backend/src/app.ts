@@ -14,6 +14,7 @@ import branchesRoutes from "./modules/branches/branches.routes";
 import leadsRoutes from "./modules/leads/leads.routes";
 import enquiriesRoutes from "./modules/enquiries/enquiries.routes";
 import followUpsRoutes from "./modules/follow-ups/follow-ups.routes";
+import testDrivesRoutes from "./modules/test-drives/test-drives.routes";
 import reportsRoutes from "./modules/reports/reports.routes";
 import integrationsRoutes from "./modules/integrations/integrations.routes";
 import metaOAuthCallbackRoutes from "./modules/integrations/metaOAuthCallback.routes";
@@ -102,6 +103,7 @@ app.use("/api/branches", branchesRoutes);
 app.use("/api/leads", leadsRoutes);
 app.use("/api/enquiries", enquiriesRoutes);
 app.use("/api/follow-ups", followUpsRoutes);
+app.use("/api/test-drives", testDrivesRoutes);
 app.use("/api/reports", reportsRoutes);
 // Public callback registered first so it's handled before the JWT-protected router below —
 // any other path under this prefix (e.g. /meta/oauth/start) falls through to it untouched.

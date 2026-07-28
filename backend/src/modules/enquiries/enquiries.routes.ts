@@ -2,6 +2,7 @@ import { Router } from "express";
 import { asyncHandler } from "../../lib/asyncHandler";
 import { verifyJwt } from "../../middleware/auth";
 import { requireRole } from "../../middleware/rbac";
+import { requireEnquiryOwnership } from "../../middleware/enquiryOwnership";
 import { validateBody } from "../../middleware/validate";
 import {
   changeStatusSchema,
@@ -19,6 +20,7 @@ import {
   deliveryDetailsSchema,
   enquiryDetailsSchema,
   createFollowUpSchema,
+  closeFollowUpSchema,
   createCommentSchema,
   createNoteSchema,
 } from "./enquiries.schema";
@@ -39,6 +41,7 @@ import {
   deliveryHandler,
   updateDetailsHandler,
   addFollowUpHandler,
+  closeFollowUpHandler,
   getCommentsHandler,
   addCommentHandler,
   getNotesHandler,
@@ -49,15 +52,19 @@ const router = Router();
 
 router.use(verifyJwt);
 
+// Viewing a lead is always allowed, regardless of assignment — only the mutating routes
+// below are ownership-gated (CR_TEAM can only act on enquiries assigned to them).
 router.get("/:enquiryId", asyncHandler(getEnquiryHandler));
 
-router.patch("/:enquiryId/status", validateBody(changeStatusSchema), asyncHandler(changeStatusHandler));
-router.patch("/:enquiryId/details", validateBody(enquiryDetailsSchema), asyncHandler(updateDetailsHandler));
-router.patch("/:enquiryId/booking", validateBody(bookingDetailsSchema), asyncHandler(updateBookingHandler));
-router.patch("/:enquiryId/retail", validateBody(retailDetailsSchema), asyncHandler(updateRetailHandler));
-router.patch("/:enquiryId/rto", validateBody(rtoDetailsSchema), asyncHandler(updateRtoHandler));
-router.patch("/:enquiryId/delivery-date", validateBody(deliveryDateSchema), asyncHandler(updateDeliveryDateHandler));
-router.patch("/:enquiryId/key-dates", validateBody(updateKeyDateSchema), asyncHandler(updateKeyDateHandler));
+const ownership = asyncHandler(requireEnquiryOwnership);
+
+router.patch("/:enquiryId/status", ownership, validateBody(changeStatusSchema), asyncHandler(changeStatusHandler));
+router.patch("/:enquiryId/details", ownership, validateBody(enquiryDetailsSchema), asyncHandler(updateDetailsHandler));
+router.patch("/:enquiryId/booking", ownership, validateBody(bookingDetailsSchema), asyncHandler(updateBookingHandler));
+router.patch("/:enquiryId/retail", ownership, validateBody(retailDetailsSchema), asyncHandler(updateRetailHandler));
+router.patch("/:enquiryId/rto", ownership, validateBody(rtoDetailsSchema), asyncHandler(updateRtoHandler));
+router.patch("/:enquiryId/delivery-date", ownership, validateBody(deliveryDateSchema), asyncHandler(updateDeliveryDateHandler));
+router.patch("/:enquiryId/key-dates", ownership, validateBody(updateKeyDateSchema), asyncHandler(updateKeyDateHandler));
 
 router.patch(
   "/:enquiryId/reassign",
@@ -66,17 +73,20 @@ router.patch(
   asyncHandler(reassignHandler)
 );
 
-router.post("/:enquiryId/test-drive", validateBody(testDriveSchema), asyncHandler(testDriveHandler));
-router.patch("/:enquiryId/test-drive/:testDriveId", validateBody(updateTestDriveSchema), asyncHandler(updateTestDriveHandler));
-router.post("/:enquiryId/quotation", validateBody(quotationSchema), asyncHandler(quotationHandler));
-router.post("/:enquiryId/exchange-evaluation", validateBody(exchangeEvaluationSchema), asyncHandler(exchangeHandler));
-router.post("/:enquiryId/finance", validateBody(financeApplicationSchema), asyncHandler(financeHandler));
-router.post("/:enquiryId/delivery", validateBody(deliveryDetailsSchema), asyncHandler(deliveryHandler));
-router.post("/:enquiryId/follow-ups", validateBody(createFollowUpSchema), asyncHandler(addFollowUpHandler));
+router.post("/:enquiryId/test-drive", ownership, validateBody(testDriveSchema), asyncHandler(testDriveHandler));
+router.patch("/:enquiryId/test-drive/:testDriveId", ownership, validateBody(updateTestDriveSchema), asyncHandler(updateTestDriveHandler));
+router.post("/:enquiryId/quotation", ownership, validateBody(quotationSchema), asyncHandler(quotationHandler));
+router.post("/:enquiryId/exchange-evaluation", ownership, validateBody(exchangeEvaluationSchema), asyncHandler(exchangeHandler));
+router.post("/:enquiryId/finance", ownership, validateBody(financeApplicationSchema), asyncHandler(financeHandler));
+router.post("/:enquiryId/delivery", ownership, validateBody(deliveryDetailsSchema), asyncHandler(deliveryHandler));
+router.post("/:enquiryId/follow-ups", ownership, validateBody(createFollowUpSchema), asyncHandler(addFollowUpHandler));
+router.post("/:enquiryId/follow-ups/close", ownership, validateBody(closeFollowUpSchema), asyncHandler(closeFollowUpHandler));
 router.get("/:enquiryId/comments", asyncHandler(getCommentsHandler));
-router.post("/:enquiryId/comments", validateBody(createCommentSchema), asyncHandler(addCommentHandler));
+router.post("/:enquiryId/comments", ownership, validateBody(createCommentSchema), asyncHandler(addCommentHandler));
 
 // Private notes — reads are scoped to the caller inside the service, never by query param.
+// Adding one isn't really "acting on the lead" the way status/detail edits are, and CRs may
+// want to jot a private note on any lead they're reviewing — left unrestricted.
 router.get("/:enquiryId/notes", asyncHandler(getNotesHandler));
 router.post("/:enquiryId/notes", validateBody(createNoteSchema), asyncHandler(addNoteHandler));
 
