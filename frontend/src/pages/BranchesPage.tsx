@@ -207,7 +207,11 @@ function RolesTab() {
               </div>
 
               <div className="flex flex-wrap gap-1.5">
-                {MODULES.filter((m) => VISIBLE_MODULE_KEYS.has(m.key) && role.permissions[m.key] !== "none").map((m) => (
+                {MODULES.filter(
+                  (m) =>
+                    VISIBLE_MODULE_KEYS.has(m.key) &&
+                    (role.permissions[m.key] === "read" || role.permissions[m.key] === "write")
+                ).map((m) => (
                   <span
                     key={m.key}
                     className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
