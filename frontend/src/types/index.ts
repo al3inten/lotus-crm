@@ -179,6 +179,8 @@ export interface RoleDefinition {
   canViewAllBranches: boolean;
   restrictLeadsToOwn: boolean;
   isActive: boolean;
+  /** True only for the built-in seeded "CR" role — name locked, can't be deleted. */
+  isSystemDefault: boolean;
   createdAt?: string;
   updatedAt?: string;
   _count?: { users: number };

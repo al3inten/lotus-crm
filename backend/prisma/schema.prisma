@@ -286,6 +286,10 @@ model RoleDefinition {
   canViewAllBranches Boolean  @default(false)
   restrictLeadsToOwn Boolean  @default(false)
   isActive           Boolean  @default(true)
+  // True only for the built-in seeded "CR" role — its name can't be renamed and the
+  // role can't be deleted, but its permissions/toggles stay fully editable like any
+  // other role.
+  isSystemDefault    Boolean  @default(false)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 

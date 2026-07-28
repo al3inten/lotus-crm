@@ -111,7 +111,13 @@ export function RoleModal({ isOpen, onClose, branches, editing, defaultBranchId 
           placeholder="e.g. Assistant Manager"
           value={name}
           onChange={(e) => setName(e.target.value)}
+          disabled={editing?.isSystemDefault}
         />
+        {editing?.isSystemDefault && (
+          <p className="-mt-3 text-xs text-gray-500">
+            This is the built-in CR role — its name can't be changed and it can't be deleted, but its access below can be edited freely.
+          </p>
+        )}
 
         {!editing && (
           <Select label="Branch" value={branchId} onChange={(e) => setBranchId(e.target.value)}>

@@ -39,6 +39,9 @@ export async function createRole(input: CreateRoleInput) {
 export async function updateRole(roleId: string, input: UpdateRoleInput) {
   const role = await prisma.roleDefinition.findUnique({ where: { id: roleId } });
   if (!role) throw new NotFoundError("Role not found");
+  if (role.isSystemDefault && input.name !== undefined && input.name !== role.name) {
+    throw new ValidationError("The built-in CR role's name can't be changed");
+  }
   return prisma.roleDefinition.update({ where: { id: roleId }, data: input });
 }
 
@@ -48,6 +51,9 @@ export async function deleteRole(roleId: string) {
     include: { _count: { select: { users: true } } },
   });
   if (!role) throw new NotFoundError("Role not found");
+  if (role.isSystemDefault) {
+    throw new ValidationError("The built-in CR role can't be deleted");
+  }
   if (role._count.users > 0) {
     throw new ValidationError(
       `${role._count.users} staff member(s) still hold this role — reassign them first, or deactivate the role instead`
