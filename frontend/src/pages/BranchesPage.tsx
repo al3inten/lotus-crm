@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import {
   Building2,
   Users,
@@ -172,7 +173,7 @@ function RolesTab() {
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {roles!.map((role) => (
-            <Card key={role.id} className={role.isActive ? "" : "opacity-60"}>
+            <Card key={role.id} glow={false} className={role.isActive ? "" : "opacity-60"}>
               <div className="flex items-start justify-between">
                 <CardHeader
                   icon={<ShieldCheck size={20} />}
@@ -189,9 +190,16 @@ function RolesTab() {
                     <Pencil size={15} />
                   </button>
                   <button
-                    className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-40"
-                    onClick={() => deleteRole.mutate(role.id)}
-                    disabled={!role.isSystemDefault && (role._count?.users ?? 0) > 0}
+                    className={`rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 ${(role.isSystemDefault || (role._count?.users ?? 0) > 0) ? "opacity-40" : ""}`}
+                    onClick={() => {
+                      if (role.isSystemDefault) {
+                        toast.error("The built-in CR role can't be deleted");
+                      } else if ((role._count?.users ?? 0) > 0) {
+                        toast.error("Reassign members before deleting");
+                      } else if (confirm("Are you sure you want to delete this role?")) {
+                        deleteRole.mutate(role.id);
+                      }
+                    }}
                     title={
                       role.isSystemDefault
                         ? "The built-in CR role can't be deleted"
