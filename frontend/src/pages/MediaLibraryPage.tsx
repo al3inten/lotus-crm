@@ -7,6 +7,7 @@ import { Input, Select } from "../components/common/Input";
 import { Modal } from "../components/common/Modal";
 import { Card } from "../components/common/Card";
 import type { MediaAsset, MediaType } from "../api/media.api";
+import { useCanWrite } from "../hooks/usePermission";
 
 const MAX_FILE_BYTES = 50 * 1024 * 1024; // must match backend's multer limit
 
@@ -179,18 +180,20 @@ function UploadMediaForm({ onDone }: { onDone: () => void }) {
   );
 }
 
-function MediaCard({ asset, onDelete, isDeleting }: { asset: MediaAsset; onDelete: () => void; isDeleting: boolean }) {
+function MediaCard({ asset, onDelete, isDeleting, canDelete }: { asset: MediaAsset; onDelete: () => void; isDeleting: boolean; canDelete: boolean }) {
   return (
     <Card padded={false} className="group relative overflow-hidden">
-      <button
-        type="button"
-        onClick={onDelete}
-        disabled={isDeleting}
-        aria-label={`Delete ${asset.label}`}
-        className="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white opacity-0 backdrop-blur-sm transition-opacity hover:bg-red-600 group-hover:opacity-100 disabled:opacity-50"
-      >
-        <Trash2 size={14} />
-      </button>
+      {canDelete && (
+        <button
+          type="button"
+          onClick={onDelete}
+          disabled={isDeleting}
+          aria-label={`Delete ${asset.label}`}
+          className="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white opacity-0 backdrop-blur-sm transition-opacity hover:bg-red-600 group-hover:opacity-100 disabled:opacity-50"
+        >
+          <Trash2 size={14} />
+        </button>
+      )}
       {asset.mediaType === "IMAGE" ? (
         <img src={asset.cloudinaryUrl} alt={asset.label} className="h-32 w-full object-cover" />
       ) : asset.mediaType === "VIDEO" ? (
@@ -225,6 +228,7 @@ export function MediaLibraryPage() {
     carModel: carModel || undefined,
   });
   const deleteMedia = useDeleteMedia();
+  const canWrite = useCanWrite("media-library");
 
   const handleDelete = (assetId: string, label: string) => {
     if (!window.confirm(`Delete "${label}"? This removes it from Cloudinary and any campaigns using it.`)) return;
@@ -253,14 +257,16 @@ export function MediaLibraryPage() {
               Manage car photos, videos, and brochures for your chatbot and campaigns.
             </p>
           </div>
-            <div className="shrink-0">
-              <Button 
-                onClick={() => setShowUpload(true)} 
-                icon={<UploadCloud size={15} />}
-              >
-                Upload Media
-              </Button>
-            </div>
+            {canWrite && (
+              <div className="shrink-0">
+                <Button
+                  onClick={() => setShowUpload(true)}
+                  icon={<UploadCloud size={15} />}
+                >
+                  Upload Media
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -301,6 +307,7 @@ export function MediaLibraryPage() {
               asset={asset}
               onDelete={() => handleDelete(asset.id, asset.label)}
               isDeleting={deleteMedia.isPending && deleteMedia.variables === asset.id}
+              canDelete={canWrite}
             />
           ))}
         </div>

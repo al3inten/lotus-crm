@@ -7,12 +7,6 @@ import { useUpdateUser } from "../../hooks/useUsers";
 import { useRoles } from "../../hooks/useRoles";
 import type { User } from "../../types";
 
-const BASE_ROLE_OPTIONS = [
-  { value: "CR_TEAM", label: "CR Team Member" },
-  { value: "CONSULTANT", label: "Consultant" },
-  { value: "BRANCH_MANAGER", label: "Branch Manager" },
-] as const;
-
 interface EditStaffModalProps {
   member: User;
   branchId: string;
@@ -27,9 +21,8 @@ export function EditStaffModal({ member, branchId, isOpen, onClose }: EditStaffM
   const [name, setName] = useState(member.name);
   const [email, setEmail] = useState(member.email);
   const [phone, setPhone] = useState(member.phone ?? "");
-  const [roleChoice, setRoleChoice] = useState<string>(
-    member.roleDefinition ? `custom:${member.roleDefinition.id}` : member.role
-  );
+  const [roleDefinitionId, setRoleDefinitionId] = useState<string>(member.roleDefinition?.id ?? "");
+  const [isCr, setIsCr] = useState(member.isCr ?? false);
   const [newPassword, setNewPassword] = useState("");
   const [isActive, setIsActive] = useState(member.isActive);
 
@@ -37,13 +30,13 @@ export function EditStaffModal({ member, branchId, isOpen, onClose }: EditStaffM
     setName(member.name);
     setEmail(member.email);
     setPhone(member.phone ?? "");
-    setRoleChoice(member.roleDefinition ? `custom:${member.roleDefinition.id}` : member.role);
+    setRoleDefinitionId(member.roleDefinition?.id ?? "");
+    setIsCr(member.isCr ?? false);
     setNewPassword("");
     setIsActive(member.isActive);
   }, [member, isOpen]);
 
   const activeRoles = roles?.filter((r) => r.isActive) ?? [];
-  const isCustomRole = roleChoice.startsWith("custom:");
 
   const handleSave = () => {
     updateUser.mutate(
@@ -53,8 +46,8 @@ export function EditStaffModal({ member, branchId, isOpen, onClose }: EditStaffM
           name,
           email,
           phone: phone || undefined,
-          role: isCustomRole ? undefined : (roleChoice as "CR_TEAM" | "CONSULTANT" | "BRANCH_MANAGER"),
-          roleDefinitionId: isCustomRole ? roleChoice.slice("custom:".length) : null,
+          roleDefinitionId: roleDefinitionId || null,
+          isCr,
           password: newPassword || undefined,
           isActive,
         },
@@ -73,26 +66,16 @@ export function EditStaffModal({ member, branchId, isOpen, onClose }: EditStaffM
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium text-gray-700">Role</span>
           <select
-            value={roleChoice}
-            onChange={(e) => setRoleChoice(e.target.value)}
+            value={roleDefinitionId}
+            onChange={(e) => setRoleDefinitionId(e.target.value)}
             className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
           >
-            <optgroup label="Standard roles">
-              {BASE_ROLE_OPTIONS.map((r) => (
-                <option key={r.value} value={r.value}>
-                  {r.label}
-                </option>
-              ))}
-            </optgroup>
-            {activeRoles.length > 0 && (
-              <optgroup label="Custom roles">
-                {activeRoles.map((r) => (
-                  <option key={r.id} value={`custom:${r.id}`}>
-                    {r.name} {r.branch ? `— ${r.branch.name}` : "— all branches"}
-                  </option>
-                ))}
-              </optgroup>
-            )}
+            <option value="">Select a role…</option>
+            {activeRoles.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name} {r.branch ? `— ${r.branch.name}` : "— all branches"}
+              </option>
+            ))}
           </select>
         </label>
 
@@ -104,12 +87,18 @@ export function EditStaffModal({ member, branchId, isOpen, onClose }: EditStaffM
           onChange={(e) => setNewPassword(e.target.value)}
         />
 
-        <div className="rounded-lg border border-gray-200 p-3">
+        <div className="flex flex-col gap-2 rounded-lg border border-gray-200 p-3">
           <Toggle
             label="Active"
             description="Inactive members can't log in and won't receive new leads"
             checked={isActive}
             onChange={setIsActive}
+          />
+          <Toggle
+            label="Also consider as CR"
+            description="Lets this person appear in the CR-assignment dropdown, on top of their role's permissions"
+            checked={isCr}
+            onChange={setIsCr}
           />
         </div>
 

@@ -18,25 +18,13 @@ export async function createBranchStaff(branchId: string, input: CreateBranchSta
   const existing = await prisma.user.findUnique({ where: { email: input.email } });
   if (existing) throw new ConflictError("A user with this email already exists");
 
-  // A custom role definition carries both the security base role and the module permissions.
-  let role = input.role;
-  let roleDefinitionId: string | undefined;
-  if (input.roleDefinitionId) {
-    const roleDefinition = await prisma.roleDefinition.findUnique({ where: { id: input.roleDefinitionId } });
-    if (!roleDefinition || !roleDefinition.isActive) throw new NotFoundError("Role definition not found or inactive");
-    if (roleDefinition.branchId && roleDefinition.branchId !== branchId) {
-      throw new ConflictError("This role belongs to a different branch");
-    }
-    role = roleDefinition.baseRole as CreateBranchStaffInput["role"];
-    roleDefinitionId = roleDefinition.id;
+  // Every branch-staff user is STAFF and must carry a fully-custom RoleDefinition —
+  // there's no more baseRole preset tier (SUPER_ADMIN is never created this way).
+  const roleDefinition = await prisma.roleDefinition.findUnique({ where: { id: input.roleDefinitionId } });
+  if (!roleDefinition || !roleDefinition.isActive) throw new NotFoundError("Role definition not found or inactive");
+  if (roleDefinition.branchId && roleDefinition.branchId !== branchId) {
+    throw new ConflictError("This role belongs to a different branch");
   }
-  if (!role) throw new ConflictError("A role is required");
-
-  // Department is mandatory and must belong to this branch — otherwise an employee could
-  // be filed under another branch's department.
-  const department = await prisma.staffDepartment.findUnique({ where: { id: input.staffDepartmentId } });
-  if (!department || !department.isActive) throw new NotFoundError("Department not found or inactive");
-  if (department.branchId !== branchId) throw new ConflictError("This department belongs to a different branch");
 
   const passwordHash = await hashPassword(input.password);
   const user = await prisma.user.create({
@@ -44,9 +32,9 @@ export async function createBranchStaff(branchId: string, input: CreateBranchSta
       name: input.name,
       email: input.email,
       phone: input.phone,
-      role,
-      roleDefinitionId,
-      staffDepartmentId: department.id,
+      role: "STAFF",
+      roleDefinitionId: roleDefinition.id,
+      isCr: input.isCr ?? false,
       branchId,
       passwordHash,
     },
@@ -65,6 +53,8 @@ export async function createUser(input: CreateUserInput) {
       email: input.email,
       phone: input.phone,
       role: input.role,
+      roleDefinitionId: input.roleDefinitionId,
+      isCr: input.isCr ?? false,
       branchId: input.branchId ?? null,
       passwordHash,
     },
@@ -77,7 +67,6 @@ export async function listBranchUsers(branchId: string, role?: Role) {
     where: { branchId, ...(role ? { role } : {}) },
     include: {
       roleDefinition: { select: { id: true, name: true } },
-      staffDepartment: { select: { id: true, name: true } },
     },
     orderBy: { name: "asc" },
   });
@@ -97,8 +86,8 @@ export async function getDirectory() {
           email: true,
           phone: true,
           role: true,
+          isCr: true,
           roleDefinition: { select: { id: true, name: true } },
-          staffDepartment: { select: { id: true, name: true } },
         },
         orderBy: [{ role: "asc" }, { name: "asc" }],
       },
@@ -106,7 +95,7 @@ export async function getDirectory() {
     orderBy: { name: "asc" },
   });
 
-  // Cross-branch users (SUPER_ADMIN/ADMIN with no branch) shown separately.
+  // Cross-branch users (SUPER_ADMIN, or STAFF with no branch) shown separately.
   const headOffice = await prisma.user.findMany({
     where: { branchId: null, isActive: true, email: { not: "system@lotuscrm.internal" } },
     select: { id: true, name: true, email: true, phone: true, role: true },
@@ -125,25 +114,14 @@ export async function updateUser(userId: string, input: UpdateUserInput) {
     if (emailTaken) throw new ConflictError("A user with this email already exists");
   }
 
-  const { password, roleDefinitionId, role, staffDepartmentId, ...rest } = input;
+  const { password, roleDefinitionId, ...rest } = input;
   const data: Parameters<typeof prisma.user.update>[0]["data"] = { ...rest };
 
   if (password) data.passwordHash = await hashPassword(password);
 
-  // Same branch check as on create — a user must not be moved into another branch's department.
-  if (staffDepartmentId !== undefined) {
-    const department = await prisma.staffDepartment.findUnique({ where: { id: staffDepartmentId } });
-    if (!department || !department.isActive) throw new NotFoundError("Department not found or inactive");
-    if (user.branchId && department.branchId !== user.branchId) {
-      throw new ConflictError("This department belongs to a different branch");
-    }
-    data.staffDepartmentId = staffDepartmentId;
-  }
-
   if (roleDefinitionId !== undefined) {
     if (roleDefinitionId === null) {
       data.roleDefinitionId = null;
-      if (role) data.role = role;
     } else {
       const roleDefinition = await prisma.roleDefinition.findUnique({ where: { id: roleDefinitionId } });
       if (!roleDefinition || !roleDefinition.isActive) throw new NotFoundError("Role definition not found or inactive");
@@ -151,11 +129,7 @@ export async function updateUser(userId: string, input: UpdateUserInput) {
         throw new ConflictError("This role belongs to a different branch");
       }
       data.roleDefinitionId = roleDefinitionId;
-      data.role = roleDefinition.baseRole;
     }
-  } else if (role) {
-    data.role = role;
-    data.roleDefinitionId = null;
   }
 
   const updated = await prisma.user.update({ where: { id: userId }, data });
@@ -174,9 +148,7 @@ export async function deleteUser(userId: string) {
       _count: {
         select: {
           assignedEnquiries: true,
-          consultantEnquiries: true,
           statusChanges: true,
-          testDriveFeedbacks: true,
           quotationsCreated: true,
           evaluationsDone: true,
           reassignmentsBy: true,
@@ -264,13 +236,13 @@ export async function setBreak(userId: string, onBreak: boolean) {
  * Team activity for the dashboard monitor — floor staff the requester oversees,
  * with presence + break state. Managers see their branch; admins see everyone.
  */
-export async function getTeamActivity(ctx: { role: Role; branchId?: string | null }) {
-  const isAdmin = ctx.role === "SUPER_ADMIN" || ctx.role === "ADMIN";
+export async function getTeamActivity(ctx: { role: Role; branchId?: string | null; canViewAllBranches: boolean }) {
+  const isCrossBranch = ctx.role === "SUPER_ADMIN" || ctx.canViewAllBranches;
   const users = await prisma.user.findMany({
     where: {
       isActive: true,
-      role: { in: ["CR_TEAM", "CONSULTANT", "BRANCH_MANAGER"] },
-      ...(isAdmin ? {} : { branchId: ctx.branchId ?? "__none__" }),
+      role: "STAFF",
+      ...(isCrossBranch ? {} : { branchId: ctx.branchId ?? "__none__" }),
     },
     select: {
       id: true,

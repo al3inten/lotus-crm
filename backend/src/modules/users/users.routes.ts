@@ -2,7 +2,7 @@ import { Router } from "express";
 import multer from "multer";
 import { asyncHandler } from "../../lib/asyncHandler";
 import { verifyJwt } from "../../middleware/auth";
-import { requireRole } from "../../middleware/rbac";
+import { requireRole, requirePermission } from "../../middleware/rbac";
 import { validateBody } from "../../middleware/validate";
 import { createBranchStaffSchema, createUserSchema, updateUserSchema, setBreakSchema } from "./users.schema";
 import {
@@ -31,50 +31,39 @@ router.use(verifyJwt);
 // parameterised routes so "me"/"activity" aren't swallowed by "/:userId".
 router.post("/me/heartbeat", asyncHandler(heartbeatHandler));
 router.patch("/me/break", validateBody(setBreakSchema), asyncHandler(setBreakHandler));
-router.get(
-  "/activity",
-  requireRole("SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"),
-  asyncHandler(teamActivityHandler)
-);
+router.get("/activity", requirePermission("branches", "read"), asyncHandler(teamActivityHandler));
 
-// Profile photo — self, or any staff member if a manager/admin (enforced in handler).
+// Profile photo — self, or any staff member with branches-write access (enforced in handler).
 router.post("/:userId/avatar", uploadAvatar.single("file"), asyncHandler(uploadAvatarHandler));
 
-// Branch-wise / department-wise staff overview for admins.
-router.get("/directory", requireRole("SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"), asyncHandler(directoryHandler));
+// Branch-wise staff overview for admins.
+router.get("/directory", requirePermission("branches", "read"), asyncHandler(directoryHandler));
 
-// Admin-level user creation (Branch Managers, other Admins).
-router.post(
-  "/",
-  requireRole("SUPER_ADMIN", "ADMIN"),
-  validateBody(createUserSchema),
-  asyncHandler(createUserHandler)
-);
+// SUPER_ADMIN-level user creation (head-office/staff accounts outside the branch flow).
+router.post("/", requireRole("SUPER_ADMIN"), validateBody(createUserSchema), asyncHandler(createUserHandler));
 
 router.patch(
   "/:userId",
-  requireRole("SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"),
+  requirePermission("branches", "write"),
   validateBody(updateUserSchema),
   asyncHandler(updateUserHandler)
 );
 
-router.delete("/:userId", requireRole("SUPER_ADMIN", "ADMIN"), asyncHandler(deleteUserHandler));
+router.delete("/:userId", requirePermission("branches", "write"), asyncHandler(deleteUserHandler));
 
-// Departments UI: add Consultants / CR Team members under a branch.
+// Branches UI: add staff under a branch, assigned a fully-custom RoleDefinition.
 router.post(
   "/branches/:branchId/staff",
-  requireRole("SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"),
+  requirePermission("branches", "write"),
   validateBody(createBranchStaffSchema),
   asyncHandler(createBranchStaffHandler)
 );
 
-// CR Team and Consultants need this too — they're the ones assigning a consultant or
-// picking a colleague while working the enquiry pipeline (status changes, test drives,
-// quotations, exchange evaluations all read from this list).
-router.get(
-  "/branches/:branchId/staff",
-  requireRole("SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER", "CR_TEAM", "CONSULTANT"),
-  asyncHandler(listBranchUsersHandler)
-);
+// Any authenticated staff member needs this too — they're the ones assigning a
+// CR/colleague while working the enquiry pipeline (status changes, reassignment,
+// quotations, exchange evaluations all read from this list). Left open (verifyJwt
+// only) rather than gated on "branches" read, since it's consumed widely outside
+// the Branches admin page itself.
+router.get("/branches/:branchId/staff", asyncHandler(listBranchUsersHandler));
 
 export default router;

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { asyncHandler } from "../../lib/asyncHandler";
 import { verifyJwt } from "../../middleware/auth";
-import { requireRole } from "../../middleware/rbac";
+import { requirePermission } from "../../middleware/rbac";
 import { validateBody } from "../../middleware/validate";
 import { saveIntegrationSchema, syncGoogleSheetSchema, toggleIntegrationSchema } from "./integrations.schema";
 import {
@@ -22,20 +22,20 @@ import {
 
 const router = Router();
 
-router.use(verifyJwt, requireRole("SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"));
+router.use(verifyJwt);
 
-router.get("/", asyncHandler(listIntegrationsHandler));
-router.post("/google-sheets/sync", validateBody(syncGoogleSheetSchema), asyncHandler(syncGoogleSheetHandler));
+router.get("/", requirePermission("integrations", "read"), asyncHandler(listIntegrationsHandler));
+router.post("/google-sheets/sync", requirePermission("integrations", "write"), validateBody(syncGoogleSheetSchema), asyncHandler(syncGoogleSheetHandler));
 
-router.get("/meta/oauth/start", requireRole("SUPER_ADMIN", "ADMIN"), asyncHandler(startMetaOAuthHandler));
-router.get("/meta/pages", asyncHandler(metaAdsStatusHandler));
-router.post("/meta/pages/:pageId/sync", requireRole("SUPER_ADMIN", "ADMIN"), asyncHandler(syncMetaPageHandler));
-router.post("/meta/sync-all", requireRole("SUPER_ADMIN", "ADMIN"), asyncHandler(syncAllMetaPagesHandler));
-router.post("/meta/disconnect", requireRole("SUPER_ADMIN", "ADMIN"), asyncHandler(disconnectMetaHandler));
+router.get("/meta/oauth/start", requirePermission("integrations", "write"), asyncHandler(startMetaOAuthHandler));
+router.get("/meta/pages", requirePermission("integrations", "read"), asyncHandler(metaAdsStatusHandler));
+router.post("/meta/pages/:pageId/sync", requirePermission("integrations", "write"), asyncHandler(syncMetaPageHandler));
+router.post("/meta/sync-all", requirePermission("integrations", "write"), asyncHandler(syncAllMetaPagesHandler));
+router.post("/meta/disconnect", requirePermission("integrations", "write"), asyncHandler(disconnectMetaHandler));
 
-router.put("/:key", requireRole("SUPER_ADMIN", "ADMIN"), validateBody(saveIntegrationSchema), asyncHandler(saveIntegrationHandler));
-router.patch("/:key/enabled", requireRole("SUPER_ADMIN", "ADMIN"), validateBody(toggleIntegrationSchema), asyncHandler(toggleIntegrationHandler));
-router.delete("/:key", requireRole("SUPER_ADMIN", "ADMIN"), asyncHandler(deleteIntegrationHandler));
-router.post("/:key/test", requireRole("SUPER_ADMIN", "ADMIN"), asyncHandler(testIntegrationHandler));
+router.put("/:key", requirePermission("integrations", "write"), validateBody(saveIntegrationSchema), asyncHandler(saveIntegrationHandler));
+router.patch("/:key/enabled", requirePermission("integrations", "write"), validateBody(toggleIntegrationSchema), asyncHandler(toggleIntegrationHandler));
+router.delete("/:key", requirePermission("integrations", "write"), asyncHandler(deleteIntegrationHandler));
+router.post("/:key/test", requirePermission("integrations", "write"), asyncHandler(testIntegrationHandler));
 
 export default router;

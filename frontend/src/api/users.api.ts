@@ -5,10 +5,8 @@ export interface CreateBranchStaffPayload {
   name: string;
   email: string;
   phone?: string;
-  role?: "CONSULTANT" | "CR_TEAM" | "BRANCH_MANAGER";
-  roleDefinitionId?: string;
-  /** Required — every employee belongs to a department of their branch. */
-  staffDepartmentId: string;
+  roleDefinitionId: string;
+  isCr?: boolean;
   password: string;
 }
 
@@ -28,8 +26,8 @@ export interface UpdateUserPayload {
   name?: string;
   email?: string;
   phone?: string;
-  role?: "CONSULTANT" | "CR_TEAM" | "BRANCH_MANAGER";
   roleDefinitionId?: string | null;
+  isCr?: boolean;
   password?: string;
   isActive?: boolean;
   isAvailableForRouting?: boolean;

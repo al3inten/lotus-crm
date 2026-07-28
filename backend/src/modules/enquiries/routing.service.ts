@@ -10,13 +10,14 @@ function startOfToday(): Date {
 
 /**
  * Stateless, count-based round robin: picks the active, routing-available
- * CR_TEAM member in the branch with the fewest enquiries assigned today.
+ * user flagged `isCr` in the branch with the fewest enquiries assigned today
+ * (isCr is the per-user "acts as a CR" toggle — replaces the old CR_TEAM role tier).
  * Self-balancing — no drift when staff are added/removed, no separate cursor table.
- * Returns null if no eligible CR team member exists (lead stays unassigned).
+ * Returns null if no eligible CR exists (lead stays unassigned).
  */
 export async function getNextCrForBranch(tx: Tx, branchId: string): Promise<string | null> {
   const candidates = await tx.user.findMany({
-    where: { branchId, role: "CR_TEAM", isActive: true, isAvailableForRouting: true },
+    where: { branchId, isCr: true, isActive: true, isAvailableForRouting: true },
     select: { id: true },
   });
 

@@ -20,11 +20,9 @@ import { GoogleSheetsSyncForm } from "../components/integrations/GoogleSheetsSyn
 import { useIntegrations } from "../hooks/useIntegrations";
 import { useLeadsViewMode, type LeadsViewMode } from "../hooks/useLeadsViewMode";
 import { useAuth } from "../context/AuthContext";
+import { useCanWrite } from "../hooks/usePermission";
 import type { AddLeadFormValues } from "../schemas/lead.schema";
 import type { LeadDraft } from "../types";
-
-// Mirrors the backend's requireRole on GET /integrations — CR_TEAM/CONSULTANT can't call it.
-const INTEGRATIONS_VISIBLE_ROLES = ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"];
 
 const VIEW_OPTIONS: { mode: LeadsViewMode; label: string; icon: typeof Table2 }[] = [
   { mode: "table", label: "Table", icon: Table2 },
@@ -65,9 +63,12 @@ export function LeadsPage() {
   const [resumeDraft, setResumeDraft] = useState<LeadDraft | undefined>(undefined);
   const [view, setView] = useLeadsViewMode();
   const { user } = useAuth();
+  const canWrite = useCanWrite("leads");
+  const canSeeIntegrations =
+    !!user && (user.role === "SUPER_ADMIN" || user.permissions.integrations === "read" || user.permissions.integrations === "write");
 
   const { data, isLoading, isFetching } = useLeads(filters);
-  const { data: integrations } = useIntegrations(!!user && INTEGRATIONS_VISIBLE_ROLES.includes(user.role));
+  const { data: integrations } = useIntegrations(canSeeIntegrations);
   const googleSheetsConnected = integrations?.find((i) => i.key === "GOOGLE_SHEETS")?.hasCredentials ?? false;
 
   const page = data?.page ?? 1;
@@ -153,22 +154,30 @@ export function LeadsPage() {
                 Sync
               </Button>
             )}
-            <Button variant="secondary" icon={<Upload size={14} />} onClick={() => setShowImportModal(true)}>
-              Import
-            </Button>
-            <LeadDraftsButton
-              onResume={(draft) => {
-                setResumeDraft(draft);
-                setGateValues(undefined);
-                setShowAddLeadForm(true);
-              }}
-            />
-            <Button variant="secondary" icon={<UserSearch size={14} />} onClick={openVerifyFlow}>
-              Verify &amp; Add
-            </Button>
-            <Button icon={<Plus size={16} />} onClick={openAddLeadForm}>
-              Add Lead
-            </Button>
+            {canWrite && (
+              <Button variant="secondary" icon={<Upload size={14} />} onClick={() => setShowImportModal(true)}>
+                Import
+              </Button>
+            )}
+            {canWrite && (
+              <LeadDraftsButton
+                onResume={(draft) => {
+                  setResumeDraft(draft);
+                  setGateValues(undefined);
+                  setShowAddLeadForm(true);
+                }}
+              />
+            )}
+            {canWrite && (
+              <Button variant="secondary" icon={<UserSearch size={14} />} onClick={openVerifyFlow}>
+                Verify &amp; Add
+              </Button>
+            )}
+            {canWrite && (
+              <Button icon={<Plus size={16} />} onClick={openAddLeadForm}>
+                Add Lead
+              </Button>
+            )}
           </div>
         </div>
       </div>

@@ -5,6 +5,7 @@ import { Modal } from "../common/Modal";
 import { Button } from "../common/Button";
 import { Toggle } from "../common/Toggle";
 import { useDeleteIntegration, useTestIntegration, useToggleIntegration } from "../../hooks/useIntegrations";
+import { useCanWrite } from "../../hooks/usePermission";
 import type { IntegrationConfigSummary, IntegrationKey } from "../../api/integrations.api";
 import { CATEGORY_BY_KEY } from "./integrationMeta";
 import { MetaAdsForm } from "./MetaAdsForm";
@@ -132,6 +133,7 @@ export function IntegrationCard({ config }: { config: IntegrationConfigSummary }
   const testIntegration = useTestIntegration();
   const deleteIntegration = useDeleteIntegration();
   const toggleIntegration = useToggleIntegration();
+  const canWrite = useCanWrite("integrations");
 
   const handleTest = async () => {
     try {
@@ -172,7 +174,7 @@ export function IntegrationCard({ config }: { config: IntegrationConfigSummary }
             <Toggle
               checked={config.enabled}
               onChange={(enabled) => toggleIntegration.mutate({ key: config.key, enabled })}
-              disabled={toggleIntegration.isPending}
+              disabled={toggleIntegration.isPending || !canWrite}
             />
           </div>
           <span className="mt-0.5 text-xs font-medium uppercase tracking-wide text-slate-400">{category}</span>
@@ -210,14 +212,16 @@ export function IntegrationCard({ config }: { config: IntegrationConfigSummary }
 
       {/* Action Buttons Section */}
       <div className="flex items-center gap-2">
-        <Button
-          variant={config.hasCredentials ? "secondary" : "primary"}
-          icon={config.hasCredentials ? <Settings2 size={14} /> : undefined}
-          onClick={() => setShowForm(true)}
-          className="flex-1"
-        >
-          {config.hasCredentials ? "Manage" : "Configure"}
-        </Button>
+        {canWrite && (
+          <Button
+            variant={config.hasCredentials ? "secondary" : "primary"}
+            icon={config.hasCredentials ? <Settings2 size={14} /> : undefined}
+            onClick={() => setShowForm(true)}
+            className="flex-1"
+          >
+            {config.hasCredentials ? "Manage" : "Configure"}
+          </Button>
+        )}
 
         {config.hasCredentials && (
           <>
@@ -232,15 +236,17 @@ export function IntegrationCard({ config }: { config: IntegrationConfigSummary }
               <Activity size={14} className="mr-1.5" />
               Test Ping
             </Button>
-            <Button
-              variant="danger"
-              onClick={() => setShowDeleteConfirm(true)}
-              aria-label="Remove integration"
-              title="Remove integration"
-              className="!px-2.5"
-            >
-              <Trash2 size={14} />
-            </Button>
+            {canWrite && (
+              <Button
+                variant="danger"
+                onClick={() => setShowDeleteConfirm(true)}
+                aria-label="Remove integration"
+                title="Remove integration"
+                className="!px-2.5"
+              >
+                <Trash2 size={14} />
+              </Button>
+            )}
           </>
         )}
       </div>

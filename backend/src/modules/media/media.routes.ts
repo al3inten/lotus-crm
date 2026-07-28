@@ -2,7 +2,7 @@ import { Router } from "express";
 import multer from "multer";
 import { asyncHandler } from "../../lib/asyncHandler";
 import { verifyJwt } from "../../middleware/auth";
-import { requireRole } from "../../middleware/rbac";
+import { requirePermission } from "../../middleware/rbac";
 import { validateBody, validateQuery } from "../../middleware/validate";
 import { uploadMediaSchema, listMediaQuerySchema } from "./media.schema";
 import { uploadMediaHandler, listMediaHandler, deleteMediaHandler } from "./media.controller";
@@ -14,10 +14,10 @@ const upload = multer({
 
 const router = Router();
 
-router.use(verifyJwt, requireRole("SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"));
+router.use(verifyJwt);
 
-router.get("/", validateQuery(listMediaQuerySchema), asyncHandler(listMediaHandler));
-router.post("/", upload.single("file"), validateBody(uploadMediaSchema), asyncHandler(uploadMediaHandler));
-router.delete("/:mediaId", asyncHandler(deleteMediaHandler));
+router.get("/", requirePermission("media-library", "read"), validateQuery(listMediaQuerySchema), asyncHandler(listMediaHandler));
+router.post("/", requirePermission("media-library", "write"), upload.single("file"), validateBody(uploadMediaSchema), asyncHandler(uploadMediaHandler));
+router.delete("/:mediaId", requirePermission("media-library", "write"), asyncHandler(deleteMediaHandler));
 
 export default router;

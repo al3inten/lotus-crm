@@ -9,21 +9,17 @@ import {
   Trash2,
   UserCircle2,
   Landmark,
-  Network,
+  IdCard,
 } from "lucide-react";
 import { useBranches } from "../hooks/useBranches";
-import {
-  useStaffDepartments,
-  useCreateStaffDepartment,
-  useDeleteStaffDepartment,
-} from "../hooks/useStaffDepartments";
 import { useBranchStaff, useDeleteUser } from "../hooks/useUsers";
 import { useRoles, useDeleteRole, useUpdateRole, useDirectory } from "../hooks/useRoles";
-import { BranchList } from "../components/departments/BranchList";
-import { BranchForm } from "../components/departments/BranchForm";
-import { AddStaffModal } from "../components/departments/AddStaffModal";
-import { EditStaffModal } from "../components/departments/EditStaffModal";
-import { RoleModal } from "../components/departments/RoleModal";
+import { useConsultants, useCreateConsultant, useUpdateConsultant, useDeleteConsultant } from "../hooks/useConsultants";
+import { BranchList } from "../components/admin/BranchList";
+import { BranchForm } from "../components/admin/BranchForm";
+import { AddStaffModal } from "../components/admin/AddStaffModal";
+import { EditStaffModal } from "../components/admin/EditStaffModal";
+import { RoleModal } from "../components/admin/RoleModal";
 import { Button } from "../components/common/Button";
 import { Modal } from "../components/common/Modal";
 import { Card, CardHeader } from "../components/common/Card";
@@ -34,22 +30,19 @@ import type { RoleDefinition } from "../types";
 
 // Vehicle models intentionally live only on the dedicated /vehicles page (sidebar),
 // not as a tab here — they were previously duplicated across both.
-type Tab = "overview" | "branches" | "roles" | "departments" | "staff";
+type Tab = "overview" | "branches" | "roles" | "staff" | "consultants";
 
 const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
   { key: "overview", label: "Overview", icon: <LayoutGrid size={15} /> },
   { key: "branches", label: "Branches", icon: <Building2 size={15} /> },
   { key: "roles", label: "Roles & Permissions", icon: <ShieldCheck size={15} /> },
-  { key: "departments", label: "Departments", icon: <Network size={15} /> },
   { key: "staff", label: "Employees", icon: <Users size={15} /> },
+  { key: "consultants", label: "Consultants", icon: <IdCard size={15} /> },
 ];
 
 const ROLE_BADGES: Record<string, string> = {
   SUPER_ADMIN: "bg-gray-900 text-white",
-  ADMIN: "bg-violet-100 text-violet-700",
-  BRANCH_MANAGER: "bg-primary-100 text-primary-700",
-  CR_TEAM: "bg-emerald-100 text-emerald-700",
-  CONSULTANT: "bg-amber-100 text-amber-700",
+  STAFF: "bg-primary-100 text-primary-700",
 };
 
 function RoleBadge({ role, roleName }: { role: string; roleName?: string | null }) {
@@ -184,7 +177,7 @@ function RolesTab() {
                   icon={<ShieldCheck size={20} />}
                   iconClassName="bg-violet-50 text-violet-600"
                   title={role.name}
-                  subtitle={`${role.branch?.name ?? "All branches"} · ${role.baseRole.replaceAll("_", " ")} level · ${role._count?.users ?? 0} member(s)`}
+                  subtitle={`${role.branch?.name ?? "All branches"} · ${role._count?.users ?? 0} member(s)${role.canViewAllBranches ? " · all branches" : ""}${role.restrictLeadsToOwn ? " · own leads only" : ""}`}
                 />
                 <div className="flex items-center gap-1">
                   <button
@@ -207,9 +200,15 @@ function RolesTab() {
               </div>
 
               <div className="flex flex-wrap gap-1.5">
-                {role.permissions.map((p) => (
-                  <span key={p} className="rounded-full bg-primary-50 px-2 py-0.5 text-[11px] font-medium text-primary-700">
-                    {moduleLabel(p)}
+                {MODULES.filter((m) => role.permissions[m.key] !== "none").map((m) => (
+                  <span
+                    key={m.key}
+                    className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                      role.permissions[m.key] === "write" ? "bg-primary-50 text-primary-700" : "bg-gray-100 text-gray-600"
+                    }`}
+                    title={role.permissions[m.key] === "write" ? "Read + Write" : "Read only"}
+                  >
+                    {moduleLabel(m.key)}
                   </span>
                 ))}
               </div>
@@ -264,103 +263,6 @@ function BranchesTab() {
 }
 
 /* ---------- Staff ---------- */
-
-/* ---------- Departments (per branch) ---------- */
-
-function DepartmentsTab() {
-  const { data: branches } = useBranches();
-  const [branchId, setBranchId] = useState<string>("");
-  const activeBranchId = branchId || branches?.[0]?.id || "";
-  const { data: departments, isLoading } = useStaffDepartments(activeBranchId || undefined, !!activeBranchId);
-  const createDepartment = useCreateStaffDepartment();
-  const deleteDepartment = useDeleteStaffDepartment();
-  const [name, setName] = useState("");
-  const [error, setError] = useState<string | null>(null);
-
-  const apiError = (err: unknown) =>
-    (err as { response?: { data?: { error?: string } } }).response?.data?.error ?? "Something went wrong.";
-
-  const handleCreate = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim() || !activeBranchId) return;
-    setError(null);
-    createDepartment.mutate(
-      { name: name.trim(), branchId: activeBranchId },
-      { onSuccess: () => setName(""), onError: (err) => setError(apiError(err)) }
-    );
-  };
-
-  const handleDelete = (dept: { id: string; name: string }) => {
-    if (!window.confirm(`Delete "${dept.name}"? Only possible if no employees belong to it.`)) return;
-    setError(null);
-    deleteDepartment.mutate(dept.id, { onError: (err) => setError(apiError(err)) });
-  };
-
-  return (
-    <div className="flex flex-col gap-4">
-      <Card>
-        <CardHeader title="Departments" subtitle="Org units inside a branch. Every employee must belong to one." />
-        <div className="flex flex-col gap-3 p-4 pt-0">
-          <Select label="Branch" value={activeBranchId} onChange={(e) => setBranchId(e.target.value)}>
-            {branches?.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-          </Select>
-
-          <form onSubmit={handleCreate} className="flex items-end gap-2">
-            <div className="flex-1">
-              <Input
-                label="New department"
-                placeholder="e.g. Sales, Service, HR"
-                value={name}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
-              />
-            </div>
-            <Button type="submit" icon={<Plus size={15} />} isLoading={createDepartment.isPending} disabled={!name.trim()}>
-              Add
-            </Button>
-          </form>
-
-          {error && <p className="text-sm text-red-600">{error}</p>}
-        </div>
-      </Card>
-
-      {isLoading ? (
-        <p className="text-sm text-gray-500">Loading…</p>
-      ) : !departments?.length ? (
-        <div className="rounded-xl border border-dashed border-slate-300 p-8 text-center dark:border-slate-700">
-          <p className="text-sm font-medium text-slate-700 dark:text-slate-200">No departments in this branch yet</p>
-          <p className="mt-1 text-sm text-slate-500">Add one above before creating employees here.</p>
-        </div>
-      ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {departments.map((dept) => (
-            <Card key={dept.id}>
-              <div className="flex items-center justify-between p-4">
-                <div>
-                  <p className="font-semibold text-slate-900 dark:text-white">{dept.name}</p>
-                  <p className="mt-0.5 text-xs text-slate-500">
-                    {dept._count?.users ?? 0} employee{(dept._count?.users ?? 0) === 1 ? "" : "s"}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleDelete(dept)}
-                  aria-label={`Delete ${dept.name}`}
-                  className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10"
-                >
-                  <Trash2 size={15} />
-                </button>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 function StaffTab() {
   const { data: branches } = useBranches();
@@ -479,6 +381,111 @@ function StaffTab() {
 }
 
 
+/* ---------- Consultants ---------- */
+
+function ConsultantsTab() {
+  const { data: branches } = useBranches();
+  const [branchId, setBranchId] = useState<string>("");
+  const activeBranchId = branchId || branches?.[0]?.id || "";
+  const { data: consultants, isLoading } = useConsultants(activeBranchId || undefined, !!activeBranchId);
+  const createConsultant = useCreateConsultant();
+  const updateConsultant = useUpdateConsultant();
+  const deleteConsultant = useDeleteConsultant();
+
+  const [name, setName] = useState("");
+  const [mobile, setMobile] = useState("");
+
+  const handleCreate = () => {
+    if (!name || !mobile || !activeBranchId) return;
+    createConsultant.mutate(
+      { name, mobile, branchId: activeBranchId },
+      { onSuccess: () => { setName(""); setMobile(""); } }
+    );
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-end justify-between gap-3">
+        <Select label="Branch" value={activeBranchId} onChange={(e) => setBranchId(e.target.value)}>
+          {branches?.map((b) => (
+            <option key={b.id} value={b.id}>
+              {b.name}
+            </option>
+          ))}
+        </Select>
+      </div>
+
+      <Card>
+        <CardHeader icon={<IdCard size={20} />} title="Add Consultant" subtitle="Name, mobile number, and branch — no login required" />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <Input label="Name" placeholder="Full name" value={name} onChange={(e) => setName(e.target.value)} />
+          <Input label="Mobile Number" placeholder="+91XXXXXXXXXX" value={mobile} onChange={(e) => setMobile(e.target.value)} />
+          <Button icon={<Plus size={15} />} disabled={!name || !mobile || !activeBranchId} isLoading={createConsultant.isPending} onClick={handleCreate}>
+            Add Consultant
+          </Button>
+        </div>
+      </Card>
+
+      {isLoading ? (
+        <p className="text-sm text-gray-500">Loading…</p>
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 text-left text-xs font-medium text-gray-500">
+              <tr>
+                <th className="px-4 py-2.5">Name</th>
+                <th className="px-4 py-2.5">Mobile</th>
+                <th className="px-4 py-2.5">Status</th>
+                <th className="px-4 py-2.5 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {consultants?.length ? (
+                consultants.map((c) => (
+                  <tr key={c.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-2.5 font-medium text-gray-900">{c.name}</td>
+                    <td className="px-4 py-2.5 text-gray-600">{c.mobile}</td>
+                    <td className="px-4 py-2.5">
+                      <span className={`text-xs font-medium ${c.isActive ? "text-emerald-600" : "text-gray-400"}`}>
+                        {c.isActive ? "● Active" : "○ Inactive"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                          onClick={() => updateConsultant.mutate({ id: c.id, payload: { isActive: !c.isActive } })}
+                          aria-label={c.isActive ? `Deactivate ${c.name}` : `Activate ${c.name}`}
+                          title={c.isActive ? "Deactivate" : "Activate"}
+                        >
+                          <Pencil size={15} />
+                        </button>
+                        <button
+                          className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"
+                          onClick={() => window.confirm(`Remove ${c.name}?`) && deleteConsultant.mutate(c.id)}
+                          aria-label={`Delete ${c.name}`}
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={4} className="px-4 py-8 text-center text-gray-400">
+                    No consultants in this branch yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ---------- Page ---------- */
 
 export function BranchesPage() {
@@ -503,7 +510,7 @@ export function BranchesPage() {
               Branches
             </h1>
             <p className="mt-2 text-sm sm:text-base text-slate-300">
-              Manage branches, their roles and departments, and the employees in each — all in one place.
+              Manage branches, their roles, and the employees in each — all in one place.
             </p>
           </div>
         </div>
@@ -530,8 +537,8 @@ export function BranchesPage() {
           {tab === "overview" && <OverviewTab />}
           {tab === "branches" && <BranchesTab />}
           {tab === "roles" && <RolesTab />}
-          {tab === "departments" && <DepartmentsTab />}
           {tab === "staff" && <StaffTab />}
+          {tab === "consultants" && <ConsultantsTab />}
         </main>
     </div>
   );

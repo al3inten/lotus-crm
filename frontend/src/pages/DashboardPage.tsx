@@ -37,11 +37,9 @@ import { StatCell } from "../components/dashboard/StatCell";
 import { ConversionRing } from "../components/dashboard/ConversionRing";
 import { PipelineRows } from "../components/dashboard/PipelineRows";
 
-const REPORT_VISIBLE_ROLES = ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"];
-
 const QUICK_ACTIONS = [
-  { to: "/leads", icon: <UserPlus size={15} strokeWidth={1.75} />, title: "New lead", roles: undefined },
-  { to: "/reports", icon: <BarChart3 size={15} strokeWidth={1.75} />, title: "Reports", roles: REPORT_VISIBLE_ROLES },
+  { to: "/leads", icon: <UserPlus size={15} strokeWidth={1.75} />, title: "New lead", module: undefined },
+  { to: "/reports", icon: <BarChart3 size={15} strokeWidth={1.75} />, title: "Reports", module: "reports" as const },
 ];
 
 /* ── Motion (respects prefers-reduced-motion) ──────────────────────────── */
@@ -66,7 +64,7 @@ function useVariants() {
 export function DashboardPage() {
   const { user } = useAuth();
   const variants = useVariants();
-  const canSeeStats = user?.role && REPORT_VISIBLE_ROLES.includes(user.role);
+  const canSeeStats = !!user && (user.role === "SUPER_ADMIN" || user.permissions.reports === "read" || user.permissions.reports === "write");
 
   const { data: reminders } = useReminders();
   const actionItems =
@@ -89,7 +87,11 @@ export function DashboardPage() {
     order: "asc",
   });
 
-  const visibleActions = QUICK_ACTIONS.filter((a) => !a.roles || (user && a.roles.includes(user.role)));
+  const visibleActions = QUICK_ACTIONS.filter(
+    (a) =>
+      !a.module ||
+      (!!user && (user.role === "SUPER_ADMIN" || user.permissions[a.module] === "read" || user.permissions[a.module] === "write"))
+  );
   const maxSource = Math.max(1, ...(sources ?? []).map((s) => s.total));
   const conversionRate = yoy?.currentPeriod.conversionRate ?? 0;
   const statsLoading = canSeeStats && !summary;

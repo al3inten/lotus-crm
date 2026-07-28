@@ -7,25 +7,26 @@ import { LeadListQuery, CustomerListQuery } from "./leads.schema";
 
 /**
  * Overriding the duplicate-customer block is a supervisor decision, so `forceNew` is
- * honoured only for these roles — a CR can't bypass it by posting the flag directly.
+ * honoured only for SUPER_ADMIN or a STAFF user whose role has "leads" write access
+ * and isn't restricted to only their own leads — a plain CR can't bypass it by posting
+ * the flag directly.
  */
-const FORCE_NEW_ROLES = ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"];
-
-function withCheckedForceNew(body: Record<string, unknown>, role: string) {
-  if (!body.forceNew) return body;
-  return { ...body, forceNew: FORCE_NEW_ROLES.includes(role) };
+function withCheckedForceNew(body: Record<string, unknown>, user: Express.Request["user"]) {
+  if (!body.forceNew || !user) return body;
+  const canForceNew = user.role === "SUPER_ADMIN" || (user.permissions.leads === "write" && !user.restrictLeadsToOwn);
+  return { ...body, forceNew: canForceNew };
 }
 
 export async function createEnquiryHandler(req: Request, res: Response) {
   if (!req.user) throw new UnauthorizedError();
-  const body = withCheckedForceNew(req.body, req.user.role);
+  const body = withCheckedForceNew(req.body, req.user);
   const result = await leadsService.createOrAttachEnquiry(body as typeof req.body, req.user.id);
   res.status(201).json(result);
 }
 
 export async function createWalkInHandler(req: Request, res: Response) {
   if (!req.user) throw new UnauthorizedError();
-  const body = withCheckedForceNew({ ...req.body, source: "WALK_IN" }, req.user.role);
+  const body = withCheckedForceNew({ ...req.body, source: "WALK_IN" }, req.user);
   const result = await leadsService.createOrAttachEnquiry(body as typeof req.body, req.user.id);
   res.status(201).json(result);
 }
@@ -99,7 +100,8 @@ export async function getRemindersHandler(req: Request, res: Response) {
   if (!req.user) throw new UnauthorizedError();
   const reminders = await leadsService.getReminders({
     id: req.user.id,
-    role: req.user.role,
+    restrictLeadsToOwn: req.user.restrictLeadsToOwn,
+    canViewAllBranches: req.user.canViewAllBranches,
     branchId: req.user.branchId ?? null,
   });
   res.json(reminders);

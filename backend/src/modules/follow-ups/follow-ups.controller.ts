@@ -8,6 +8,8 @@ export async function listUpcomingFollowUpsHandler(req: Request, res: Response) 
   const result = await followUpsService.getUpcomingFollowUps(req.query as unknown as FollowUpListQuery, {
     userId: req.user.id,
     role: req.user.role,
+    restrictLeadsToOwn: req.user.restrictLeadsToOwn,
+    canViewAllBranches: req.user.canViewAllBranches,
     branchFilter: req.branchFilter,
   });
   res.json(result);
@@ -18,6 +20,8 @@ export async function followUpCalendarHandler(req: Request, res: Response) {
   const result = await followUpsService.getFollowUpCalendar(req.query as unknown as FollowUpCalendarQuery, {
     userId: req.user.id,
     role: req.user.role,
+    restrictLeadsToOwn: req.user.restrictLeadsToOwn,
+    canViewAllBranches: req.user.canViewAllBranches,
     branchFilter: req.branchFilter,
   });
   res.json(result);

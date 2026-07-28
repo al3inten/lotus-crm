@@ -2,13 +2,11 @@ import { Prisma, Role } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { TestDriveListQuery } from "./test-drives.schema";
 
-// Roles restricted to only their OWN test drives. Everyone else sees their branch
-// scope (branch manager) or all branches (admin / super admin), same split as follow-ups.
-const OWN_ONLY_ROLES: Role[] = ["CR_TEAM", "CONSULTANT"];
-
 export interface TestDriveContext {
   userId: string;
   role: Role;
+  restrictLeadsToOwn: boolean;
+  canViewAllBranches: boolean;
   branchFilter?: { branchId: string };
 }
 
@@ -30,10 +28,10 @@ function buildEnquiryScope(query: TestDriveListQuery, ctx: TestDriveContext, can
     if (crossBranch && query.branchId) enquiryWhere.branchId = query.branchId;
     if (query.assignedCrId) enquiryWhere.assignedCrId = query.assignedCrId;
     if (query.consultantId) enquiryWhere.consultantId = query.consultantId;
-  } else if (ctx.role === "CR_TEAM") {
+  } else {
+    // Consultants no longer log in (they're directory entries, not Users), so the
+    // only "own-only" restriction left here is a CR restricted to their own leads.
     enquiryWhere.assignedCrId = ctx.userId;
-  } else if (ctx.role === "CONSULTANT") {
-    enquiryWhere.consultantId = ctx.userId;
   }
 
   if (query.search) {
@@ -51,8 +49,8 @@ function buildEnquiryScope(query: TestDriveListQuery, ctx: TestDriveContext, can
 }
 
 export async function getTestDrives(query: TestDriveListQuery, ctx: TestDriveContext) {
-  const canSeeOthers = !OWN_ONLY_ROLES.includes(ctx.role);
-  const crossBranch = ctx.role === "SUPER_ADMIN" || ctx.role === "ADMIN";
+  const canSeeOthers = !ctx.restrictLeadsToOwn;
+  const crossBranch = ctx.role === "SUPER_ADMIN" || ctx.canViewAllBranches;
 
   const enquiryWhere = buildEnquiryScope(query, ctx, canSeeOthers, crossBranch);
   const where: Prisma.TestDriveFeedbackWhereInput = { enquiry: { is: enquiryWhere } };

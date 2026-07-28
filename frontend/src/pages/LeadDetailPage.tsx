@@ -7,6 +7,7 @@ import { AlertCircle, Car, Plus } from "lucide-react";
 import { useLeadHistory } from "../hooks/useLeads";
 import { useEnquiry, useReassign, useUpdateEnquiryDetails, useCloseFollowUp } from "../hooks/useEnquiry";
 import { useBranchStaff } from "../hooks/useUsers";
+import { useConsultants } from "../hooks/useConsultants";
 import { useCallLogsForLead } from "../hooks/useVoice";
 import { useAuth } from "../context/AuthContext";
 import { useSettings } from "../hooks/useSettings";
@@ -27,7 +28,7 @@ import { LeadPipelinePanel } from "../components/leads/detail/LeadPipelinePanel"
 
 import {
   WIN_STATUS,
-  REASSIGN_ROLES,
+  canReassignLeads,
   type DetailTab,
   buildInsights,
   computeLeadScore,
@@ -118,8 +119,9 @@ export function LeadDetailPage() {
       setActiveTab("forms");
     }
   }, [enquiry, tabParam, setActiveTab]);
-  const { data: crTeam } = useBranchStaff(enquiry?.branchId, "CR_TEAM");
-  const { data: consultants } = useBranchStaff(enquiry?.branchId, "CONSULTANT");
+  const { data: branchStaff } = useBranchStaff(enquiry?.branchId);
+  const crTeam = branchStaff?.filter((u) => u.isCr);
+  const { data: consultants } = useConsultants(enquiry?.branchId);
   const { data: callLogs } = useCallLogsForLead(leadId);
   const { data: settings } = useSettings();
 
@@ -173,12 +175,12 @@ export function LeadDetailPage() {
 
   const openFollowUp = () => setShowFollowUpForm(true);
 
-  const canReassign = !!(user && REASSIGN_ROLES.includes(user.role) && crTeam);
+  const canReassign = !!(canReassignLeads(user) && crTeam);
 
-  // CR_TEAM can view any lead, but may only act on ones assigned to them (mirrors the
-  // backend's requireEnquiryOwnership middleware on every enquiry mutation route). Every
-  // other role is unrestricted here.
-  const canAct = !enquiry || user?.role !== "CR_TEAM" || enquiry.assignedCrId === user?.id;
+  // Users with restrictLeadsToOwn can view any lead, but may only act on ones assigned to
+  // them (mirrors the backend's requireEnquiryOwnership middleware on every enquiry
+  // mutation route). Everyone else is unrestricted here.
+  const canAct = !enquiry || !user?.restrictLeadsToOwn || enquiry.assignedCrId === user?.id;
 
   const followUpUrgency = (() => {
     if (!enquiry?.followUpDueAt) return null;

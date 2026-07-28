@@ -16,6 +16,7 @@ import { usePushRepeatEnquiryAlert } from "../../hooks/useNotifications";
 import { useUpdateEnquiryDetails } from "../../hooks/useEnquiry";
 import { useBranches } from "../../hooks/useBranches";
 import { useBranchStaff } from "../../hooks/useUsers";
+import { useConsultants } from "../../hooks/useConsultants";
 import { useVehicleModels } from "../../hooks/useVehicles";
 import { useAuth } from "../../context/AuthContext";
 import {
@@ -167,17 +168,19 @@ export function AddLeadWizard({
     resolver: zodResolver(addLeadFormSchema),
     defaultValues: {
       branchId: user?.branchId ?? "",
-      assignedCrId: user?.role === "CR_TEAM" ? user.id : "",
+      assignedCrId: user?.isCr ? user.id : "",
       forceNew: false,
       ...initialValues,
     },
   });
 
   // Only supervisors may override the "customer already exists" block (enforced by the API too).
-  const canForceNew = !!user && ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"].includes(user.role);
+  const canForceNew =
+    !!user && (user.role === "SUPER_ADMIN" || (user.permissions.leads === "write" && !user.restrictLeadsToOwn));
 
-  const { data: crStaff } = useBranchStaff(watch("branchId"), "CR_TEAM", isOpen);
-  const { data: consultantStaff } = useBranchStaff(watch("branchId"), "CONSULTANT", isOpen);
+  const { data: branchStaff } = useBranchStaff(watch("branchId"), undefined, isOpen);
+  const crStaff = (branchStaff ?? []).filter((u) => u.isCr);
+  const { data: consultantStaff } = useConsultants(watch("branchId"), isOpen);
   const { data: vehicleModels } = useVehicleModels(isOpen);
   const selectedSourceCategory = watch("sourceCategory");
   const subsourceOptions = selectedSourceCategory
@@ -328,7 +331,7 @@ export function AddLeadWizard({
       // initialValues (e.g. the lead's saved address) into the form every time it reopens.
       reset({
         branchId: user?.branchId ?? "",
-        assignedCrId: user?.role === "CR_TEAM" ? user.id : "",
+        assignedCrId: user?.isCr ? user.id : "",
         forceNew: false,
         ...initialValues,
       });

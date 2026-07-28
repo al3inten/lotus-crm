@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { asyncHandler } from "../../lib/asyncHandler";
 import { verifyJwt } from "../../middleware/auth";
-import { requireRole } from "../../middleware/rbac";
+import { requirePermission } from "../../middleware/rbac";
 import { validateBody } from "../../middleware/validate";
 import {
   createVehicleModelSchema,
@@ -28,33 +28,33 @@ router.get("/", asyncHandler(listVehicleModelsHandler));
 
 router.post(
   "/",
-  requireRole("SUPER_ADMIN", "ADMIN"),
+  requirePermission("vehicles", "write"),
   validateBody(createVehicleModelSchema),
   asyncHandler(createVehicleModelHandler)
 );
 router.patch(
   "/:modelId",
-  requireRole("SUPER_ADMIN", "ADMIN"),
+  requirePermission("vehicles", "write"),
   validateBody(updateVehicleModelSchema),
   asyncHandler(updateVehicleModelHandler)
 );
-router.delete("/:modelId", requireRole("SUPER_ADMIN", "ADMIN"), asyncHandler(deleteVehicleModelHandler));
+router.delete("/:modelId", requirePermission("vehicles", "write"), asyncHandler(deleteVehicleModelHandler));
 
 router.post(
   "/:modelId/variants",
-  requireRole("SUPER_ADMIN", "ADMIN"),
+  requirePermission("vehicles", "write"),
   validateBody(createVehicleVariantSchema),
   asyncHandler(createVehicleVariantHandler)
 );
 router.patch(
   "/variants/:variantId",
-  requireRole("SUPER_ADMIN", "ADMIN"),
+  requirePermission("vehicles", "write"),
   validateBody(updateVehicleVariantSchema),
   asyncHandler(updateVehicleVariantHandler)
 );
 router.delete(
   "/variants/:variantId",
-  requireRole("SUPER_ADMIN", "ADMIN"),
+  requirePermission("vehicles", "write"),
   asyncHandler(deleteVehicleVariantHandler)
 );
 

@@ -36,7 +36,7 @@ import {
   useUpdateEnquiryDetails,
   enquiryKeys,
 } from "../../hooks/useEnquiry";
-import { useBranchStaff } from "../../hooks/useUsers";
+import { useConsultants } from "../../hooks/useConsultants";
 import { useQueryClient } from "@tanstack/react-query";
 import * as enquiriesApi from "../../api/enquiries.api";
 import { toast } from "sonner";
@@ -134,7 +134,7 @@ export function StatusChangeModal({
   const updateRetail = useUpdateRetailDetails(enquiryId);
   const updateRto = useUpdateRtoDetails(enquiryId);
   const updateDetails = useUpdateEnquiryDetails(enquiryId);
-  const { data: consultants, isLoading: consultantsLoading } = useBranchStaff(branchId, "CONSULTANT");
+  const { data: consultants, isLoading: consultantsLoading } = useConsultants(branchId);
   const allowedNext = ALLOWED_TRANSITIONS[currentStatus];
   const noConsultants = !consultantsLoading && (consultants?.length ?? 0) === 0;
 

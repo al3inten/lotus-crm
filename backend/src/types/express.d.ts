@@ -1,9 +1,14 @@
 import { Role } from "@prisma/client";
+import { PermissionsMap } from "../config/constants";
 
 export interface AuthUser {
   id: string;
   role: Role;
   branchId: string | null;
+  permissions: PermissionsMap;
+  canViewAllBranches: boolean;
+  restrictLeadsToOwn: boolean;
+  isCr: boolean;
 }
 
 declare global {

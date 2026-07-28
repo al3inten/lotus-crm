@@ -51,18 +51,24 @@ export const MODULE_KEYS = [
   "dashboard",
   "leads",
   "follow-ups",
+  "test-drives",
+  "vehicles",
   "social-inbox",
-  "departments",
-  "reports",
-  "ai-agents",
-  "media-library",
-  "templates",
   "call-campaigns",
   "bulk-messages",
+  "templates",
+  "media-library",
+  "reports",
+  "ai-agents",
+  "branches",
   "integrations",
 ] as const;
 
 export type ModuleKey = (typeof MODULE_KEYS)[number];
+
+export type PermissionLevel = "none" | "read" | "write";
+
+export type PermissionsMap = Record<ModuleKey, PermissionLevel>;
 
 // Prisma's interactive-transaction default (5s maxWait / 5s timeout) is too tight once the
 // DB is a network hop away (e.g. app and Postgres in different regions). These transactions

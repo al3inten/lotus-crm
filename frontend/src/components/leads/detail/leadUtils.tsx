@@ -19,7 +19,13 @@ import type { EnquiryStatus, Enquiry, LeadWithHistory } from "../../../types";
 import { DIGITAL_SOURCES } from "../../../types";
 
 export const WIN_STATUS: EnquiryStatus = "RETAIL_DONE";
-export const REASSIGN_ROLES = ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"];
+
+/** Same condition the API uses to gate reassignment — a plain CR restricted to their
+ * own leads can't reassign; anyone with write access to Leads (and not restricted) can. */
+export function canReassignLeads(user: { role: string; permissions: Record<string, string>; restrictLeadsToOwn: boolean } | null | undefined) {
+  if (!user) return false;
+  return user.role === "SUPER_ADMIN" || (user.permissions.leads === "write" && !user.restrictLeadsToOwn);
+}
 
 export const PIPELINE_ORDER: EnquiryStatus[] = [
   "NEW",

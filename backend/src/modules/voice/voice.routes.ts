@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { asyncHandler } from "../../lib/asyncHandler";
 import { verifyJwt } from "../../middleware/auth";
-import { requireRole } from "../../middleware/rbac";
+import { requirePermission } from "../../middleware/rbac";
 import { validateBody } from "../../middleware/validate";
 import { createCallCampaignSchema } from "./voice.schema";
 import {
@@ -17,19 +17,19 @@ const router = Router();
 
 router.use(verifyJwt);
 
-router.get("/campaigns", requireRole("SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER", "CR_TEAM"), asyncHandler(listCallCampaignsHandler));
+router.get("/campaigns", requirePermission("call-campaigns", "read"), asyncHandler(listCallCampaignsHandler));
 router.post(
   "/campaigns",
-  requireRole("SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"),
+  requirePermission("call-campaigns", "write"),
   validateBody(createCallCampaignSchema),
   asyncHandler(createCallCampaignHandler)
 );
-router.post("/campaigns/:campaignId/start", requireRole("SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"), asyncHandler(startCampaignHandler));
-router.post("/campaigns/:campaignId/pause", requireRole("SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"), asyncHandler(pauseCampaignHandler));
+router.post("/campaigns/:campaignId/start", requirePermission("call-campaigns", "write"), asyncHandler(startCampaignHandler));
+router.post("/campaigns/:campaignId/pause", requirePermission("call-campaigns", "write"), asyncHandler(pauseCampaignHandler));
 router.get("/call-logs/lead/:leadId", asyncHandler(getCallLogsForLeadHandler));
 router.get(
   "/call-logs",
-  requireRole("SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER", "CR_TEAM"),
+  requirePermission("call-campaigns", "read"),
   asyncHandler(listCallLogsHandler)
 );
 

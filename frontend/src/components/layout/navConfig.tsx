@@ -17,7 +17,7 @@ import {
   CalendarCheck2,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
-import type { Role, ModuleKey } from "../../types";
+import type { ModuleKey } from "../../types";
 
 type IconType = ComponentType<{ size?: number | string; strokeWidth?: number | string; className?: string }>;
 
@@ -45,7 +45,6 @@ export interface NavItem {
   icon: IconType;
   module: ModuleKey;
   group: NavGroup;
-  roles?: Role[];
 }
 
 export const NAV_ITEMS: NavItem[] = [
@@ -57,35 +56,19 @@ export const NAV_ITEMS: NavItem[] = [
   { to: "/customers", label: "Customers", short: "People", icon: Contact, module: "leads", group: "SALES" },
   { to: "/vehicles", label: "Vehicles", icon: CarFront, module: "vehicles", group: "SALES" },
 
-  {
-    to: "/social-inbox",
-    label: "Social Inbox",
-    short: "Inbox",
-    icon: Inbox,
-    module: "social-inbox",
-    group: "ENGAGE",
-    roles: ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER", "CR_TEAM"],
-  },
-  {
-    to: "/call-campaigns",
-    label: "Call Campaigns",
-    short: "Calls",
-    icon: PhoneCall,
-    module: "call-campaigns",
-    group: "ENGAGE",
-    roles: ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER", "CR_TEAM"],
-  },
-  { to: "/bulk-messages", label: "Bulk Messages", short: "Messages", icon: Megaphone, module: "bulk-messages", group: "ENGAGE", roles: ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"] },
-  { to: "/templates", label: "Templates", icon: FileText, module: "templates", group: "ENGAGE", roles: ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"] },
-  { to: "/media-library", label: "Media Library", short: "Media", icon: Clapperboard, module: "media-library", group: "ENGAGE", roles: ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"] },
+  { to: "/social-inbox", label: "Social Inbox", short: "Inbox", icon: Inbox, module: "social-inbox", group: "ENGAGE" },
+  { to: "/call-campaigns", label: "Call Campaigns", short: "Calls", icon: PhoneCall, module: "call-campaigns", group: "ENGAGE" },
+  { to: "/bulk-messages", label: "Bulk Messages", short: "Messages", icon: Megaphone, module: "bulk-messages", group: "ENGAGE" },
+  { to: "/templates", label: "Templates", icon: FileText, module: "templates", group: "ENGAGE" },
+  { to: "/media-library", label: "Media Library", short: "Media", icon: Clapperboard, module: "media-library", group: "ENGAGE" },
 
-  { to: "/reports", label: "Reports", icon: BarChart3, module: "reports", group: "INSIGHTS", roles: ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"] },
-  { to: "/reports/vehicle-performance", label: "Vehicle Performance", short: "Vehicles", icon: CarFront, module: "reports", group: "INSIGHTS", roles: ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"] },
+  { to: "/reports", label: "Reports", icon: BarChart3, module: "reports", group: "INSIGHTS" },
+  { to: "/reports/vehicle-performance", label: "Vehicle Performance", short: "Vehicles", icon: CarFront, module: "reports", group: "INSIGHTS" },
 
-  { to: "/ai-agents", label: "AI Agents", short: "Agents", icon: Bot, module: "ai-agents", group: "AUTOMATION", roles: ["SUPER_ADMIN", "ADMIN"] },
+  { to: "/ai-agents", label: "AI Agents", short: "Agents", icon: Bot, module: "ai-agents", group: "AUTOMATION" },
 
-  { to: "/branches", label: "Branches", short: "Branches", icon: Building2, module: "departments", group: "ADMIN", roles: ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"] },
-  { to: "/integrations", label: "Integrations", short: "Apps", icon: Plug, module: "integrations", group: "ADMIN", roles: ["SUPER_ADMIN", "ADMIN"] },
+  { to: "/branches", label: "Branches", short: "Branches", icon: Building2, module: "branches", group: "ADMIN" },
+  { to: "/integrations", label: "Integrations", short: "Apps", icon: Plug, module: "integrations", group: "ADMIN" },
 ];
 
 /** Visible nav items grouped into ordered sections (empty sections dropped). */
@@ -99,8 +82,8 @@ export function useNavGroups(): { group: NavGroup; label: string; items: NavItem
 }
 
 /**
- * Nav items visible to the current user. A custom role's permission toggles decide what
- * appears; users without a custom role fall back to base-role defaults. SUPER_ADMIN sees all.
+ * Nav items visible to the current user. SUPER_ADMIN sees everything; STAFF users see a
+ * section only if their role's permission map grants "read" or "write" access to it.
  */
 export function useNavItems(): NavItem[] {
   const { user } = useAuth();
@@ -108,7 +91,7 @@ export function useNavItems(): NavItem[] {
     if (HIDDEN_GROUPS.includes(item.group)) return false;
     if (!user) return false;
     if (user.role === "SUPER_ADMIN") return true;
-    if (user.permissions) return user.permissions.includes(item.module);
-    return !item.roles || item.roles.includes(user.role);
+    const level = user.permissions?.[item.module];
+    return level === "read" || level === "write";
   });
 }

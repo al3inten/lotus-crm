@@ -25,6 +25,7 @@ router.get("/reminders", applyBranchScope, asyncHandler(async (req, res) => {
   const reminders = await getRemindersForUser({
     userId: req.user!.id,
     role: req.user!.role,
+    restrictLeadsToOwn: req.user!.restrictLeadsToOwn,
     branchFilter: req.branchFilter,
   });
   res.json(reminders);
