@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { quotationFormSchema } from "../../schemas/enquiry.schema";
 import type { QuotationFormValues, QuotationFormInput } from "../../schemas/enquiry.schema";
 import { useSaveQuotation } from "../../hooks/useEnquiry";
-import { useBranchStaff } from "../../hooks/useUsers";
+import { useConsultants } from "../../hooks/useConsultants";
 import type { Quotation } from "../../types";
 
 export function QuotationForm({
@@ -28,7 +28,7 @@ export function QuotationForm({
   lockedHint?: string;
 }) {
   const saveQuotation = useSaveQuotation(enquiryId);
-  const { data: consultants } = useBranchStaff(branchId, "CONSULTANT");
+  const { data: consultants } = useConsultants(branchId);
 
   const {
     register,

@@ -18,11 +18,21 @@ export async function notifyRepeatEnquiry(enquiryId: string, actorId: string): P
   });
   if (!enquiry) return 0;
 
+  // "Branch manager" is no longer a role tier — approximate it as any active STAFF user
+  // in the branch whose role has cross-branch/"branches" write access (the admin-area
+  // permission a manager-tier role would carry).
   const managers = enquiry.branchId
     ? await prisma.user.findMany({
-        where: { role: "BRANCH_MANAGER", branchId: enquiry.branchId, isActive: true },
-        select: { id: true },
-      })
+        where: {
+          branchId: enquiry.branchId,
+          isActive: true,
+          role: "STAFF",
+          roleDefinition: { isActive: true },
+        },
+        select: { id: true, roleDefinition: { select: { permissions: true } } },
+      }).then((rows) =>
+        rows.filter((r) => (r.roleDefinition?.permissions as Record<string, string> | undefined)?.branches === "write")
+      )
     : [];
 
   const recipientIds = new Set<string>();

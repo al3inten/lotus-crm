@@ -29,8 +29,9 @@ export async function createRole(input: CreateRoleInput) {
     data: {
       name: input.name,
       branchId: input.branchId ?? null,
-      baseRole: input.baseRole,
       permissions: input.permissions,
+      canViewAllBranches: input.canViewAllBranches,
+      restrictLeadsToOwn: input.restrictLeadsToOwn,
     },
   });
 }

@@ -7,6 +7,7 @@ import { Input, Select } from "../components/common/Input";
 import { Modal } from "../components/common/Modal";
 import { ENQUIRY_STATUSES, LEAD_SOURCES } from "../types";
 import type { SegmentFilters } from "../api/campaigns.api";
+import { useCanWrite } from "../hooks/usePermission";
 
 function CreateCampaignModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const [name, setName] = useState("");
@@ -72,6 +73,7 @@ export function BulkMessagesPage() {
   const [showCreate, setShowCreate] = useState(false);
   const { data: campaigns, isLoading } = useMessageCampaigns();
   const runCampaign = useRunMessageCampaign();
+  const canWrite = useCanWrite("bulk-messages");
 
   return (
     <div className="mx-auto w-full max-w-7xl flex flex-col gap-6">
@@ -95,11 +97,13 @@ export function BulkMessagesPage() {
               Send a WhatsApp template message to a segment of leads. Sends are paced automatically to stay within rate limits.
             </p>
           </div>
-            <div className="shrink-0">
-              <Button onClick={() => setShowCreate(true)}>
-                + New Campaign
-              </Button>
-            </div>
+            {canWrite && (
+              <div className="shrink-0">
+                <Button onClick={() => setShowCreate(true)}>
+                  + New Campaign
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -123,7 +127,7 @@ export function BulkMessagesPage() {
                   <td className="px-4 py-2 text-gray-600">{c.template.name}</td>
                   <td className="px-4 py-2 text-gray-600">{c.status}</td>
                   <td className="px-4 py-2">
-                    {c.status === "DRAFT" && (
+                    {c.status === "DRAFT" && canWrite && (
                       <Button variant="secondary" onClick={() => runCampaign.mutate(c.id)}>
                         Send Now
                       </Button>

@@ -10,7 +10,7 @@ import { Button } from "../common/Button";
 import { testDriveFormSchema } from "../../schemas/enquiry.schema";
 import type { TestDriveFormValues, TestDriveFormInput } from "../../schemas/enquiry.schema";
 import { useSaveTestDrive, useUpdateTestDrive } from "../../hooks/useEnquiry";
-import { useBranchStaff } from "../../hooks/useUsers";
+import { useConsultants } from "../../hooks/useConsultants";
 import { useVehicleModels } from "../../hooks/useVehicles";
 import type { TestDriveFeedback } from "../../types";
 
@@ -41,7 +41,7 @@ export function TestDriveForm({
   onSaved?: () => void;
 }) {
   const saveTestDrive = useSaveTestDrive(enquiryId);
-  const { data: consultants, isLoading: consultantsLoading } = useBranchStaff(branchId, "CONSULTANT");
+  const { data: consultants, isLoading: consultantsLoading } = useConsultants(branchId);
   const { data: vehicleModels } = useVehicleModels();
   const previousDrives = existing ?? [];
   const noConsultants = !consultantsLoading && (consultants?.length ?? 0) === 0;

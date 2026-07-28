@@ -4,6 +4,7 @@ import { useMediaAssets } from "../hooks/useMedia";
 import { Button } from "../components/common/Button";
 import { Input, Select, Textarea } from "../components/common/Input";
 import { Modal } from "../components/common/Modal";
+import { useCanWrite } from "../hooks/usePermission";
 
 function CreateTemplateForm({ onDone }: { onDone: () => void }) {
   const createTemplate = useCreateTemplate();
@@ -52,6 +53,7 @@ export function TemplatesPage() {
   const [showCreate, setShowCreate] = useState(false);
   const { data: templates, isLoading } = useTemplates();
   const deleteTemplate = useDeleteTemplate();
+  const canWrite = useCanWrite("templates");
 
   return (
     <div className="mx-auto w-full max-w-7xl flex flex-col gap-6">
@@ -75,11 +77,13 @@ export function TemplatesPage() {
               Design reusable messages for chatbots and bulk marketing campaigns.
             </p>
           </div>
-            <div className="shrink-0">
-              <Button onClick={() => setShowCreate(true)}>
-                + New Template
-              </Button>
-            </div>
+            {canWrite && (
+              <div className="shrink-0">
+                <Button onClick={() => setShowCreate(true)}>
+                  + New Template
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -105,9 +109,11 @@ export function TemplatesPage() {
                   <td className="px-4 py-2 text-gray-600">{t.category}</td>
                   <td className="max-w-xs truncate px-4 py-2 text-gray-600">{t.bodyText}</td>
                   <td className="px-4 py-2">
-                    <Button variant="danger" onClick={() => deleteTemplate.mutate(t.id)}>
-                      Delete
-                    </Button>
+                    {canWrite && (
+                      <Button variant="danger" onClick={() => deleteTemplate.mutate(t.id)}>
+                        Delete
+                      </Button>
+                    )}
                   </td>
                 </tr>
               ))}

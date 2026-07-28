@@ -1,11 +1,20 @@
 import { axiosClient } from "./axiosClient";
-import type { RoleDefinition, ModuleKey, Role, User } from "../types";
+import type { RoleDefinition, ModulePermissions, User } from "../types";
 
 export interface CreateRolePayload {
   name: string;
   branchId?: string | null;
-  baseRole: Exclude<Role, "SUPER_ADMIN">;
-  permissions: ModuleKey[];
+  permissions: ModulePermissions;
+  canViewAllBranches: boolean;
+  restrictLeadsToOwn: boolean;
+}
+
+export interface UpdateRolePayload {
+  name?: string;
+  permissions?: ModulePermissions;
+  canViewAllBranches?: boolean;
+  restrictLeadsToOwn?: boolean;
+  isActive?: boolean;
 }
 
 export async function fetchRoles(branchId?: string): Promise<RoleDefinition[]> {
@@ -18,10 +27,7 @@ export async function createRole(payload: CreateRolePayload): Promise<RoleDefini
   return data;
 }
 
-export async function updateRole(
-  roleId: string,
-  payload: { name?: string; permissions?: ModuleKey[]; isActive?: boolean }
-): Promise<RoleDefinition> {
+export async function updateRole(roleId: string, payload: UpdateRolePayload): Promise<RoleDefinition> {
   const { data } = await axiosClient.patch<RoleDefinition>(`/roles/${roleId}`, payload);
   return data;
 }

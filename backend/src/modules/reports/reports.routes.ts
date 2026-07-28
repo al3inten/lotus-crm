@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { asyncHandler } from "../../lib/asyncHandler";
 import { verifyJwt } from "../../middleware/auth";
-import { requireRole } from "../../middleware/rbac";
+import { requirePermission } from "../../middleware/rbac";
 import { applyBranchScope } from "../../middleware/branchScope";
 import { validateQuery } from "../../middleware/validate";
 import { reportQuerySchema, trendQuerySchema, breakdownQuerySchema, customerPreviewQuerySchema } from "./reports.schema";
@@ -27,7 +27,7 @@ import {
 
 const router = Router();
 
-router.use(verifyJwt, requireRole("SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"), applyBranchScope);
+router.use(verifyJwt, requirePermission("reports", "read"), applyBranchScope);
 
 router.get("/summary", validateQuery(reportQuerySchema), asyncHandler(summaryHandler));
 router.get("/cr-performance", validateQuery(reportQuerySchema), asyncHandler(crPerformanceHandler));

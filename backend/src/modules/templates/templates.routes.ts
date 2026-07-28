@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { asyncHandler } from "../../lib/asyncHandler";
 import { verifyJwt } from "../../middleware/auth";
-import { requireRole } from "../../middleware/rbac";
+import { requirePermission } from "../../middleware/rbac";
 import { validateBody } from "../../middleware/validate";
 import { createTemplateSchema, updateTemplateSchema } from "./templates.schema";
 import {
@@ -14,12 +14,12 @@ import {
 
 const router = Router();
 
-router.use(verifyJwt, requireRole("SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"));
+router.use(verifyJwt);
 
-router.get("/", asyncHandler(listTemplatesHandler));
-router.get("/:templateId", asyncHandler(getTemplateHandler));
-router.post("/", validateBody(createTemplateSchema), asyncHandler(createTemplateHandler));
-router.patch("/:templateId", validateBody(updateTemplateSchema), asyncHandler(updateTemplateHandler));
-router.delete("/:templateId", asyncHandler(deleteTemplateHandler));
+router.get("/", requirePermission("templates", "read"), asyncHandler(listTemplatesHandler));
+router.get("/:templateId", requirePermission("templates", "read"), asyncHandler(getTemplateHandler));
+router.post("/", requirePermission("templates", "write"), validateBody(createTemplateSchema), asyncHandler(createTemplateHandler));
+router.patch("/:templateId", requirePermission("templates", "write"), validateBody(updateTemplateSchema), asyncHandler(updateTemplateHandler));
+router.delete("/:templateId", requirePermission("templates", "write"), asyncHandler(deleteTemplateHandler));
 
 export default router;

@@ -27,8 +27,9 @@ export function NewLeadPhoneGate({ isOpen, onClose, onContinue }: NewLeadPhoneGa
   const [checked, setChecked] = useState(false);
   const { user } = useAuth();
 
-  // Same roles the API honours `forceNew` for — see leads.controller.ts.
-  const canForceNew = !!user && ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"].includes(user.role);
+  // Same condition the API honours `forceNew` for — see leads.controller.ts withCheckedForceNew.
+  const canForceNew =
+    !!user && (user.role === "SUPER_ADMIN" || (user.permissions.leads === "write" && !user.restrictLeadsToOwn));
 
   const isValid = isValidPhoneNumber(phone);
   const { data: lookupResult, isFetching } = useLeadLookup(isValid ? phone : "");

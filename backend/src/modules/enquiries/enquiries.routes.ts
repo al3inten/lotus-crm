@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { asyncHandler } from "../../lib/asyncHandler";
 import { verifyJwt } from "../../middleware/auth";
-import { requireRole } from "../../middleware/rbac";
+import { requirePermission } from "../../middleware/rbac";
 import { requireEnquiryOwnership } from "../../middleware/enquiryOwnership";
 import { validateBody } from "../../middleware/validate";
 import {
@@ -68,7 +68,7 @@ router.patch("/:enquiryId/key-dates", ownership, validateBody(updateKeyDateSchem
 
 router.patch(
   "/:enquiryId/reassign",
-  requireRole("SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"),
+  requirePermission("leads", "write"),
   validateBody(reassignSchema),
   asyncHandler(reassignHandler)
 );

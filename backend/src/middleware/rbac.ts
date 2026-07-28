@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { Role } from "@prisma/client";
 import { ForbiddenError, UnauthorizedError } from "../lib/errors";
+import { ModuleKey } from "../config/constants";
 
 export function requireRole(...roles: Role[]) {
   return (req: Request, _res: Response, next: NextFunction) => {
@@ -12,5 +13,21 @@ export function requireRole(...roles: Role[]) {
   };
 }
 
-export const CROSS_BRANCH_ROLES: Role[] = ["SUPER_ADMIN", "ADMIN"];
-export const BRANCH_STAFF_ROLES: Role[] = ["BRANCH_MANAGER", "CR_TEAM", "CONSULTANT"];
+/**
+ * Enforces the per-section None/Read/Write permission model. SUPER_ADMIN always
+ * passes; STAFF is checked against req.user.permissions[section] — "write" also
+ * satisfies a "read" requirement.
+ */
+export function requirePermission(section: ModuleKey, level: "read" | "write") {
+  return (req: Request, _res: Response, next: NextFunction) => {
+    if (!req.user) throw new UnauthorizedError();
+    if (req.user.role === "SUPER_ADMIN") return next();
+
+    const granted = req.user.permissions[section];
+    const ok = level === "read" ? granted === "read" || granted === "write" : granted === "write";
+    if (!ok) {
+      throw new ForbiddenError(`Requires ${level} access to ${section}`);
+    }
+    next();
+  };
+}

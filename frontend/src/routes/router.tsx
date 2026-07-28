@@ -63,32 +63,51 @@ export const router = createBrowserRouter([
           { path: "/leads/:leadId/enquiries/:enquiryId", element: suspense(<LeadDetailPage />) },
           { path: "/vehicles", element: suspense(<VehiclesPage />) },
           {
-            element: <ProtectedRoute roles={["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER", "CR_TEAM"]} />,
-            children: [
-              { path: "/social-inbox", element: suspense(<SocialInboxPage />) },
-              { path: "/call-campaigns", element: suspense(<CallCampaignsPage />) },
-            ],
+            element: <ProtectedRoute module="social-inbox" />,
+            children: [{ path: "/social-inbox", element: suspense(<SocialInboxPage />) }],
           },
           {
-            element: <ProtectedRoute roles={["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"]} />,
+            element: <ProtectedRoute module="call-campaigns" />,
+            children: [{ path: "/call-campaigns", element: suspense(<CallCampaignsPage />) }],
+          },
+          {
+            element: <ProtectedRoute module="branches" />,
             children: [
               { path: "/branches", element: suspense(<BranchesPage />) },
               // Old URL kept so existing bookmarks/links don't 404.
               { path: "/departments", element: <Navigate to="/branches" replace /> },
-              { path: "/reports", element: suspense(<ReportsPage />) },
-              { path: "/reports/vehicle-performance", element: suspense(<VehiclePerformancePage />) },
-              { path: "/media-library", element: suspense(<MediaLibraryPage />) },
-              { path: "/templates", element: suspense(<TemplatesPage />) },
-              { path: "/bulk-messages", element: suspense(<BulkMessagesPage />) },
             ],
           },
           {
-            element: <ProtectedRoute roles={["SUPER_ADMIN", "ADMIN"]} />,
+            element: <ProtectedRoute module="reports" />,
             children: [
-              { path: "/integrations", element: suspense(<IntegrationsPage />) },
-              { path: "/ai-agents", element: suspense(<AiAgentsPage />) },
-              { path: "/settings", element: suspense(<SettingsPage />) },
+              { path: "/reports", element: suspense(<ReportsPage />) },
+              { path: "/reports/vehicle-performance", element: suspense(<VehiclePerformancePage />) },
             ],
+          },
+          {
+            element: <ProtectedRoute module="media-library" />,
+            children: [{ path: "/media-library", element: suspense(<MediaLibraryPage />) }],
+          },
+          {
+            element: <ProtectedRoute module="templates" />,
+            children: [{ path: "/templates", element: suspense(<TemplatesPage />) }],
+          },
+          {
+            element: <ProtectedRoute module="bulk-messages" />,
+            children: [{ path: "/bulk-messages", element: suspense(<BulkMessagesPage />) }],
+          },
+          {
+            element: <ProtectedRoute module="integrations" />,
+            children: [{ path: "/integrations", element: suspense(<IntegrationsPage />) }],
+          },
+          {
+            element: <ProtectedRoute module="ai-agents" />,
+            children: [{ path: "/ai-agents", element: suspense(<AiAgentsPage />) }],
+          },
+          {
+            element: <ProtectedRoute requireSuperAdmin />,
+            children: [{ path: "/settings", element: suspense(<SettingsPage />) }],
           },
         ],
       },

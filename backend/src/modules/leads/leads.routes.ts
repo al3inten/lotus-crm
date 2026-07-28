@@ -3,7 +3,7 @@ import multer from "multer";
 import { asyncHandler } from "../../lib/asyncHandler";
 import { verifyJwt } from "../../middleware/auth";
 import { applyBranchScope } from "../../middleware/branchScope";
-import { requireRole } from "../../middleware/rbac";
+import { requirePermission } from "../../middleware/rbac";
 import { validateBody, validateQuery } from "../../middleware/validate";
 import { createEnquirySchema, walkInLeadSchema, leadDraftSchema, leadListQuerySchema, customerListQuerySchema } from "./leads.schema";
 import {
@@ -35,13 +35,13 @@ router.post("/", validateBody(createEnquirySchema), asyncHandler(createEnquiryHa
 router.post("/walk-in", validateBody(walkInLeadSchema), asyncHandler(createWalkInHandler));
 router.post(
   "/import",
-  requireRole("SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER", "CR_TEAM"),
+  requirePermission("leads", "write"),
   upload.single("file"),
   asyncHandler(importLeadsHandler)
 );
 router.get(
   "/import/template",
-  requireRole("SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER", "CR_TEAM"),
+  requirePermission("leads", "read"),
   asyncHandler(downloadLeadImportTemplateHandler)
 );
 

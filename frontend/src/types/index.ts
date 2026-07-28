@@ -1,4 +1,4 @@
-export const ROLES = ["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER", "CR_TEAM", "CONSULTANT"] as const;
+export const ROLES = ["SUPER_ADMIN", "STAFF"] as const;
 export type Role = (typeof ROLES)[number];
 
 export const LEAD_SOURCES = [
@@ -146,49 +146,41 @@ export const ALLOWED_TRANSITIONS: Record<EnquiryStatus, EnquiryStatus[]> = {
   CLOSED: [],
 };
 
-// Sidebar/dashboard modules a custom role can toggle. Mirrors backend MODULE_KEYS.
+// Sidebar/dashboard modules a custom role can toggle. Mirrors backend MODULE_KEYS exactly.
 export const MODULES = [
   { key: "dashboard", label: "Dashboard" },
   { key: "leads", label: "Leads" },
   { key: "follow-ups", label: "Follow-ups" },
   { key: "test-drives", label: "Test Drives" },
+  { key: "vehicles", label: "Vehicles" },
   { key: "social-inbox", label: "Social Inbox" },
-  // Key stays "departments" — it's persisted in RoleDefinition.permissions, so renaming
-  // it would orphan every existing role's saved permissions. Only the label changed.
-  { key: "departments", label: "Branches" },
-  { key: "reports", label: "Reports" },
-  { key: "ai-agents", label: "AI Agents" },
-  { key: "media-library", label: "Media Library" },
-  { key: "templates", label: "Templates" },
   { key: "call-campaigns", label: "Call Campaigns" },
   { key: "bulk-messages", label: "Bulk Messages" },
+  { key: "templates", label: "Templates" },
+  { key: "media-library", label: "Media Library" },
+  { key: "reports", label: "Reports" },
+  { key: "ai-agents", label: "AI Agents" },
+  { key: "branches", label: "Branches" },
   { key: "integrations", label: "Integrations" },
-  { key: "vehicles", label: "Vehicles" },
-  { key: "settings", label: "Settings" },
 ] as const;
 export type ModuleKey = (typeof MODULES)[number]["key"];
+
+export const PERMISSION_LEVELS = ["none", "read", "write"] as const;
+export type PermissionLevel = (typeof PERMISSION_LEVELS)[number];
+
+export type ModulePermissions = Record<ModuleKey, PermissionLevel>;
 
 export interface RoleDefinition {
   id: string;
   name: string;
   branchId?: string | null;
   branch?: { id: string; name: string } | null;
-  baseRole: Role;
-  permissions: ModuleKey[];
+  permissions: ModulePermissions;
+  canViewAllBranches: boolean;
+  restrictLeadsToOwn: boolean;
   isActive: boolean;
-  _count?: { users: number };
-}
-
-/**
- * An org unit inside a branch (Sales, Service, HR...) that employees belong to.
- * Distinct from the `Department` enum used to categorise enquiries.
- */
-export interface StaffDepartment {
-  id: string;
-  name: string;
-  branchId: string;
-  branch?: { id: string; name: string } | null;
-  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
   _count?: { users: number };
 }
 
@@ -198,20 +190,32 @@ export interface User {
   email: string;
   phone?: string | null;
   role: Role;
-  roleName?: string | null;
-  /** Module keys this user may see; null = no custom role, fall back to base-role defaults. */
-  permissions?: ModuleKey[] | null;
+  /** Per-module access map — always present; SUPER_ADMIN gets an all-"write" map. */
+  permissions: ModulePermissions;
+  canViewAllBranches: boolean;
+  restrictLeadsToOwn: boolean;
+  /** Independent per-user toggle letting this user additionally act as a CR. */
+  isCr: boolean;
   roleDefinition?: { id: string; name: string } | null;
   branchId: string | null;
   branch?: { id: string; name: string } | null;
-  staffDepartmentId?: string | null;
-  staffDepartment?: { id: string; name: string } | null;
   isActive: boolean;
   isAvailableForRouting: boolean;
   avatarUrl?: string | null;
   lastActiveAt?: string | null;
   onBreak?: boolean;
   breakStartedAt?: string | null;
+}
+
+export interface ConsultantDirectory {
+  id: string;
+  name: string;
+  mobile: string;
+  branchId: string;
+  branch?: { id: string; name: string };
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 /** A floor-staff member's live working state, for the dashboard activity monitor. */

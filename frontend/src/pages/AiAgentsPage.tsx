@@ -6,6 +6,7 @@ import { Modal } from "../components/common/Modal";
 import { Toggle } from "../components/common/Toggle";
 import { Bot, Phone, MessageCircle, Sparkles, Eye, EyeOff } from "lucide-react";
 import type { AgentConfig, AgentType } from "../api/agentConfigs.api";
+import { useCanWrite } from "../hooks/usePermission";
 
 const LABELS: Record<AgentType, string> = {
   VOICE: "Outbound Voice Agent",
@@ -74,6 +75,7 @@ const THEME_MAP: Record<AgentType, { bg: string; border: string; iconBg: string;
 
 function AgentConfigCard({ config }: { config: AgentConfig }) {
   const saveConfig = useSaveAgentConfig();
+  const canWrite = useCanWrite("ai-agents");
   const [name, setName] = useState(config.name);
   const [systemPrompt, setSystemPrompt] = useState(config.systemPrompt);
   const [isActive, setIsActive] = useState(config.isActive);
@@ -125,13 +127,14 @@ function AgentConfigCard({ config }: { config: AgentConfig }) {
           <div className={`flex h-10 w-10 items-center justify-center rounded-xl shadow-sm ring-1 ring-black/5 ${theme.iconBg}`}>
             {theme.icon}
           </div>
-          <Toggle checked={isActive} onChange={handleToggleActive} />
+          <Toggle checked={isActive} onChange={handleToggleActive} disabled={!canWrite} />
         </div>
-        
+
         <input
            value={name}
            onChange={(e) => setName(e.target.value)}
-           className="w-full bg-transparent text-lg font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-md px-1 -mx-1 transition-colors hover:bg-black/5"
+           disabled={!canWrite}
+           className="w-full bg-transparent text-lg font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-md px-1 -mx-1 transition-colors hover:bg-black/5 disabled:opacity-70"
            placeholder="Agent Name"
         />
         <p className="text-xs font-medium text-gray-500 mt-0.5 pl-1">{LABELS[config.type]}</p>
@@ -186,7 +189,7 @@ function AgentConfigCard({ config }: { config: AgentConfig }) {
         {config.type === "VOICE" && (
           <div className="flex items-start gap-2.5 rounded-xl border border-primary-100 bg-primary-50/30 p-3">
             <div className="mt-0.5">
-              <Toggle checked={autoCallEnabled} onChange={handleToggleAutoCall} />
+              <Toggle checked={autoCallEnabled} onChange={handleToggleAutoCall} disabled={!canWrite} />
             </div>
             <div>
               <p className="text-xs font-medium text-primary-900">Auto-call new digital leads</p>
@@ -198,15 +201,17 @@ function AgentConfigCard({ config }: { config: AgentConfig }) {
         )}
 
         <div className="mt-auto pt-1">
-          <Button 
-            className="w-full shadow-sm" 
-            size="md"
-            isLoading={saveConfig.isPending} 
-            onClick={() => handleSave()}
-            disabled={!hasChanges}
-          >
-            {hasChanges ? "Save Changes" : "Up to date"}
-          </Button>
+          {canWrite && (
+            <Button
+              className="w-full shadow-sm"
+              size="md"
+              isLoading={saveConfig.isPending}
+              onClick={() => handleSave()}
+              disabled={!hasChanges}
+            >
+              {hasChanges ? "Save Changes" : "Up to date"}
+            </Button>
+          )}
         </div>
       </div>
       

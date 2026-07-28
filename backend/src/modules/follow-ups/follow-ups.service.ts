@@ -5,13 +5,11 @@ import { FollowUpListQuery, FollowUpCalendarQuery } from "./follow-ups.schema";
 // Follow-ups on won/lost enquiries are done — never surface them in the queue.
 const TERMINAL_STATUSES: EnquiryStatus[] = ["RETAIL_DONE", "CLOSED"];
 
-// Roles restricted to only their OWN assigned follow-ups. Everyone else sees their
-// branch scope (branch manager) or all branches (admin / super admin).
-const OWN_ONLY_ROLES: Role[] = ["CR_TEAM", "CONSULTANT"];
-
 export interface FollowUpContext {
   userId: string;
   role: Role;
+  restrictLeadsToOwn: boolean;
+  canViewAllBranches: boolean;
   branchFilter?: { branchId: string };
 }
 
@@ -45,8 +43,8 @@ function timeframeFilter(timeframe: FollowUpListQuery["timeframe"]): Prisma.Date
 }
 
 export async function getUpcomingFollowUps(query: FollowUpListQuery, ctx: FollowUpContext) {
-  const canSeeOthers = !OWN_ONLY_ROLES.includes(ctx.role);
-  const crossBranch = ctx.role === "SUPER_ADMIN" || ctx.role === "ADMIN";
+  const canSeeOthers = !ctx.restrictLeadsToOwn;
+  const crossBranch = ctx.role === "SUPER_ADMIN" || ctx.canViewAllBranches;
 
   // Base scope: active enquiries that actually have a next-follow-up scheduled.
   const where: Prisma.EnquiryWhereInput = {
@@ -195,8 +193,8 @@ function dayKey(date: Date): string {
  * per-CR breakdown (own row for restricted roles, everyone in scope otherwise).
  */
 export async function getFollowUpCalendar(query: FollowUpCalendarQuery, ctx: FollowUpContext) {
-  const canSeeOthers = !OWN_ONLY_ROLES.includes(ctx.role);
-  const crossBranch = ctx.role === "SUPER_ADMIN" || ctx.role === "ADMIN";
+  const canSeeOthers = !ctx.restrictLeadsToOwn;
+  const crossBranch = ctx.role === "SUPER_ADMIN" || ctx.canViewAllBranches;
 
   const [ys, ms, ds] = query.start.split("-").map(Number);
   const [ye, me, de] = query.end.split("-").map(Number);

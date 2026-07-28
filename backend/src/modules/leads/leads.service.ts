@@ -486,13 +486,18 @@ export async function lookupLeadByPhone(phone: string) {
 
 /**
  * Follow-ups due (today or overdue) for the dashboard. Scope depends on the viewer:
- *  - CR_TEAM  → only the enquiries assigned to them.
- *  - BRANCH_MANAGER → every open enquiry in their branch.
- *  - ADMIN / SUPER_ADMIN → all branches.
+ *  - restrictLeadsToOwn → only the enquiries assigned to them.
+ *  - branch-scoped (not canViewAllBranches) → every open enquiry in their branch.
+ *  - canViewAllBranches / SUPER_ADMIN → all branches.
  * This is why a manager/admin dashboard previously showed no follow-ups: the old query
  * always filtered by assignedCrId, which admins never have.
  */
-export async function getReminders(user: { id: string; role: string; branchId: string | null }) {
+export async function getReminders(user: {
+  id: string;
+  restrictLeadsToOwn: boolean;
+  canViewAllBranches: boolean;
+  branchId: string | null;
+}) {
   const endOfToday = new Date();
   endOfToday.setHours(23, 59, 59, 999);
 
@@ -500,9 +505,9 @@ export async function getReminders(user: { id: string; role: string; branchId: s
     status: { notIn: TERMINAL_STATUSES },
     followUpDueAt: { lte: endOfToday },
   };
-  if (user.role === "CR_TEAM" || user.role === "CONSULTANT") {
+  if (user.restrictLeadsToOwn) {
     where.assignedCrId = user.id;
-  } else if (user.role === "BRANCH_MANAGER" && user.branchId) {
+  } else if (!user.canViewAllBranches && user.branchId) {
     where.branchId = user.branchId;
   }
   // ADMIN / SUPER_ADMIN: no extra scope — all branches.

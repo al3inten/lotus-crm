@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { asyncHandler } from "../../lib/asyncHandler";
 import { verifyJwt } from "../../middleware/auth";
-import { requireRole } from "../../middleware/rbac";
+import { requirePermission } from "../../middleware/rbac";
 import { applyBranchScope } from "../../middleware/branchScope";
 import { validateBody } from "../../middleware/validate";
 import { createBranchSchema, updateBranchSchema, toggleAutoAssignSchema, toggleAutoCallSchema } from "./branches.schema";
@@ -21,35 +21,35 @@ router.use(verifyJwt);
 
 router.post(
   "/",
-  requireRole("SUPER_ADMIN", "ADMIN"),
+  requirePermission("branches", "write"),
   validateBody(createBranchSchema),
   asyncHandler(createBranchHandler)
 );
 
-router.get("/", applyBranchScope, asyncHandler(listBranchesHandler));
-router.get("/:branchId", asyncHandler(getBranchHandler));
+router.get("/", requirePermission("branches", "read"), applyBranchScope, asyncHandler(listBranchesHandler));
+router.get("/:branchId", requirePermission("branches", "read"), asyncHandler(getBranchHandler));
 
 router.patch(
   "/:branchId",
-  requireRole("SUPER_ADMIN", "ADMIN"),
+  requirePermission("branches", "write"),
   validateBody(updateBranchSchema),
   asyncHandler(updateBranchHandler)
 );
 
 router.patch(
   "/:branchId/auto-assign",
-  requireRole("SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"),
+  requirePermission("branches", "write"),
   validateBody(toggleAutoAssignSchema),
   asyncHandler(toggleAutoAssignHandler)
 );
 
 router.patch(
   "/:branchId/auto-call",
-  requireRole("SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER"),
+  requirePermission("branches", "write"),
   validateBody(toggleAutoCallSchema),
   asyncHandler(toggleAutoCallHandler)
 );
 
-router.delete("/:branchId", requireRole("SUPER_ADMIN", "ADMIN"), asyncHandler(deleteBranchHandler));
+router.delete("/:branchId", requirePermission("branches", "write"), asyncHandler(deleteBranchHandler));
 
 export default router;

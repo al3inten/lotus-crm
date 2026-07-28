@@ -513,7 +513,7 @@ async function computeConsultantPerformance(query: ReportQuery, branchFilter?: {
       where: { ...where, status: { in: SOLD_STATUSES } },
       _count: true,
     }),
-    prisma.user.findMany({ where: { role: "CONSULTANT" }, select: { id: true, name: true, branchId: true } }),
+    prisma.consultantDirectory.findMany({ select: { id: true, name: true, branchId: true } }),
   ]);
 
   const soldMap = new Map(sold.map((r) => [r.consultantId, r._count]));

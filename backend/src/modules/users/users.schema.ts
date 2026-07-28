@@ -1,31 +1,28 @@
 import { z } from "zod";
 
-// Used by the Branches UI to add an employee under a branch. Role and department are
-// both mandatory: every employee must belong to exactly one department of their branch,
-// and carry either a custom roleDefinitionId (baseRole + module permissions) or a
-// plain base role.
-export const createBranchStaffSchema = z
-  .object({
-    name: z.string().min(1),
-    email: z.string().email(),
-    phone: z.string().optional(),
-    role: z.enum(["CONSULTANT", "CR_TEAM", "BRANCH_MANAGER"]).optional(),
-    roleDefinitionId: z.string().optional(),
-    staffDepartmentId: z.string().min(1, "Department is required"),
-    password: z.string().min(8, "Password must be at least 8 characters"),
-  })
-  .refine((val) => val.role || val.roleDefinitionId, {
-    message: "Pick a role or a custom role definition",
-    path: ["role"],
-  });
+// Used by the Branches UI to add an employee under a branch. Every branch-staff user
+// is STAFF and must be given a roleDefinitionId (the fully-custom role that carries
+// their section permissions) — there's no more baseRole preset tier to fall back on.
+export const createBranchStaffSchema = z.object({
+  name: z.string().min(1),
+  email: z.string().email(),
+  phone: z.string().optional(),
+  roleDefinitionId: z.string().min(1, "A role is required"),
+  // Independent of role: additionally lets this user act as a CR (CR-assignment
+  // dropdown + exempt from lead-ownership restriction for leads assigned to them).
+  isCr: z.boolean().optional().default(false),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+});
 
-// Reserved for ADMIN/SUPER_ADMIN to create Branch Managers or other admins.
+// Reserved for SUPER_ADMIN to create other head-office/staff accounts.
 export const createUserSchema = z.object({
   name: z.string().min(1),
   email: z.string().email(),
   phone: z.string().optional(),
-  role: z.enum(["SUPER_ADMIN", "ADMIN", "BRANCH_MANAGER", "CR_TEAM", "CONSULTANT"]),
+  role: z.enum(["SUPER_ADMIN", "STAFF"]),
+  roleDefinitionId: z.string().optional(),
   branchId: z.string().nullable().optional(),
+  isCr: z.boolean().optional().default(false),
   password: z.string().min(8),
 });
 
@@ -33,11 +30,10 @@ export const updateUserSchema = z.object({
   name: z.string().min(1).optional(),
   email: z.string().email().optional(),
   phone: z.string().optional(),
-  role: z.enum(["CONSULTANT", "CR_TEAM", "BRANCH_MANAGER"]).optional(),
-  // Set to a role id to assign a custom role; explicit null clears it (falls back to `role`).
+  // Set to a role id to assign a custom role; explicit null clears it (falls back to
+  // an all-"none" permission set until a role is assigned again).
   roleDefinitionId: z.string().nullable().optional(),
-  // Moving an employee between departments of their branch.
-  staffDepartmentId: z.string().optional(),
+  isCr: z.boolean().optional(),
   password: z.string().min(8).optional(),
   isActive: z.boolean().optional(),
   isAvailableForRouting: z.boolean().optional(),

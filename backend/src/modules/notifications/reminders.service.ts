@@ -14,6 +14,7 @@ export interface Reminder {
 interface Ctx {
   userId: string;
   role: Role;
+  restrictLeadsToOwn: boolean;
   branchFilter?: { branchId: string };
 }
 
@@ -29,7 +30,7 @@ const sameMonthDay = (d: Date, today: Date) =>
 export async function getRemindersForUser(ctx: Ctx): Promise<Reminder[]> {
   // Base visibility scope, mirroring the follow-ups module.
   const scope: Prisma.EnquiryWhereInput = {};
-  if (ctx.role === "CR_TEAM" || ctx.role === "CONSULTANT") {
+  if (ctx.restrictLeadsToOwn) {
     scope.assignedCrId = ctx.userId;
   } else if (ctx.branchFilter) {
     scope.branchId = ctx.branchFilter.branchId;

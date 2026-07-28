@@ -11,10 +11,7 @@ datasource db {
 
 enum Role {
   SUPER_ADMIN
-  ADMIN
-  BRANCH_MANAGER
-  CR_TEAM
-  CONSULTANT
+  STAFF
 }
 
 enum LeadSource {
@@ -269,55 +266,51 @@ model Branch {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  users            User[]
-  enquiries        Enquiry[]
-  roleDefinitions  RoleDefinition[]
-  staffDepartments StaffDepartment[]
-  leadDrafts       LeadDraft[]
+  users               User[]
+  enquiries           Enquiry[]
+  roleDefinitions     RoleDefinition[]
+  leadDrafts          LeadDraft[]
+  consultantDirectory ConsultantDirectory[]
 
   @@map("branches")
 }
 
-// A branch-scoped custom role ("Assistant Manager - OMR") built on top of a base Role.
-// baseRole drives backend security (RBAC middleware); permissions drives what modules
-// appear in that person's sidebar/dashboard — toggled per-role by an admin.
-/// An org unit inside a branch (Sales, Service, HR...) that employees belong to.
-/// Deliberately NOT the `Department` enum: that enum categorises enquiries and is a
-/// fixed business taxonomy, whereas these are admin-created per branch. Keeping them
-/// separate means adding a department here can never alter historical enquiry data.
-model StaffDepartment {
+// A branch-scoped custom role ("Assistant Manager - OMR") with explicit per-section
+// None/Read/Write permissions, enforced by backend middleware (requirePermission).
+model RoleDefinition {
+  id                 String   @id @default(cuid())
+  name               String
+  branchId           String? // null = available to every branch
+  branch             Branch?  @relation(fields: [branchId], references: [id])
+  permissions        Json // { [section: ModuleKey]: "none" | "read" | "write" }
+  canViewAllBranches Boolean  @default(false)
+  restrictLeadsToOwn Boolean  @default(false)
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  users User[]
+
+  @@unique([branchId, name])
+  @@map("role_definitions")
+}
+
+// Lightweight directory of consultants (no login/password) — Name, Mobile, Branch only.
+model ConsultantDirectory {
   id        String   @id @default(cuid())
   name      String
+  mobile    String
   branchId  String
   branch    Branch   @relation(fields: [branchId], references: [id])
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users User[]
+  enquiries          Enquiry[]
+  testDriveFeedbacks TestDriveFeedback[]
 
-  // Department names are unique within a branch, not globally — two branches can
-  // both have a "Sales".
-  @@unique([branchId, name])
   @@index([branchId])
-  @@map("staff_departments")
-}
-
-model RoleDefinition {
-  id          String   @id @default(cuid())
-  name        String
-  branchId    String? // null = available to every branch
-  branch      Branch?  @relation(fields: [branchId], references: [id])
-  baseRole    Role
-  permissions Json // string[] of module keys, e.g. ["dashboard","leads","reports"]
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  users User[]
-
-  @@unique([branchId, name])
-  @@map("role_definitions")
+  @@map("consultant_directory")
 }
 
 model User {
@@ -331,10 +324,10 @@ model User {
   roleDefinition        RoleDefinition? @relation(fields: [roleDefinitionId], references: [id])
   branchId              String?
   branch                Branch?         @relation(fields: [branchId], references: [id])
-  // Nullable at the DB level so pre-existing users (and SUPER_ADMINs, who sit above any
-  // single branch) stay valid; the employee create/update API requires it.
-  staffDepartmentId     String?
-  staffDepartment       StaffDepartment? @relation(fields: [staffDepartmentId], references: [id])
+  // Independent of role: additionally lets this user act as a CR (appear in the
+  // CR-assignment dropdown, and be exempt from lead-ownership restriction for leads
+  // assigned to them), additive on top of their normal role's permissions.
+  isCr                  Boolean         @default(false)
   isActive              Boolean         @default(true)
   isAvailableForRouting Boolean         @default(true)
   avatarUrl             String?
@@ -346,7 +339,6 @@ model User {
   updatedAt             DateTime        @updatedAt
 
   assignedEnquiries       Enquiry[]              @relation("AssignedCr")
-  consultantEnquiries     Enquiry[]              @relation("AssignedConsultant")
   statusChanges           EnquiryStatusHistory[] @relation("ChangedBy")
   dateChanges             DateChangeHistory[]    @relation("DateChangedBy")
   enquiryNotes            EnquiryNote[]          @relation("NoteAuthor")
@@ -354,7 +346,6 @@ model User {
   reassignmentsFrom       ReassignmentLog[]      @relation("ReassignFrom")
   reassignmentsTo         ReassignmentLog[]      @relation("ReassignTo")
   reassignmentsBy         ReassignmentLog[]      @relation("ReassignBy")
-  testDriveFeedbacks      TestDriveFeedback[]    @relation("ConductedBy")
   quotationsCreated       Quotation[]            @relation("QuotedBy")
   evaluationsDone         ExchangeEvaluation[]   @relation("EvaluatedBy")
   integrationUpdates      IntegrationConfig[]    @relation("IntegrationUpdatedBy")
@@ -487,9 +478,9 @@ model Enquiry {
   nextAction    NextAction?
 
   assignedCrId String?
-  assignedCr   User?   @relation("AssignedCr", fields: [assignedCrId], references: [id])
+  assignedCr   User?                @relation("AssignedCr", fields: [assignedCrId], references: [id])
   consultantId String?
-  consultant   User?   @relation("AssignedConsultant", fields: [consultantId], references: [id])
+  consultant   ConsultantDirectory? @relation(fields: [consultantId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -641,8 +632,10 @@ model TestDriveFeedback {
   id            String    @id @default(cuid())
   enquiryId     String
   enquiry       Enquiry   @relation(fields: [enquiryId], references: [id])
+  // Points at the ConsultantDirectory entry who conducted the drive — consultants no
+  // longer have login User accounts, so this can no longer be a User FK.
   conductedById String
-  conductedBy   User      @relation("ConductedBy", fields: [conductedById], references: [id])
+  conductedBy   ConsultantDirectory @relation(fields: [conductedById], references: [id])
   // Which car this drive was for. A customer may test several — same car again, or a
   // different model/variant — so each row snapshots its own car (defaults to the enquiry's).
   carModel      String?

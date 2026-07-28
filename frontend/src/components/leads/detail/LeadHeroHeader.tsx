@@ -38,7 +38,7 @@ import { InfoField } from "./InfoField";
 import { ActionButton } from "./ActionButton";
 
 import { fadeUp } from "../../../lib/motion";
-import type { LeadWithHistory, Enquiry, User } from "../../../types";
+import type { LeadWithHistory, Enquiry, User, ConsultantDirectory } from "../../../types";
 import { daysBetween } from "./leadUtils";
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -82,7 +82,7 @@ interface LeadHeroHeaderProps {
   lead: LeadWithHistory;
   enquiry?: Enquiry;
   crTeam?: User[];
-  consultants?: User[];
+  consultants?: ConsultantDirectory[];
   canReassign: boolean;
   /** False when a CR_TEAM user is viewing a lead not assigned to them — view-only. */
   canAct: boolean;

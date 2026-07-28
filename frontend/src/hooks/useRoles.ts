@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as rolesApi from "../api/roles.api";
-import type { CreateRolePayload } from "../api/roles.api";
-import type { ModuleKey } from "../types";
+import type { CreateRolePayload, UpdateRolePayload } from "../api/roles.api";
 
 export function useRoles(branchId?: string) {
   return useQuery({
@@ -22,7 +21,7 @@ export function useCreateRole() {
 export function useUpdateRole() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ roleId, payload }: { roleId: string; payload: { name?: string; permissions?: ModuleKey[]; isActive?: boolean } }) =>
+    mutationFn: ({ roleId, payload }: { roleId: string; payload: UpdateRolePayload }) =>
       rolesApi.updateRole(roleId, payload),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["roles"] }),
     meta: { successMessage: "Role updated" },
