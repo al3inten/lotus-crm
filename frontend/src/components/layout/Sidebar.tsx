@@ -5,13 +5,12 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   LogOut,
-  Camera,
   Coffee,
   Loader2,
 } from "lucide-react";
 import { useNavGroups } from "./navConfig";
 import { useAuth } from "../../context/AuthContext";
-import { useUploadAvatar, useSetBreak } from "../../hooks/useUsers";
+import { useSetBreak } from "../../hooks/useUsers";
 import { Avatar } from "../common/Avatar";
 import { LogoutConfirmModal } from "../common/LogoutConfirmModal";
 
@@ -26,17 +25,7 @@ export function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }: SidebarProps)
   const groups = useNavGroups();
   const { user, logout, patchUser } = useAuth();
 
-  const avatarInputRef = useRef<HTMLInputElement>(null);
-  const uploadAvatar = useUploadAvatar();
   const setBreak = useSetBreak();
-
-  const onPickAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file || !user) return;
-    const updated = await uploadAvatar.mutateAsync({ userId: user.id, file });
-    patchUser({ avatarUrl: updated.avatarUrl });
-  };
 
   const toggleBreak = async () => {
     if (!user) return;
@@ -156,15 +145,6 @@ export function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }: SidebarProps)
             <div className="flex flex-col items-center gap-3">
               <span className="relative" title={user ? `${user.name} · ${user.role.replaceAll("_", " ")}` : undefined}>
                 <Avatar name={user?.name ?? "?"} size="sm" src={user?.avatarUrl} />
-                <button
-                  type="button"
-                  onClick={() => avatarInputRef.current?.click()}
-                  disabled={uploadAvatar.isPending}
-                  title="Change photo"
-                  className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-slate-900 bg-white text-slate-900 transition-colors hover:bg-slate-200 disabled:opacity-60"
-                >
-                  {uploadAvatar.isPending ? <Loader2 size={8} className="animate-spin" /> : <Camera size={8} />}
-                </button>
               </span>
               <button
                 type="button"
@@ -195,15 +175,6 @@ export function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }: SidebarProps)
               <div className="flex items-center gap-3">
                 <span className="relative">
                   <Avatar name={user?.name ?? "?"} size="sm" src={user?.avatarUrl} />
-                  <button
-                    type="button"
-                    onClick={() => avatarInputRef.current?.click()}
-                    disabled={uploadAvatar.isPending}
-                    title="Change photo"
-                    className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-slate-900 bg-white text-slate-900 transition-colors hover:bg-slate-200 disabled:opacity-60"
-                  >
-                    {uploadAvatar.isPending ? <Loader2 size={8} className="animate-spin" /> : <Camera size={8} />}
-                  </button>
                 </span>
                 <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
                   <span className="truncate text-[13px] font-semibold leading-tight text-white">
@@ -254,7 +225,6 @@ export function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }: SidebarProps)
               </button>
             </div>
           )}
-          <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={onPickAvatar} />
         </div>
       </aside>
 
