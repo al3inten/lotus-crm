@@ -7,6 +7,12 @@ import { Toggle } from "../common/Toggle";
 import { MODULES } from "../../types";
 import type { ModuleKey, ModulePermissions, PermissionLevel, RoleDefinition, Branch } from "../../types";
 import { useCreateRole, useUpdateRole } from "../../hooks/useRoles";
+import { VISIBLE_MODULE_KEYS } from "../layout/navConfig";
+
+// Only offer sections that are actually reachable in the sidebar right now — a module
+// belonging to a hidden nav group (e.g. "ENGAGE" while under development) has nothing
+// for its permission to gate, so hide it from role creation too.
+const VISIBLE_MODULES = MODULES.filter((m) => VISIBLE_MODULE_KEYS.has(m.key));
 
 const LEVELS: { value: PermissionLevel; label: string }[] = [
   { value: "none", label: "None" },
@@ -142,7 +148,7 @@ export function RoleModal({ isOpen, onClose, branches, editing, defaultBranchId 
         <div>
           <p className="mb-2 text-sm font-medium text-gray-800">Section Access</p>
           <div className="flex flex-col gap-2 rounded-lg border border-gray-200 p-3">
-            {MODULES.map((module) => (
+            {VISIBLE_MODULES.map((module) => (
               <div key={module.key} className="flex flex-col gap-1.5">
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-sm text-gray-700">{module.label}</span>

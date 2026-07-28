@@ -71,6 +71,13 @@ export const NAV_ITEMS: NavItem[] = [
   { to: "/integrations", label: "Integrations", short: "Apps", icon: Plug, module: "integrations", group: "ADMIN" },
 ];
 
+/** Module keys belonging to a currently-hidden nav group (e.g. "ENGAGE" while it's under
+ * development) — used to keep role-creation's Section Access list in sync with what's
+ * actually reachable in the sidebar right now, instead of showing modules nobody can visit. */
+export const VISIBLE_MODULE_KEYS = new Set(
+  NAV_ITEMS.filter((item) => !HIDDEN_GROUPS.includes(item.group)).map((item) => item.module)
+);
+
 /** Visible nav items grouped into ordered sections (empty sections dropped). */
 export function useNavGroups(): { group: NavGroup; label: string; items: NavItem[] }[] {
   const items = useNavItems();

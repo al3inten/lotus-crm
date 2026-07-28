@@ -26,6 +26,7 @@ import { Card, CardHeader } from "../components/common/Card";
 import { Toggle } from "../components/common/Toggle";
 import { Input, Select } from "../components/common/Input";
 import { MODULES } from "../types";
+import { VISIBLE_MODULE_KEYS } from "../components/layout/navConfig";
 import type { RoleDefinition } from "../types";
 
 // Vehicle models intentionally live only on the dedicated /vehicles page (sidebar),
@@ -206,7 +207,7 @@ function RolesTab() {
               </div>
 
               <div className="flex flex-wrap gap-1.5">
-                {MODULES.filter((m) => role.permissions[m.key] !== "none").map((m) => (
+                {MODULES.filter((m) => VISIBLE_MODULE_KEYS.has(m.key) && role.permissions[m.key] !== "none").map((m) => (
                   <span
                     key={m.key}
                     className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
