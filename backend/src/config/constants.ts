@@ -50,6 +50,7 @@ export const STAGE_RANK: Record<EnquiryStatus, number> = {
 export const MODULE_KEYS = [
   "dashboard",
   "leads",
+  "customers",
   "follow-ups",
   "test-drives",
   "vehicles",

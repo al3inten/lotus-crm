@@ -55,7 +55,12 @@ router.patch("/drafts/:id", validateBody(leadDraftSchema.pick({ data: true })), 
 router.delete("/drafts/:id", asyncHandler(deleteDraftHandler));
 
 // Registered before "/:leadId" so "customers" isn't swallowed as a leadId param.
-router.get("/customers", validateQuery(customerListQuerySchema), asyncHandler(listCustomersHandler));
+router.get(
+  "/customers",
+  requirePermission("customers", "read"),
+  validateQuery(customerListQuerySchema),
+  asyncHandler(listCustomersHandler)
+);
 
 router.get("/", validateQuery(leadListQuerySchema), asyncHandler(listEnquiriesHandler));
 router.get("/:leadId", asyncHandler(getLeadHandler));

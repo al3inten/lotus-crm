@@ -56,7 +56,10 @@ export const router = createBrowserRouter([
         children: [
           { path: "/dashboard", element: suspense(<DashboardPage />) },
           { path: "/leads", element: suspense(<LeadsPage />) },
-          { path: "/customers", element: suspense(<CustomersPage />) },
+          {
+            element: <ProtectedRoute module="customers" />,
+            children: [{ path: "/customers", element: suspense(<CustomersPage />) }],
+          },
           { path: "/follow-ups", element: suspense(<FollowUpsPage />) },
           { path: "/test-drives", element: suspense(<TestDrivesPage />) },
           { path: "/leads/:leadId", element: suspense(<LeadDetailPage />) },

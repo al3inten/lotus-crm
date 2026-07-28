@@ -53,7 +53,7 @@ export const NAV_ITEMS: NavItem[] = [
   { to: "/leads", label: "Leads", icon: Car, module: "leads", group: "SALES" },
   { to: "/follow-ups", label: "Follow-ups", short: "Follows", icon: CalendarClock, module: "follow-ups", group: "SALES" },
   { to: "/test-drives", label: "Test Drives", short: "Drives", icon: CalendarCheck2, module: "test-drives", group: "SALES" },
-  { to: "/customers", label: "Customers", short: "People", icon: Contact, module: "leads", group: "SALES" },
+  { to: "/customers", label: "Customers", short: "People", icon: Contact, module: "customers", group: "SALES" },
   { to: "/vehicles", label: "Vehicles", icon: CarFront, module: "vehicles", group: "SALES" },
 
   { to: "/social-inbox", label: "Social Inbox", short: "Inbox", icon: Inbox, module: "social-inbox", group: "ENGAGE" },
