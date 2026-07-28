@@ -14,9 +14,11 @@ export const statusChangeFormSchema = z.object({
   bookedAt: z.string().optional(),
   retailDoneAt: z.string().optional(),
   rtoDoneAt: z.string().optional(),
+  // Vehicle colour, captured at the RTO Done stage alongside the RTO date.
+  colour: z.string().optional(),
   deliveredAt: z.string().optional(),
-  // Delivery-stage customer details (mandatory when delivering) — used for birthday/anniversary
-  // celebrations after the sale.
+  // Delivered-stage customer details — used for birthday/anniversary celebrations, collected
+  // via the standalone Save progress action once the enquiry is at Delivered.
   dob: z.string().optional(),
   profession: z.string().optional(),
   // Booking-phase finance.

@@ -327,6 +327,8 @@ export interface Enquiry {
   retailDoneAt?: string | null;
   rtoDoneAt?: string | null;
   deliveredAt?: string | null;
+  // Vehicle colour, captured at the RTO Done stage alongside the RTO date.
+  colour?: string | null;
   appointmentScheduled: boolean;
   appointmentAt?: string | null;
   testDriveInterested: boolean;
@@ -407,6 +409,8 @@ export interface Reminder {
   title: string;
   body: string;
   linkUrl: string;
+  /** FOLLOW_UP only — true when the due date has already passed (vs. due later today). */
+  isOverdue?: boolean;
 }
 
 export interface TestDriveFeedback {

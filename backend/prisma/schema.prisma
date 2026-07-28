@@ -476,6 +476,8 @@ model Enquiry {
   retailDoneAt DateTime?
   rtoDoneAt    DateTime?
   deliveredAt  DateTime?
+  // Vehicle colour, captured at the RTO Done stage alongside the RTO date.
+  colour       String?
 
   // Digital-lead auto-dial pipeline (Voice AI outbound call on new digital enquiries).
   score         Int              @default(0)

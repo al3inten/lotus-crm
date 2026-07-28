@@ -13,6 +13,9 @@ export const enquiryDetailsSchema = leadEnrichmentSchema.extend({
   // step is now editable in the Complete/Edit flow, same as Lead Source/Subsource.
   carModel: z.string().min(1).optional(),
   enquiryType: z.enum(["NEW_CAR", "USED_CAR", "SERVICE_RELATED", "ACCESSORY", "OTHER"]).optional(),
+  // Vehicle colour — editable here too (alongside model/variant) once the sale is delivered,
+  // via the Purchased Vehicle card on the Lead Detail page.
+  colour: z.string().optional(),
 });
 
 export const changeStatusSchema = z.object({
@@ -76,6 +79,8 @@ export const retailDetailsSchema = z.object({
 // Retail Done -> RTO Done transition itself).
 export const rtoDetailsSchema = z.object({
   rtoDoneAt: z.string().datetime().optional(),
+  // Vehicle colour, captured alongside the RTO date.
+  colour: z.string().optional(),
 });
 
 // Correcting the delivery date once the enquiry has reached DELIVERED (the vehicle delivery

@@ -100,8 +100,11 @@ export async function changeStatus(enquiryId: string, input: ChangeStatusInput, 
       }
     }
 
-    // Delivery requires the details needed for post-sale relationship touches (birthday /
-    // anniversary celebrations): the vehicle delivery date and the customer's DOB and job.
+    // The enquiry must not be marked Delivered (Won) until the details needed for post-sale
+    // relationship touches (birthday / anniversary celebrations) are actually captured: the
+    // vehicle delivery date and the customer's DOB and job. All three are mandatory gates on
+    // the transition itself — collecting them afterward would let the status read "Won"
+    // before the CR has actually gathered this information.
     if (input.toStatus === "DELIVERED") {
       if (!input.deliveredAt) {
         throw new ValidationError("Vehicle delivery date is required to complete delivery.");
@@ -173,6 +176,7 @@ const DETAILS_FIELD_LABELS: Record<string, string> = {
   subsource: "Subsource",
   referrerName: "Referrer name",
   variant: "Variant",
+  colour: "Colour",
   enquiryCategory: "Enquiry category",
   financeRequired: "Finance required",
   financeRemarks: "Finance remarks",
@@ -245,6 +249,7 @@ export async function updateEnquiryDetails(enquiryId: string, input: EnquiryDeta
     diff("subsource", enquiry.subsource, input.subsource);
     diff("referrerName", enquiry.referrerName, input.referrerName);
     diff("variant", enquiry.variant, input.variant);
+    diff("colour", enquiry.colour, input.colour);
     diff("enquiryCategory", enquiry.enquiryCategory, input.enquiryCategory);
     diff("financeRequired", enquiry.financeRequired, input.financeRequired);
     diff("financeRemarks", enquiry.financeRemarks, input.financeRemarks);
@@ -285,6 +290,7 @@ export async function updateEnquiryDetails(enquiryId: string, input: EnquiryDeta
         subsource: input.subsource,
         referrerName: input.referrerName,
         variant: input.variant,
+        colour: input.colour,
         enquiryCategory: input.enquiryCategory,
         financeRequired: input.financeRequired,
         financeRemarks: input.financeRemarks,
@@ -409,21 +415,28 @@ export async function updateRtoDetails(enquiryId: string, input: RtoDetailsInput
       throw new ValidationError("RTO details can only be set once the enquiry has reached RTO Done.");
     }
 
-    const changed = input.rtoDoneAt && (enquiry.rtoDoneAt?.toISOString() ?? null) !== new Date(input.rtoDoneAt).toISOString();
+    const dateChanged = input.rtoDoneAt && (enquiry.rtoDoneAt?.toISOString() ?? null) !== new Date(input.rtoDoneAt).toISOString();
+    const colourChanged = input.colour !== undefined && input.colour !== (enquiry.colour ?? undefined);
 
     const updated = await tx.enquiry.update({
       where: { id: enquiryId },
       data: {
         rtoDoneAt: input.rtoDoneAt ? new Date(input.rtoDoneAt) : enquiry.rtoDoneAt,
+        colour: input.colour !== undefined ? input.colour : enquiry.colour,
       },
     });
 
-    if (changed && changedById) {
+    if ((dateChanged || colourChanged) && changedById) {
+      const lines = [
+        dateChanged &&
+          `• RTO done date: ${formatDetailValue("rtoDoneAt", enquiry.rtoDoneAt)} → ${formatDetailValue("rtoDoneAt", input.rtoDoneAt)}`,
+        colourChanged && `• Colour: ${formatDetailValue("colour", enquiry.colour)} → ${formatDetailValue("colour", input.colour)}`,
+      ].filter(Boolean);
       await tx.comment.create({
         data: {
           enquiryId,
           userId: changedById,
-          body: `✏️ Updated RTO details:\n• RTO done date: ${formatDetailValue("rtoDoneAt", enquiry.rtoDoneAt)} → ${formatDetailValue("rtoDoneAt", input.rtoDoneAt)}`,
+          body: `✏️ Updated RTO details:\n${lines.join("\n")}`,
         },
       });
     }

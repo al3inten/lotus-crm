@@ -282,7 +282,14 @@ export function Topbar({ onMenuToggle }: { onMenuToggle: () => void }) {
                                 key={r.id}
                                 className="flex items-start gap-3 border-b border-slate-50 px-4 py-3 dark:border-slate-800/60"
                               >
-                                <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400">
+                                <span
+                                  className={clsx(
+                                    "mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full",
+                                    r.isOverdue
+                                      ? "bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400"
+                                      : "bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400"
+                                  )}
+                                >
                                   <Icon size={14} />
                                 </span>
                                 <span className="min-w-0 flex-1">
