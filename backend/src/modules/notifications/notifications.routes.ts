@@ -4,7 +4,7 @@ import { verifyJwt } from "../../middleware/auth";
 import { applyBranchScope } from "../../middleware/branchScope";
 import { prisma } from "../../lib/prisma";
 import { notifyRepeatEnquiry } from "./repeatEnquiry.service";
-import { getRemindersForUser } from "./reminders.service";
+import { getRemindersForUser, dismissReminder, dismissAllReminders } from "./reminders.service";
 
 const router = Router();
 
@@ -28,6 +28,23 @@ router.get("/reminders", applyBranchScope, asyncHandler(async (req, res) => {
     branchFilter: req.branchFilter,
   });
   res.json(reminders);
+}));
+
+// Explicitly clear one reminder — only way a reminder leaves the bell, since it's
+// otherwise recomputed live on every poll.
+router.delete("/reminders/:id", asyncHandler(async (req, res) => {
+  await dismissReminder(req.user!.id, req.params.id);
+  res.json({ success: true });
+}));
+
+// Clear every reminder currently showing for this user.
+router.delete("/reminders", applyBranchScope, asyncHandler(async (req, res) => {
+  await dismissAllReminders({
+    userId: req.user!.id,
+    role: req.user!.role,
+    branchFilter: req.branchFilter,
+  });
+  res.json({ success: true });
 }));
 
 // Mark a notification as read

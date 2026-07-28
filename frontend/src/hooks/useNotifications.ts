@@ -33,6 +33,27 @@ export function useMarkNotificationAsRead() {
   });
 }
 
+export function useDismissReminder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: notificationsApi.dismissReminder,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: notificationKeys.reminders });
+    },
+  });
+}
+
+export function useDismissAllReminders() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: notificationsApi.dismissAllReminders,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: notificationKeys.reminders });
+    },
+    meta: { successMessage: "Reminders cleared" },
+  });
+}
+
 export function usePushRepeatEnquiryAlert() {
   return useMutation({
     mutationFn: notificationsApi.pushRepeatEnquiryAlert,

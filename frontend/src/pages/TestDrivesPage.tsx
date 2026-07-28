@@ -27,6 +27,7 @@ function StatusTile({
   value,
   tone,
   active,
+  loading,
   onClick,
 }: {
   icon: ReactNode;
@@ -34,23 +35,30 @@ function StatusTile({
   value: number;
   tone: string;
   active: boolean;
+  loading: boolean;
   onClick: () => void;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={loading}
       aria-pressed={active}
+      aria-busy={loading}
       className={clsx(
-        "group relative flex items-center gap-3.5 overflow-hidden rounded-2xl border p-4 text-left transition-all hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
+        "group relative flex items-center gap-3.5 overflow-hidden rounded-2xl border p-4 text-left transition-all hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:cursor-default disabled:hover:translate-y-0",
         active
           ? "border-primary-400 bg-primary-50/60 ring-1 ring-primary-300 dark:border-primary-500/50 dark:bg-primary-500/10 dark:ring-primary-500/30"
           : "border-slate-200 bg-white hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900/50 dark:hover:border-slate-700"
       )}
     >
-      <span className={clsx("flex h-11 w-11 shrink-0 items-center justify-center rounded-xl", tone)}>{icon}</span>
+      <span className={clsx("flex h-11 w-11 shrink-0 items-center justify-center rounded-xl", tone, loading && "animate-pulse")}>{icon}</span>
       <div className="min-w-0">
-        <p className="text-2xl font-bold leading-none tabular-nums text-slate-900 dark:text-white">{value.toLocaleString()}</p>
+        {loading ? (
+          <div className="h-6 w-10 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
+        ) : (
+          <p className="text-2xl font-bold leading-none tabular-nums text-slate-900 dark:text-white">{value.toLocaleString()}</p>
+        )}
         <p className="mt-1 truncate text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
       </div>
     </button>
@@ -86,7 +94,10 @@ export function TestDrivesPage() {
   // Carries this page of the test-drive queue along as nav state, so the detail page
   // can offer "Next/Prev lead" through exactly the drives the CR/consultant is working.
   const queue = (data?.items ?? []).map((item) => ({ leadId: item.leadId, enquiryId: item.enquiryId }));
-  const open = (item: TestDriveItem) => navigate(`/leads/${item.leadId}/enquiries/${item.enquiryId}`, { state: { queue } });
+  const open = (item: TestDriveItem) =>
+    navigate(`/leads/${item.leadId}/enquiries/${item.enquiryId}`, {
+      state: { queue, from: { path: "/test-drives", label: "Test Drives" } },
+    });
 
   return (
     <motion.div variants={staggerContainer} initial="hidden" animate="show" className="flex flex-col gap-5">
@@ -132,6 +143,7 @@ export function TestDrivesPage() {
             tone={tile.tone}
             label={tile.label}
             value={stats?.[tile.statKey] ?? 0}
+            loading={isLoading || !stats}
             active={filters.status === tile.key && !filters.dateFrom && !filters.dateTo}
             onClick={() => {
               patch({ status: tile.key, dateFrom: undefined, dateTo: undefined });

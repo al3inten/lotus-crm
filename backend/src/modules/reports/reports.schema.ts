@@ -14,6 +14,12 @@ export const reportQuerySchema = z.object({
   consultantId: z.string().optional(),
   carModel: z.string().optional(),
   enquiryType: z.string().optional(),
+  phone: z.string().optional(),
+  sourceCategory: z.string().optional(),
+  // Narrows to one referrer's leads (Top Referrers row download) — phone is preferred
+  // (it's the true identity key), name is the fallback for pre-referrerPhone rows.
+  referrerPhone: z.string().optional(),
+  referrerName: z.string().optional(),
 });
 
 export const customerPreviewQuerySchema = reportQuerySchema.extend({

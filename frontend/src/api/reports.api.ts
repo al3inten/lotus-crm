@@ -13,6 +13,11 @@ export interface ReportFilters {
   consultantId?: string;
   carModel?: string;
   enquiryType?: string;
+  // Narrows a download/preview to leads matching this mobile number (partial match).
+  phone?: string;
+  sourceCategory?: string;
+  referrerPhone?: string;
+  referrerName?: string;
 }
 
 export interface SummaryReport {
@@ -193,6 +198,7 @@ export interface ReferralLeadRow {
   name: string;
   phone: string;
   referrerName: string | null;
+  referrerPhone: string | null;
   carModel: string;
   status: string;
   branch: string;
@@ -206,6 +212,29 @@ export interface ReferralLeadsResult {
 
 export async function fetchReferralLeads(filters: ReportFilters): Promise<ReferralLeadsResult> {
   const { data } = await axiosClient.get<ReferralLeadsResult>("/reports/referral-leads", { params: filters });
+  return data;
+}
+
+export interface TopReferrerRow {
+  referrerName: string;
+  referrerPhone: string | null;
+  count: number;
+  converted: number;
+}
+
+export interface TopReferredModelRow {
+  carModel: string;
+  count: number;
+  converted: number;
+}
+
+export interface ReferralPerformanceResult {
+  topReferrers: TopReferrerRow[];
+  topModels: TopReferredModelRow[];
+}
+
+export async function fetchReferralPerformance(filters: ReportFilters): Promise<ReferralPerformanceResult> {
+  const { data } = await axiosClient.get<ReferralPerformanceResult>("/reports/referral-performance", { params: filters });
   return data;
 }
 

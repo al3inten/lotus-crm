@@ -86,6 +86,14 @@ export function useReferralLeadsReport(filters: reportsApi.ReportFilters, enable
   });
 }
 
+export function useReferralPerformanceReport(filters: reportsApi.ReportFilters, enabled = true) {
+  return useQuery({
+    queryKey: ["reports", "referral-performance", filters],
+    queryFn: () => reportsApi.fetchReferralPerformance(filters),
+    enabled,
+  });
+}
+
 export function useConsultantPerformanceReport(filters: reportsApi.ReportFilters) {
   return useQuery({
     queryKey: ["reports", "consultant-performance", filters],

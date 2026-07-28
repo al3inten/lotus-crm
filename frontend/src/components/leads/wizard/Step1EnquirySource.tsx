@@ -117,13 +117,24 @@ export function Step1EnquirySource({
           ))}
         </Select>
         {selectedSourceCategory === "REFERRAL" && (
-          <Input
-            label="Referrer Name"
-            required
-            placeholder="Name of the customer/employee who referred this lead"
-            error={fieldError("referrerName")}
-            {...register("referrerName")}
-          />
+          <>
+            <Input
+              label="Referrer Name"
+              required
+              placeholder="Name of the customer/employee who referred this lead"
+              error={fieldError("referrerName")}
+              {...register("referrerName")}
+            />
+            <Input
+              label="Referrer Mobile Number"
+              required
+              placeholder="10-digit mobile number of the referrer"
+              inputMode="numeric"
+              maxLength={10}
+              error={fieldError("referrerPhone")}
+              {...register("referrerPhone")}
+            />
+          </>
         )}
 
         {!isComplete && (

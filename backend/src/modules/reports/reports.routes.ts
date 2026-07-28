@@ -16,6 +16,7 @@ import {
   callAnalysisHandler,
   sourcePerformanceHandler,
   referralLeadsHandler,
+  referralPerformanceHandler,
   lostReasonsHandler,
   consultantPerformanceHandler,
   vehiclePerformanceHandler,
@@ -39,6 +40,7 @@ router.get("/time-in-stage", validateQuery(reportQuerySchema), asyncHandler(time
 router.get("/call-analysis", validateQuery(reportQuerySchema), asyncHandler(callAnalysisHandler));
 router.get("/source-performance", validateQuery(reportQuerySchema), asyncHandler(sourcePerformanceHandler));
 router.get("/referral-leads", validateQuery(reportQuerySchema), asyncHandler(referralLeadsHandler));
+router.get("/referral-performance", validateQuery(reportQuerySchema), asyncHandler(referralPerformanceHandler));
 router.get("/lost-reasons", validateQuery(reportQuerySchema), asyncHandler(lostReasonsHandler));
 router.get("/vehicle-performance", validateQuery(reportQuerySchema), asyncHandler(vehiclePerformanceHandler));
 router.get("/consultant-performance", validateQuery(reportQuerySchema), asyncHandler(consultantPerformanceHandler));

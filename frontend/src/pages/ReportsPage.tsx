@@ -14,6 +14,7 @@ import {
   useLostReasonsReport,
   useConsultantPerformanceReport,
   useReferralLeadsReport,
+  useReferralPerformanceReport,
 } from "../hooks/useReports";
 import {
   ClipboardList,
@@ -34,13 +35,18 @@ import {
   GitBranch,
   SlidersHorizontal,
   UserPlus,
+  Car,
+  Search,
 } from "lucide-react";
+import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import type { ReportFilters } from "../api/reports.api";
 import { StatTile } from "../components/reports/StatTile";
 import { CustomerListModal } from "../components/reports/CustomerListModal";
 import { DonutChart } from "../components/reports/DonutChart";
 import type { DonutSlice } from "../components/reports/DonutChart";
 import { ChartTableToggle } from "../components/reports/ChartTableToggle";
+import { ReportSkeleton } from "../components/reports/ReportSkeleton";
+import { Skeleton } from "../components/ui/skeleton";
 import { FunnelChart } from "../components/reports/FunnelChart";
 import { HBarList } from "../components/reports/HBarList";
 import { SourcePerformanceTable } from "../components/reports/SourcePerformanceTable";
@@ -48,7 +54,7 @@ import { CrPerformanceTable } from "../components/reports/CrPerformanceTable";
 import { TrendChart } from "../components/reports/TrendChart";
 import { formatHours } from "../components/reports/vizTheme";
 import { Button } from "../components/common/Button";
-import { Select } from "../components/common/Input";
+import { Select, Input } from "../components/common/Input";
 import { DatePickerField } from "../components/common/DateTimePicker";
 import { Card, CardHeader } from "../components/common/Card";
 import { LEAD_SOURCES, LOSS_REASONS, ENQUIRY_TYPES } from "../types";
@@ -108,22 +114,41 @@ const STATUS_ORDER = [
   "CLOSED",
 ] as const;
 
+/** Debounced (300ms) free-text search box for filtering a table already loaded client-side —
+ * used throughout the Referrals tab so typing doesn't re-filter on every keystroke. */
+function TableSearch({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
+  return (
+    <div className="relative w-full sm:w-64">
+      <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full rounded-lg border border-gray-200 bg-white py-1.5 pl-8 pr-3 text-sm text-gray-900 placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
+      />
+    </div>
+  );
+}
+
 function Section({
   title,
   subtitle,
   icon,
   iconClassName,
+  actions,
   children,
 }: {
   title: string;
   subtitle?: string;
   icon?: React.ReactNode;
   iconClassName?: string;
+  actions?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <Card>
-      <CardHeader icon={icon} title={title} subtitle={subtitle} iconClassName={iconClassName} />
+      <CardHeader icon={icon} title={title} subtitle={subtitle} iconClassName={iconClassName} actions={actions} />
       {children}
     </Card>
   );
@@ -144,6 +169,7 @@ export function ReportsPage() {
   const [customSource, setCustomSource] = useState<string>("");
   const [customEnquiryType, setCustomEnquiryType] = useState<string>("");
   const [customLossReason, setCustomLossReason] = useState<string>("");
+  const [customPhone, setCustomPhone] = useState<string>("");
 
   const filters = useMemo(() => {
     const base: { branchId?: string; dateFrom?: string; dateTo?: string } = {
@@ -176,6 +202,7 @@ export function ReportsPage() {
   const { data: consultantRows } = useConsultantPerformanceReport(filters);
   const { data: rollup } = useBranchRollupReport(filters);
   const { data: referralLeads } = useReferralLeadsReport(filters, tab === "referrals");
+  const { data: referralPerformance } = useReferralPerformanceReport(filters, tab === "referrals");
 
   // Every "download this list" action opens the preview modal first (see CustomerListModal)
   // rather than downloading blind — `extra` narrows the list beyond the page's own filters.
@@ -183,24 +210,92 @@ export function ReportsPage() {
   const openList = (title: string, fileSuffix: string, extra: Partial<ReportFilters> = {}) =>
     setPreview({ title, fileSuffix, filters: { ...filters, ...extra } });
 
-  const handleExport = () => openList("All customers", "all");
-
-  const customFilterCount = [customStatus, customSource, customEnquiryType, customLossReason].filter(Boolean).length;
+  const customFilterCount = [customStatus, customSource, customEnquiryType, customLossReason, customPhone].filter(Boolean).length;
   const handleCustomDownload = () => {
     const parts = [customStatus, customSource, customEnquiryType, customLossReason].filter(Boolean);
+    if (customPhone) parts.push(`Mobile ${customPhone}`);
     const label = parts.length
       ? parts.map((p) => p.replaceAll("_", " ")).join(" + ")
       : "All customers";
-    openList(label, parts.length ? parts.join("-").toLowerCase().replace(/_/g, "-") : "all", {
+    openList(label, parts.length ? parts.join("-").toLowerCase().replace(/_/g, "-").replace(/\s+/g, "-") : "all", {
       status: customStatus || undefined,
       source: customSource || undefined,
       enquiryType: customEnquiryType || undefined,
       lossReason: customLossReason || undefined,
+      phone: customPhone.trim() || undefined,
     });
   };
 
   const maxLostCount = Math.max(1, ...(lostReasons ?? []).map((r) => r.count));
   const maxStageHours = Math.max(1, ...(timeInStage ?? []).map((r) => r.avgHours ?? 0));
+
+  const [statusSearch, setStatusSearch] = useState("");
+  const debouncedStatusSearch = useDebouncedValue(statusSearch, 300).trim().toLowerCase();
+  const [timeInStageSearch, setTimeInStageSearch] = useState("");
+  const debouncedTimeInStageSearch = useDebouncedValue(timeInStageSearch, 300).trim().toLowerCase();
+  const [lostReasonSearch, setLostReasonSearch] = useState("");
+  const debouncedLostReasonSearch = useDebouncedValue(lostReasonSearch, 300).trim().toLowerCase();
+  const [sourceSearch, setSourceSearch] = useState("");
+  const debouncedSourceSearch = useDebouncedValue(sourceSearch, 300).trim().toLowerCase();
+  const [consultantSearch, setConsultantSearch] = useState("");
+  const debouncedConsultantSearch = useDebouncedValue(consultantSearch, 300).trim().toLowerCase();
+  const [crSearch, setCrSearch] = useState("");
+  const debouncedCrSearch = useDebouncedValue(crSearch, 300).trim().toLowerCase();
+  const [branchSearch, setBranchSearch] = useState("");
+  const debouncedBranchSearch = useDebouncedValue(branchSearch, 300).trim().toLowerCase();
+
+  const [referralLeadSearch, setReferralLeadSearch] = useState("");
+  const debouncedReferralLeadSearch = useDebouncedValue(referralLeadSearch, 300).trim().toLowerCase();
+  const [topReferrerSearch, setTopReferrerSearch] = useState("");
+  const debouncedTopReferrerSearch = useDebouncedValue(topReferrerSearch, 300).trim().toLowerCase();
+  const [topModelSearch, setTopModelSearch] = useState("");
+  const debouncedTopModelSearch = useDebouncedValue(topModelSearch, 300).trim().toLowerCase();
+
+  const referralConverted = referralLeads?.rows.filter((r) => r.status === "RETAIL_DONE").length ?? 0;
+  const referralLost = referralLeads?.rows.filter((r) => r.status === "CLOSED").length ?? 0;
+  const referralConversionRate = referralLeads?.total
+    ? Number(((referralConverted / referralLeads.total) * 100).toFixed(1))
+    : 0;
+  const maxReferrerCount = Math.max(1, ...(referralPerformance?.topReferrers ?? []).map((r) => r.count));
+  const maxReferredModelCount = Math.max(1, ...(referralPerformance?.topModels ?? []).map((m) => m.count));
+
+  const filteredReferralLeads = (referralLeads?.rows ?? []).filter((row) => {
+    if (!debouncedReferralLeadSearch) return true;
+    return [row.name, row.phone, row.referrerName, row.referrerPhone, row.carModel, row.branch]
+      .filter(Boolean)
+      .some((v) => v!.toLowerCase().includes(debouncedReferralLeadSearch));
+  });
+  const filteredTopReferrers = (referralPerformance?.topReferrers ?? []).filter((r) => {
+    if (!debouncedTopReferrerSearch) return true;
+    return [r.referrerName, r.referrerPhone].filter(Boolean).some((v) => v!.toLowerCase().includes(debouncedTopReferrerSearch));
+  });
+  const filteredTopModels = (referralPerformance?.topModels ?? []).filter((m) =>
+    !debouncedTopModelSearch || m.carModel.toLowerCase().includes(debouncedTopModelSearch)
+  );
+
+  const filteredStatusOrder = STATUS_ORDER.filter(
+    (s) => !debouncedStatusSearch || (STAGE_LABELS[s] ?? s).toLowerCase().includes(debouncedStatusSearch)
+  );
+  const filteredTimeInStage = (timeInStage ?? []).filter(
+    (row) => !debouncedTimeInStageSearch || (STAGE_LABELS[row.stage] ?? row.stage).toLowerCase().includes(debouncedTimeInStageSearch)
+  );
+  const filteredLostReasons = (lostReasons ?? []).filter(
+    (row) =>
+      !debouncedLostReasonSearch ||
+      (LOSS_REASON_LABELS[row.reason] ?? row.reason).toLowerCase().includes(debouncedLostReasonSearch)
+  );
+  const filteredSources = (sources ?? []).filter(
+    (row) => !debouncedSourceSearch || row.source.toLowerCase().includes(debouncedSourceSearch)
+  );
+  const filteredConsultantRows = (consultantRows ?? []).filter(
+    (row) => !debouncedConsultantSearch || row.consultantName.toLowerCase().includes(debouncedConsultantSearch)
+  );
+  const filteredCrRows = (crRows ?? []).filter(
+    (row) => !debouncedCrSearch || row.crName.toLowerCase().includes(debouncedCrSearch)
+  );
+  const filteredRollup = (rollup ?? []).filter(
+    (row) => !debouncedBranchSearch || row.branchName.toLowerCase().includes(debouncedBranchSearch)
+  );
 
   return (
     <div className="mx-auto w-full max-w-7xl flex flex-col gap-6">
@@ -212,28 +307,16 @@ export function ReportsPage() {
         />
         <div className="pointer-events-none absolute -left-20 -top-20 h-[300px] w-[300px] rounded-full bg-primary-500/10 blur-[80px]" />
 
-        <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-2xl">
-            <span className="inline-flex items-center rounded-full bg-primary-500/10 px-2.5 py-0.5 text-xs sm:text-sm font-medium text-primary-300 ring-1 ring-inset ring-primary-500/20 backdrop-blur-md">
-              Analytics & Insights
-            </span>
-            <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
-              Reports
-            </h1>
-            <p className="mt-2 text-sm sm:text-base text-slate-300">
-              Track conversion rates, team performance, and lead sources in real-time.
-            </p>
-          </div>
-          <div className="shrink-0">
-            <Button
-              variant="secondary"
-              icon={<Download size={15} />}
-              onClick={handleExport}
-              className="bg-white/10 text-white hover:bg-white/20 border-0 ring-1 ring-white/20 shadow-lg backdrop-blur-md transition-all hover:scale-105"
-            >
-              Export Excel
-            </Button>
-          </div>
+        <div className="relative z-10 max-w-2xl">
+          <span className="inline-flex items-center rounded-full bg-primary-500/10 px-2.5 py-0.5 text-xs sm:text-sm font-medium text-primary-300 ring-1 ring-inset ring-primary-500/20 backdrop-blur-md">
+            Analytics & Insights
+          </span>
+          <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
+            Reports
+          </h1>
+          <p className="mt-2 text-sm sm:text-base text-slate-300">
+            Track conversion rates, team performance, and lead sources in real-time.
+          </p>
         </div>
       </div>
 
@@ -270,48 +353,59 @@ export function ReportsPage() {
       </Card>
 
       {/* KPI row with year-over-year deltas */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-        <StatTile
-          label="Total Enquiries"
-          value={summary?.totalEnquiries ?? 0}
-          delta={yoy?.growth.total}
-          deltaLabel="vs last year"
-          icon={<ClipboardList size={20} />}
-          iconClassName="bg-primary-50 text-primary-600 dark:bg-primary-500/20 dark:text-primary-400"
-        />
-        <StatTile
-          label="Converted"
-          value={summary?.converted ?? 0}
-          delta={yoy?.growth.converted}
-          deltaLabel="vs last year"
-          icon={<KeyRound size={20} />}
-          iconClassName="bg-emerald-50 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
-        />
-        <StatTile
-          label="Conversion Rate"
-          value={yoy?.currentPeriod.conversionRate ?? 0}
-          suffix="%"
-          delta={yoy?.growth.conversionRate}
-          deltaLabel="pts vs last year"
-          icon={<Percent size={20} />}
-          iconClassName="bg-violet-50 text-violet-600 dark:bg-violet-500/20 dark:text-violet-400"
-        />
-        <StatTile
-          label="Lost"
-          value={summary?.lost ?? 0}
-          delta={yoy?.growth.lost}
-          deltaLabel="vs last year"
-          upIsGood={false}
-          icon={<CircleX size={20} />}
-          iconClassName="bg-red-50 text-red-600 dark:bg-red-500/20 dark:text-red-400"
-        />
-        <StatTile
-          label="Follow-up Pending"
-          value={summary?.followUpPending ?? 0}
-          icon={<PhoneOutgoing size={20} />}
-          iconClassName="bg-amber-50 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400"
-        />
-      </div>
+      {!summary || !yoy ? (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex flex-col gap-2 rounded-xl border border-gray-100 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-6 w-14" />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+          <StatTile
+            label="Total Enquiries"
+            value={summary?.totalEnquiries ?? 0}
+            delta={yoy?.growth.total}
+            deltaLabel="vs last year"
+            icon={<ClipboardList size={20} />}
+            iconClassName="bg-primary-50 text-primary-600 dark:bg-primary-500/20 dark:text-primary-400"
+          />
+          <StatTile
+            label="Converted"
+            value={summary?.converted ?? 0}
+            delta={yoy?.growth.converted}
+            deltaLabel="vs last year"
+            icon={<KeyRound size={20} />}
+            iconClassName="bg-emerald-50 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
+          />
+          <StatTile
+            label="Conversion Rate"
+            value={yoy?.currentPeriod.conversionRate ?? 0}
+            suffix="%"
+            delta={yoy?.growth.conversionRate}
+            deltaLabel="pts vs last year"
+            icon={<Percent size={20} />}
+            iconClassName="bg-violet-50 text-violet-600 dark:bg-violet-500/20 dark:text-violet-400"
+          />
+          <StatTile
+            label="Lost"
+            value={summary?.lost ?? 0}
+            delta={yoy?.growth.lost}
+            deltaLabel="vs last year"
+            upIsGood={false}
+            icon={<CircleX size={20} />}
+            iconClassName="bg-red-50 text-red-600 dark:bg-red-500/20 dark:text-red-400"
+          />
+          <StatTile
+            label="Follow-up Pending"
+            value={summary?.followUpPending ?? 0}
+            icon={<PhoneOutgoing size={20} />}
+            iconClassName="bg-amber-50 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400"
+          />
+        </div>
+      )}
 
       {/* Tab bar — groups the reports below instead of stacking all eight sections in one
           long scroll, which is what made the page feel cluttered. */}
@@ -376,6 +470,13 @@ export function ReportsPage() {
                   </option>
                 ))}
               </Select>
+              <Input
+                label="Mobile Number"
+                placeholder="Search by mobile"
+                value={customPhone}
+                onChange={(e) => setCustomPhone(e.target.value)}
+                className="min-w-[160px]"
+              />
               <Button
                 icon={<Download size={15} />}
                 onClick={handleCustomDownload}
@@ -391,57 +492,68 @@ export function ReportsPage() {
             icon={<LayoutGrid size={20} />}
             iconClassName="bg-primary-50 text-primary-600 dark:bg-primary-500/20 dark:text-primary-400"
           >
-            <ChartTableToggle
-              table={
-                <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-slate-800">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:bg-slate-800/50 dark:text-slate-400">
-                      <tr>
-                        <th className="px-4 py-2.5">Status</th>
-                        <th className="px-4 py-2.5">Customers</th>
-                        <th className="px-4 py-2.5">% of total</th>
-                        <th className="px-4 py-2.5 text-right">Download</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
-                      {STATUS_ORDER.map((status) => {
-                        const count = summary?.statusBreakdown[status] ?? 0;
-                        const percent = summary?.totalEnquiries ? Math.round((count / summary.totalEnquiries) * 1000) / 10 : 0;
-                        return (
-                          <tr key={status} className="transition-colors hover:bg-primary-50/60 dark:hover:bg-primary-500/[0.06]">
-                            <td className="px-4 py-2.5 font-medium text-gray-900 dark:text-slate-100">{STAGE_LABELS[status] ?? status}</td>
-                            <td className="px-4 py-2.5 tabular-nums text-gray-700 dark:text-slate-300">{count}</td>
-                            <td className="px-4 py-2.5 tabular-nums text-gray-500 dark:text-slate-400">{percent}%</td>
-                            <td className="px-4 py-2.5 text-right">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                disabled={count === 0}
-                                icon={<Download size={14} />}
-                                onClick={() => openList(STAGE_LABELS[status] ?? status, STAGE_LABELS[status]?.toLowerCase().replace(/\s+/g, "-") ?? status.toLowerCase(), { status })}
-                              >
-                                Download
-                              </Button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              }
-              chart={
-                <DonutChart
-                  slices={STATUS_ORDER.filter((s) => (summary?.statusBreakdown[s] ?? 0) > 0).map(
-                    (s): DonutSlice => ({
-                      label: STAGE_LABELS[s] ?? s,
-                      value: summary?.statusBreakdown[s] ?? 0,
-                      valueLabel: String(summary?.statusBreakdown[s] ?? 0),
-                    })
-                  )}
-                />
-              }
-            />
+            {!summary ? (
+              <ReportSkeleton variant="table" rows={STATUS_ORDER.length} />
+            ) : (
+              <div className="flex flex-col gap-3">
+                <TableSearch value={statusSearch} onChange={setStatusSearch} placeholder="Search status…" />
+                {filteredStatusOrder.length === 0 ? (
+                  <p className="py-6 text-center text-sm text-gray-400 dark:text-slate-500">No status matches "{statusSearch}".</p>
+                ) : (
+                  <ChartTableToggle
+                    table={
+                      <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-slate-800">
+                        <table className="w-full text-sm">
+                          <thead className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:bg-slate-800/50 dark:text-slate-400">
+                            <tr>
+                              <th className="px-4 py-2.5">Status</th>
+                              <th className="px-4 py-2.5">Customers</th>
+                              <th className="px-4 py-2.5">% of total</th>
+                              <th className="px-4 py-2.5 text-right">Download</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+                            {filteredStatusOrder.map((status) => {
+                              const count = summary?.statusBreakdown[status] ?? 0;
+                              const percent = summary?.totalEnquiries ? Math.round((count / summary.totalEnquiries) * 1000) / 10 : 0;
+                              return (
+                                <tr key={status} className="transition-colors hover:bg-primary-50/60 dark:hover:bg-primary-500/[0.06]">
+                                  <td className="px-4 py-2.5 font-medium text-gray-900 dark:text-slate-100">{STAGE_LABELS[status] ?? status}</td>
+                                  <td className="px-4 py-2.5 tabular-nums text-gray-700 dark:text-slate-300">{count}</td>
+                                  <td className="px-4 py-2.5 tabular-nums text-gray-500 dark:text-slate-400">{percent}%</td>
+                                  <td className="px-4 py-2.5 text-right">
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      disabled={count === 0}
+                                      icon={<Download size={14} />}
+                                      onClick={() => openList(STAGE_LABELS[status] ?? status, STAGE_LABELS[status]?.toLowerCase().replace(/\s+/g, "-") ?? status.toLowerCase(), { status })}
+                                    >
+                                      Download
+                                    </Button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    }
+                    chart={
+                      <DonutChart
+                        slices={filteredStatusOrder.filter((s) => (summary?.statusBreakdown[s] ?? 0) > 0).map(
+                          (s): DonutSlice => ({
+                            label: STAGE_LABELS[s] ?? s,
+                            value: summary?.statusBreakdown[s] ?? 0,
+                            valueLabel: String(summary?.statusBreakdown[s] ?? 0),
+                          })
+                        )}
+                      />
+                    }
+                  />
+                )}
+              </div>
+            )}
           </Section>
 
           <Section
@@ -450,7 +562,7 @@ export function ReportsPage() {
             icon={<TrendingUp size={20} />}
             iconClassName="bg-emerald-50 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
           >
-            {trend ? <TrendChart points={trend} /> : <p className="text-sm text-gray-400 dark:text-slate-500">Loading…</p>}
+            {trend ? <TrendChart points={trend} /> : <ReportSkeleton variant="block" />}
           </Section>
         </>
       )}
@@ -464,7 +576,7 @@ export function ReportsPage() {
               icon={<LayoutGrid size={20} />}
               iconClassName="bg-violet-50 text-violet-600 dark:bg-violet-500/20 dark:text-violet-400"
             >
-              {funnel ? <FunnelChart stages={funnel} /> : <p className="text-sm text-gray-400 dark:text-slate-500">Loading…</p>}
+              {funnel ? <FunnelChart stages={funnel} /> : <ReportSkeleton variant="block" />}
             </Section>
 
             <Section
@@ -473,17 +585,24 @@ export function ReportsPage() {
               icon={<Clock size={20} />}
               iconClassName="bg-amber-50 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400"
             >
-              {timeInStage ? (
-                <HBarList
-                  rows={timeInStage.map((row) => ({
-                    label: STAGE_LABELS[row.stage] ?? row.stage,
-                    value: row.avgHours ?? 0,
-                    fraction: (row.avgHours ?? 0) / maxStageHours,
-                    valueLabel: row.avgHours != null ? formatHours(row.avgHours) : "—",
-                  }))}
-                />
+              {!timeInStage ? (
+                <ReportSkeleton variant="bars" rows={6} />
               ) : (
-                <p className="text-sm text-gray-400 dark:text-slate-500">Loading…</p>
+                <div className="flex flex-col gap-3">
+                  <TableSearch value={timeInStageSearch} onChange={setTimeInStageSearch} placeholder="Search stage…" />
+                  {filteredTimeInStage.length === 0 ? (
+                    <p className="py-6 text-center text-sm text-gray-400 dark:text-slate-500">No stage matches "{timeInStageSearch}".</p>
+                  ) : (
+                    <HBarList
+                      rows={filteredTimeInStage.map((row) => ({
+                        label: STAGE_LABELS[row.stage] ?? row.stage,
+                        value: row.avgHours ?? 0,
+                        fraction: (row.avgHours ?? 0) / maxStageHours,
+                        valueLabel: row.avgHours != null ? formatHours(row.avgHours) : "—",
+                      }))}
+                    />
+                  )}
+                </div>
               )}
             </Section>
           </div>
@@ -494,37 +613,46 @@ export function ReportsPage() {
             icon={<ThumbsDown size={20} />}
             iconClassName="bg-red-50 text-red-600 dark:bg-red-500/20 dark:text-red-400"
           >
-            {lostReasons && lostReasons.length > 0 ? (
-              <ChartTableToggle
-                table={
-                  <HBarList
-                    rows={lostReasons.map((row) => ({
-                      label: LOSS_REASON_LABELS[row.reason] ?? row.reason,
-                      value: row.count,
-                      fraction: row.count / maxLostCount,
-                      valueLabel: `${row.count} (${row.percent}%)`,
-                      onDownload: () =>
-                        openList(`Lost — ${LOSS_REASON_LABELS[row.reason] ?? row.reason.replaceAll("_"," ")}`, `lost-${row.reason.toLowerCase().replace(/_/g, "-")}`, {
-                          status: "CLOSED",
-                          lossReason: row.reason,
-                        }),
-                    }))}
-                  />
-                }
-                chart={
-                  <DonutChart
-                    slices={lostReasons.map(
-                      (row): DonutSlice => ({
-                        label: LOSS_REASON_LABELS[row.reason] ?? row.reason,
-                        value: row.count,
-                        valueLabel: String(row.count),
-                      })
-                    )}
-                  />
-                }
-              />
-            ) : (
+            {!lostReasons ? (
+              <ReportSkeleton variant="bars" rows={5} />
+            ) : lostReasons.length === 0 ? (
               <p className="text-sm text-gray-400 dark:text-slate-500">No lost enquiries with a recorded reason in this range.</p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                <TableSearch value={lostReasonSearch} onChange={setLostReasonSearch} placeholder="Search reason…" />
+                {filteredLostReasons.length === 0 ? (
+                  <p className="py-6 text-center text-sm text-gray-400 dark:text-slate-500">No reason matches "{lostReasonSearch}".</p>
+                ) : (
+                  <ChartTableToggle
+                    table={
+                      <HBarList
+                        rows={filteredLostReasons.map((row) => ({
+                          label: LOSS_REASON_LABELS[row.reason] ?? row.reason,
+                          value: row.count,
+                          fraction: row.count / maxLostCount,
+                          valueLabel: `${row.count} (${row.percent}%)`,
+                          onDownload: () =>
+                            openList(`Lost — ${LOSS_REASON_LABELS[row.reason] ?? row.reason.replaceAll("_"," ")}`, `lost-${row.reason.toLowerCase().replace(/_/g, "-")}`, {
+                              status: "CLOSED",
+                              lossReason: row.reason,
+                            }),
+                        }))}
+                      />
+                    }
+                    chart={
+                      <DonutChart
+                        slices={filteredLostReasons.map(
+                          (row): DonutSlice => ({
+                            label: LOSS_REASON_LABELS[row.reason] ?? row.reason,
+                            value: row.count,
+                            valueLabel: String(row.count),
+                          })
+                        )}
+                      />
+                    }
+                  />
+                )}
+              </div>
             )}
           </Section>
         </>
@@ -538,28 +666,35 @@ export function ReportsPage() {
             icon={<Radio size={20} />}
             iconClassName="bg-primary-50 text-primary-600 dark:bg-primary-500/20 dark:text-primary-400"
           >
-            {sources ? (
-              <ChartTableToggle
-                table={
-                  <SourcePerformanceTable
-                    rows={sources}
-                    onDownload={(source) => openList(`Source — ${source.replaceAll("_"," ")}`, `source-${source.toLowerCase().replace(/_/g, "-")}`, { source })}
-                  />
-                }
-                chart={
-                  <DonutChart
-                    slices={sources.map(
-                      (row): DonutSlice => ({
-                        label: row.source.replaceAll("_", " "),
-                        value: row.total,
-                        valueLabel: String(row.total),
-                      })
-                    )}
-                  />
-                }
-              />
+            {!sources ? (
+              <ReportSkeleton variant="table" rows={5} />
             ) : (
-              <p className="text-sm text-gray-400 dark:text-slate-500">Loading…</p>
+              <div className="flex flex-col gap-3">
+                <TableSearch value={sourceSearch} onChange={setSourceSearch} placeholder="Search source…" />
+                {filteredSources.length === 0 ? (
+                  <p className="py-6 text-center text-sm text-gray-400 dark:text-slate-500">No source matches "{sourceSearch}".</p>
+                ) : (
+                  <ChartTableToggle
+                    table={
+                      <SourcePerformanceTable
+                        rows={filteredSources}
+                        onDownload={(source) => openList(`Source — ${source.replaceAll("_"," ")}`, `source-${source.toLowerCase().replace(/_/g, "-")}`, { source })}
+                      />
+                    }
+                    chart={
+                      <DonutChart
+                        slices={filteredSources.map(
+                          (row): DonutSlice => ({
+                            label: row.source.replaceAll("_", " "),
+                            value: row.total,
+                            valueLabel: String(row.total),
+                          })
+                        )}
+                      />
+                    }
+                  />
+                )}
+              </div>
             )}
           </Section>
 
@@ -570,76 +705,83 @@ export function ReportsPage() {
             iconClassName="bg-emerald-50 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
           >
             {!consultantRows ? (
-              <p className="text-sm text-gray-400 dark:text-slate-500">Loading…</p>
+              <ReportSkeleton variant="table" rows={5} />
             ) : consultantRows.length === 0 ? (
               <p className="text-sm text-gray-400 dark:text-slate-500">No consultant activity in this range.</p>
             ) : (
-              <ChartTableToggle
-                table={
-                  <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-slate-800">
-                    <table className="w-full text-sm">
-                      <thead className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:bg-slate-800/50 dark:text-slate-400">
-                        <tr>
-                          <th className="px-4 py-2.5">Consultant</th>
-                          <th className="px-4 py-2.5">Handled</th>
-                          <th className="px-4 py-2.5">Sold</th>
-                          <th className="px-4 py-2.5">Conversion</th>
-                          <th className="px-4 py-2.5">Share of Sales</th>
-                          <th className="px-4 py-2.5">Top Model</th>
-                          <th className="px-4 py-2.5 text-right">Download</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
-                        {consultantRows.map((row) => (
-                          <tr key={row.consultantId} className="transition-colors hover:bg-primary-50/60 dark:hover:bg-primary-500/[0.06]">
-                            <td className="px-4 py-2.5 font-medium text-gray-900 dark:text-slate-100">{row.consultantName}</td>
-                            <td className="px-4 py-2.5 tabular-nums text-gray-700 dark:text-slate-300">{row.handled}</td>
-                            <td className="px-4 py-2.5 tabular-nums font-semibold text-emerald-600 dark:text-emerald-400">{row.sold}</td>
-                            <td className="px-4 py-2.5 tabular-nums text-gray-700 dark:text-slate-300">{row.conversionRate}%</td>
-                            <td className="px-4 py-2.5 tabular-nums text-gray-700 dark:text-slate-300">{row.shareOfSales}%</td>
-                            <td className="px-4 py-2.5 text-gray-700 dark:text-slate-300" title={row.models.map((m) => `${m.carModel}: ${m.sold}`).join(", ")}>
-                              {row.topModel ?? "—"}
-                            </td>
-                            <td className="px-4 py-2.5 text-right">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                icon={<Download size={14} />}
-                                onClick={() =>
-                                  openList(
-                                    `Consultant — ${row.consultantName}`,
-                                    `consultant-${row.consultantName.toLowerCase().replace(/\s+/g, "-")}`,
-                                    { consultantId: row.consultantId }
-                                  )
-                                }
-                              >
-                                Download
-                              </Button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                }
-                chart={
-                  consultantRows.some((r) => r.sold > 0) ? (
-                    <DonutChart
-                      slices={consultantRows
-                        .filter((r) => r.sold > 0)
-                        .map(
-                          (row): DonutSlice => ({
-                            label: row.consultantName,
-                            value: row.sold,
-                            valueLabel: String(row.sold),
-                          })
-                        )}
-                    />
-                  ) : (
-                    <p className="text-sm text-gray-400 dark:text-slate-500">No sales in this range yet.</p>
-                  )
-                }
-              />
+              <div className="flex flex-col gap-3">
+                <TableSearch value={consultantSearch} onChange={setConsultantSearch} placeholder="Search consultant…" />
+                {filteredConsultantRows.length === 0 ? (
+                  <p className="py-6 text-center text-sm text-gray-400 dark:text-slate-500">No consultant matches "{consultantSearch}".</p>
+                ) : (
+                  <ChartTableToggle
+                    table={
+                      <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-slate-800">
+                        <table className="w-full text-sm">
+                          <thead className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:bg-slate-800/50 dark:text-slate-400">
+                            <tr>
+                              <th className="px-4 py-2.5">Consultant</th>
+                              <th className="px-4 py-2.5">Handled</th>
+                              <th className="px-4 py-2.5">Sold</th>
+                              <th className="px-4 py-2.5">Conversion</th>
+                              <th className="px-4 py-2.5">Share of Sales</th>
+                              <th className="px-4 py-2.5">Top Model</th>
+                              <th className="px-4 py-2.5 text-right">Download</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+                            {filteredConsultantRows.map((row) => (
+                              <tr key={row.consultantId} className="transition-colors hover:bg-primary-50/60 dark:hover:bg-primary-500/[0.06]">
+                                <td className="px-4 py-2.5 font-medium text-gray-900 dark:text-slate-100">{row.consultantName}</td>
+                                <td className="px-4 py-2.5 tabular-nums text-gray-700 dark:text-slate-300">{row.handled}</td>
+                                <td className="px-4 py-2.5 tabular-nums font-semibold text-emerald-600 dark:text-emerald-400">{row.sold}</td>
+                                <td className="px-4 py-2.5 tabular-nums text-gray-700 dark:text-slate-300">{row.conversionRate}%</td>
+                                <td className="px-4 py-2.5 tabular-nums text-gray-700 dark:text-slate-300">{row.shareOfSales}%</td>
+                                <td className="px-4 py-2.5 text-gray-700 dark:text-slate-300" title={row.models.map((m) => `${m.carModel}: ${m.sold}`).join(", ")}>
+                                  {row.topModel ?? "—"}
+                                </td>
+                                <td className="px-4 py-2.5 text-right">
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    icon={<Download size={14} />}
+                                    onClick={() =>
+                                      openList(
+                                        `Consultant — ${row.consultantName}`,
+                                        `consultant-${row.consultantName.toLowerCase().replace(/\s+/g, "-")}`,
+                                        { consultantId: row.consultantId }
+                                      )
+                                    }
+                                  >
+                                    Download
+                                  </Button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    }
+                    chart={
+                      filteredConsultantRows.some((r) => r.sold > 0) ? (
+                        <DonutChart
+                          slices={filteredConsultantRows
+                            .filter((r) => r.sold > 0)
+                            .map(
+                              (row): DonutSlice => ({
+                                label: row.consultantName,
+                                value: row.sold,
+                                valueLabel: String(row.sold),
+                              })
+                            )}
+                        />
+                      ) : (
+                        <p className="text-sm text-gray-400 dark:text-slate-500">No sales in this range yet.</p>
+                      )
+                    }
+                  />
+                )}
+              </div>
             )}
           </Section>
 
@@ -649,95 +791,113 @@ export function ReportsPage() {
             icon={<Users size={20} />}
             iconClassName="bg-primary-50 text-primary-600 dark:bg-primary-500/20 dark:text-primary-400"
           >
-            {crRows ? (
-              <ChartTableToggle
-                table={
-                  <CrPerformanceTable
-                    rows={crRows}
-                    onDownload={(crId) => {
-                      const cr = crRows.find((r) => r.crId === crId);
-                      openList(`CR — ${cr?.crName ?? crId}`, `cr-${(cr?.crName ?? crId).toLowerCase().replace(/\s+/g, "-")}`, { assignedCrId: crId });
-                    }}
-                  />
-                }
-                chart={
-                  crRows.some((r) => r.assigned > 0) ? (
-                    <DonutChart
-                      slices={crRows
-                        .filter((r) => r.assigned > 0)
-                        .map(
-                          (row): DonutSlice => ({
-                            label: row.crName,
-                            value: row.assigned,
-                            valueLabel: String(row.assigned),
-                          })
-                        )}
-                    />
-                  ) : (
-                    <p className="text-sm text-gray-400 dark:text-slate-500">No CR activity in this range.</p>
-                  )
-                }
-              />
+            {!crRows ? (
+              <ReportSkeleton variant="table" rows={5} />
             ) : (
-              <p className="text-sm text-gray-400 dark:text-slate-500">Loading…</p>
+              <div className="flex flex-col gap-3">
+                <TableSearch value={crSearch} onChange={setCrSearch} placeholder="Search CR…" />
+                {filteredCrRows.length === 0 ? (
+                  <p className="py-6 text-center text-sm text-gray-400 dark:text-slate-500">No CR matches "{crSearch}".</p>
+                ) : (
+                  <ChartTableToggle
+                    table={
+                      <CrPerformanceTable
+                        rows={filteredCrRows}
+                        onDownload={(crId) => {
+                          const cr = filteredCrRows.find((r) => r.crId === crId);
+                          openList(`CR — ${cr?.crName ?? crId}`, `cr-${(cr?.crName ?? crId).toLowerCase().replace(/\s+/g, "-")}`, { assignedCrId: crId });
+                        }}
+                      />
+                    }
+                    chart={
+                      filteredCrRows.some((r) => r.assigned > 0) ? (
+                        <DonutChart
+                          slices={filteredCrRows
+                            .filter((r) => r.assigned > 0)
+                            .map(
+                              (row): DonutSlice => ({
+                                label: row.crName,
+                                value: row.assigned,
+                                valueLabel: String(row.assigned),
+                              })
+                            )}
+                        />
+                      ) : (
+                        <p className="text-sm text-gray-400 dark:text-slate-500">No CR activity in this range.</p>
+                      )
+                    }
+                  />
+                )}
+              </div>
             )}
           </Section>
 
-          {rollup && rollup.length > 1 && (
+          {(!rollup || rollup.length > 1) && (
             <Section
               title="Branch Rollup"
               subtitle="Enquiry totals by branch"
               icon={<Building2 size={20} />}
               iconClassName="bg-primary-50 text-primary-600 dark:bg-primary-500/20 dark:text-primary-400"
             >
-              <ChartTableToggle
-                table={
-                  <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-slate-800">
-                    <table className="w-full text-sm">
-                      <thead className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:bg-slate-800/50 dark:text-slate-400">
-                        <tr>
-                          <th className="px-4 py-2.5">Branch</th>
-                          <th className="px-4 py-2.5">Total</th>
-                          <th className="px-4 py-2.5">Converted</th>
-                          <th className="px-4 py-2.5">Lost</th>
-                          <th className="px-4 py-2.5 text-right">Download</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
-                        {rollup.map((row) => (
-                          <tr key={row.branchId} className="transition-colors hover:bg-primary-50/60 dark:hover:bg-primary-500/[0.06]">
-                            <td className="px-4 py-2.5 font-medium text-gray-900 dark:text-slate-100">{row.branchName}</td>
-                            <td className="px-4 py-2.5 tabular-nums text-gray-700 dark:text-slate-300">{row.total}</td>
-                            <td className="px-4 py-2.5 tabular-nums text-gray-700 dark:text-slate-300">{row.statusCounts["RETAIL_DONE"] ?? 0}</td>
-                            <td className="px-4 py-2.5 tabular-nums text-gray-700 dark:text-slate-300">{row.statusCounts["CLOSED"] ?? 0}</td>
-                            <td className="px-4 py-2.5 text-right">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                icon={<Download size={14} />}
-                                onClick={() => openList(`Branch — ${row.branchName}`, `branch-${row.branchName.toLowerCase().replace(/\s+/g, "-")}`, { branchId: row.branchId })}
-                              >
-                                Download
-                              </Button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                }
-                chart={
-                  <DonutChart
-                    slices={rollup.map(
-                      (row): DonutSlice => ({
-                        label: row.branchName,
-                        value: row.total,
-                        valueLabel: String(row.total),
-                      })
-                    )}
-                  />
-                }
-              />
+              {!rollup ? (
+                <ReportSkeleton variant="table" rows={4} />
+              ) : (
+                <div className="flex flex-col gap-3">
+                  <TableSearch value={branchSearch} onChange={setBranchSearch} placeholder="Search branch…" />
+                  {filteredRollup.length === 0 ? (
+                    <p className="py-6 text-center text-sm text-gray-400 dark:text-slate-500">No branch matches "{branchSearch}".</p>
+                  ) : (
+                    <ChartTableToggle
+                      table={
+                        <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-slate-800">
+                          <table className="w-full text-sm">
+                            <thead className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:bg-slate-800/50 dark:text-slate-400">
+                              <tr>
+                                <th className="px-4 py-2.5">Branch</th>
+                                <th className="px-4 py-2.5">Total</th>
+                                <th className="px-4 py-2.5">Converted</th>
+                                <th className="px-4 py-2.5">Lost</th>
+                                <th className="px-4 py-2.5 text-right">Download</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+                              {filteredRollup.map((row) => (
+                                <tr key={row.branchId} className="transition-colors hover:bg-primary-50/60 dark:hover:bg-primary-500/[0.06]">
+                                  <td className="px-4 py-2.5 font-medium text-gray-900 dark:text-slate-100">{row.branchName}</td>
+                                  <td className="px-4 py-2.5 tabular-nums text-gray-700 dark:text-slate-300">{row.total}</td>
+                                  <td className="px-4 py-2.5 tabular-nums text-gray-700 dark:text-slate-300">{row.statusCounts["RETAIL_DONE"] ?? 0}</td>
+                                  <td className="px-4 py-2.5 tabular-nums text-gray-700 dark:text-slate-300">{row.statusCounts["CLOSED"] ?? 0}</td>
+                                  <td className="px-4 py-2.5 text-right">
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      icon={<Download size={14} />}
+                                      onClick={() => openList(`Branch — ${row.branchName}`, `branch-${row.branchName.toLowerCase().replace(/\s+/g, "-")}`, { branchId: row.branchId })}
+                                    >
+                                      Download
+                                    </Button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      }
+                      chart={
+                        <DonutChart
+                          slices={filteredRollup.map(
+                            (row): DonutSlice => ({
+                              label: row.branchName,
+                              value: row.total,
+                              valueLabel: String(row.total),
+                            })
+                          )}
+                        />
+                      }
+                    />
+                  )}
+                </div>
+              )}
             </Section>
           )}
         </>
@@ -773,7 +933,7 @@ export function ReportsPage() {
               }
             />
           ) : (
-            <p className="text-sm text-gray-400 dark:text-slate-500">Loading…</p>
+            <ReportSkeleton variant="stats" />
           )}
         </Section>
       )}
@@ -784,9 +944,23 @@ export function ReportsPage() {
           subtitle="Leads that came in through Referral, and who referred them"
           icon={<UserPlus size={20} />}
           iconClassName="bg-emerald-50 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
+          actions={
+            <Button
+              size="sm"
+              variant="ghost"
+              icon={<Download size={14} />}
+              disabled={!referralLeads || referralLeads.total === 0}
+              onClick={() => openList("Referral leads", "referral-leads", { sourceCategory: "REFERRAL" })}
+            >
+              Download
+            </Button>
+          }
         >
           {!referralLeads ? (
-            <p className="text-sm text-gray-400 dark:text-slate-500">Loading…</p>
+            <div className="flex flex-col gap-4">
+              <ReportSkeleton variant="stats" />
+              <ReportSkeleton variant="table" rows={5} />
+            </div>
           ) : (
             <div className="flex flex-col gap-4">
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -796,42 +970,189 @@ export function ReportsPage() {
                   icon={<UserPlus size={20} />}
                   iconClassName="bg-emerald-50 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
                 />
+                <StatTile
+                  label="Converted"
+                  value={referralConverted}
+                  icon={<KeyRound size={20} />}
+                  iconClassName="bg-primary-50 text-primary-600 dark:bg-primary-500/20 dark:text-primary-400"
+                />
+                <StatTile
+                  label="Conversion Rate"
+                  value={referralConversionRate}
+                  suffix="%"
+                  icon={<Percent size={20} />}
+                  iconClassName="bg-violet-50 text-violet-600 dark:bg-violet-500/20 dark:text-violet-400"
+                />
+                <StatTile
+                  label="Lost"
+                  value={referralLost}
+                  upIsGood={false}
+                  icon={<CircleX size={20} />}
+                  iconClassName="bg-red-50 text-red-600 dark:bg-red-500/20 dark:text-red-400"
+                />
               </div>
               {referralLeads.rows.length === 0 ? (
                 <p className="text-sm text-gray-400 dark:text-slate-500">No referral leads in this range.</p>
               ) : (
-                <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-slate-800">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:bg-slate-800/50 dark:text-slate-400">
-                      <tr>
-                        <th className="px-4 py-2.5">Lead</th>
-                        <th className="px-4 py-2.5">Phone</th>
-                        <th className="px-4 py-2.5">Referred By</th>
-                        <th className="px-4 py-2.5">Vehicle</th>
-                        <th className="px-4 py-2.5">Branch</th>
-                        <th className="px-4 py-2.5">Status</th>
-                        <th className="px-4 py-2.5">Date</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
-                      {referralLeads.rows.map((row) => (
-                        <tr key={row.id} className="transition-colors hover:bg-primary-50/60 dark:hover:bg-primary-500/[0.06]">
-                          <td className="px-4 py-2.5 font-medium text-gray-900 dark:text-slate-100">{row.name}</td>
-                          <td className="px-4 py-2.5 tabular-nums text-gray-700 dark:text-slate-300">{row.phone}</td>
-                          <td className="px-4 py-2.5 text-gray-700 dark:text-slate-300">{row.referrerName ?? "—"}</td>
-                          <td className="px-4 py-2.5 text-gray-700 dark:text-slate-300">{row.carModel}</td>
-                          <td className="px-4 py-2.5 text-gray-700 dark:text-slate-300">{row.branch}</td>
-                          <td className="px-4 py-2.5 text-gray-700 dark:text-slate-300">{(STAGE_LABELS[row.status] ?? row.status.replaceAll("_", " "))}</td>
-                          <td className="px-4 py-2.5 text-gray-700 dark:text-slate-300">{new Date(row.createdAt).toLocaleDateString()}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="flex flex-col gap-3">
+                  <TableSearch
+                    value={referralLeadSearch}
+                    onChange={setReferralLeadSearch}
+                    placeholder="Search name, phone, referrer, vehicle, branch…"
+                  />
+                  {filteredReferralLeads.length === 0 ? (
+                    <p className="py-6 text-center text-sm text-gray-400 dark:text-slate-500">No referral leads match "{referralLeadSearch}".</p>
+                  ) : (
+                    <ChartTableToggle
+                      table={
+                        <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-slate-800">
+                          <table className="w-full text-sm">
+                            <thead className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:bg-slate-800/50 dark:text-slate-400">
+                              <tr>
+                                <th className="px-4 py-2.5">Lead</th>
+                                <th className="px-4 py-2.5">Phone</th>
+                                <th className="px-4 py-2.5">Referred By</th>
+                                <th className="px-4 py-2.5">Referrer Mobile</th>
+                                <th className="px-4 py-2.5">Vehicle</th>
+                                <th className="px-4 py-2.5">Branch</th>
+                                <th className="px-4 py-2.5">Status</th>
+                                <th className="px-4 py-2.5">Date</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+                              {filteredReferralLeads.map((row) => (
+                                <tr key={row.id} className="transition-colors hover:bg-primary-50/60 dark:hover:bg-primary-500/[0.06]">
+                                  <td className="px-4 py-2.5 font-medium text-gray-900 dark:text-slate-100">{row.name}</td>
+                                  <td className="px-4 py-2.5 tabular-nums text-gray-700 dark:text-slate-300">{row.phone}</td>
+                                  <td className="px-4 py-2.5 text-gray-700 dark:text-slate-300">{row.referrerName ?? "—"}</td>
+                                  <td className="px-4 py-2.5 tabular-nums text-gray-700 dark:text-slate-300">{row.referrerPhone ?? "—"}</td>
+                                  <td className="px-4 py-2.5 text-gray-700 dark:text-slate-300">{row.carModel}</td>
+                                  <td className="px-4 py-2.5 text-gray-700 dark:text-slate-300">{row.branch}</td>
+                                  <td className="px-4 py-2.5 text-gray-700 dark:text-slate-300">{(STAGE_LABELS[row.status] ?? row.status.replaceAll("_", " "))}</td>
+                                  <td className="px-4 py-2.5 text-gray-700 dark:text-slate-300">{new Date(row.createdAt).toLocaleDateString()}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      }
+                      chart={
+                        <DonutChart
+                          slices={(() => {
+                            const counts = new Map<string, number>();
+                            for (const row of filteredReferralLeads) counts.set(row.status, (counts.get(row.status) ?? 0) + 1);
+                            return [...counts.entries()].map(([status, count]): DonutSlice => ({
+                              label: STAGE_LABELS[status] ?? status.replaceAll("_", " "),
+                              value: count,
+                              valueLabel: String(count),
+                            }));
+                          })()}
+                        />
+                      }
+                    />
+                  )}
                 </div>
               )}
             </div>
           )}
         </Section>
+      )}
+
+      {tab === "referrals" && (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <Section
+            title="Top Referrers"
+            subtitle="Who's sending the most referral leads"
+            icon={<Users size={20} />}
+            iconClassName="bg-primary-50 text-primary-600 dark:bg-primary-500/20 dark:text-primary-400"
+          >
+            {!referralPerformance ? (
+              <ReportSkeleton variant="bars" rows={5} />
+            ) : referralPerformance.topReferrers.length === 0 ? (
+              <p className="text-sm text-gray-400 dark:text-slate-500">No referrals in this range.</p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                <TableSearch value={topReferrerSearch} onChange={setTopReferrerSearch} placeholder="Search referrer name or mobile…" />
+                {filteredTopReferrers.length === 0 ? (
+                  <p className="py-6 text-center text-sm text-gray-400 dark:text-slate-500">No referrers match "{topReferrerSearch}".</p>
+                ) : (
+                  <ChartTableToggle
+                    table={
+                      <HBarList
+                        rows={filteredTopReferrers.map((r) => ({
+                          label: r.referrerPhone ? `${r.referrerName} (${r.referrerPhone})` : r.referrerName,
+                          value: r.count,
+                          fraction: r.count / maxReferrerCount,
+                          valueLabel: `${r.count} lead${r.count === 1 ? "" : "s"} · ${r.converted} converted`,
+                          onDownload: () => openList(`Referrer — ${r.referrerName}`, `referrer-${(r.referrerPhone ?? r.referrerName).toLowerCase().replace(/\s+/g, "-")}`, {
+                            sourceCategory: "REFERRAL",
+                            referrerPhone: r.referrerPhone ?? undefined,
+                            referrerName: r.referrerPhone ? undefined : r.referrerName,
+                          }),
+                        }))}
+                      />
+                    }
+                    chart={
+                      <DonutChart
+                        slices={filteredTopReferrers.map(
+                          (r): DonutSlice => ({
+                            label: r.referrerPhone ? `${r.referrerName} (${r.referrerPhone})` : r.referrerName,
+                            value: r.count,
+                            valueLabel: String(r.count),
+                          })
+                        )}
+                      />
+                    }
+                  />
+                )}
+              </div>
+            )}
+          </Section>
+
+          <Section
+            title="Most Referred Cars"
+            subtitle="Which models referral leads are most interested in"
+            icon={<Car size={20} />}
+            iconClassName="bg-emerald-50 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
+          >
+            {!referralPerformance ? (
+              <ReportSkeleton variant="bars" rows={5} />
+            ) : referralPerformance.topModels.length === 0 ? (
+              <p className="text-sm text-gray-400 dark:text-slate-500">No referrals in this range.</p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                <TableSearch value={topModelSearch} onChange={setTopModelSearch} placeholder="Search vehicle model…" />
+                {filteredTopModels.length === 0 ? (
+                  <p className="py-6 text-center text-sm text-gray-400 dark:text-slate-500">No models match "{topModelSearch}".</p>
+                ) : (
+                  <ChartTableToggle
+                    table={
+                      <HBarList
+                        rows={filteredTopModels.map((m) => ({
+                          label: m.carModel,
+                          value: m.count,
+                          fraction: m.count / maxReferredModelCount,
+                          valueLabel: `${m.count} lead${m.count === 1 ? "" : "s"} · ${m.converted} converted`,
+                          onDownload: () => openList(`Referral — ${m.carModel}`, `referral-${m.carModel.toLowerCase().replace(/\s+/g, "-")}`, {
+                            sourceCategory: "REFERRAL",
+                            carModel: m.carModel,
+                          }),
+                        }))}
+                      />
+                    }
+                    chart={
+                      <DonutChart
+                        slices={filteredTopModels.map(
+                          (m): DonutSlice => ({ label: m.carModel, value: m.count, valueLabel: String(m.count) })
+                        )}
+                      />
+                    }
+                  />
+                )}
+              </div>
+            )}
+          </Section>
+        </div>
       )}
 
       {preview && (

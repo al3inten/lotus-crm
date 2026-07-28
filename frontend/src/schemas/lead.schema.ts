@@ -48,6 +48,11 @@ export const leadEnrichmentFormSchema = z.object({
   // Only required when Lead Source is Referral — enforced below, not here, since this
   // field is shared with sources where it's simply irrelevant.
   referrerName: z.string().optional().or(z.literal("")),
+  referrerPhone: z
+    .string()
+    .regex(TEN_DIGITS, "Referrer mobile must be exactly 10 digits")
+    .optional()
+    .or(z.literal("")),
   variant: z.string().optional().or(z.literal("")),
   enquiryCategory: z.enum(ENQUIRY_CATEGORIES).optional().or(z.literal("")),
   appointmentScheduled: z.boolean().optional(),
@@ -90,15 +95,18 @@ function requireExchangeFields(
   }
 }
 
-/** The referrer's name is only collected — and only required — when Lead Source is
- * Referral; every other source leaves it blank. */
+/** The referrer's name and mobile number are only collected — and only required — when
+ * Lead Source is Referral; every other source leaves them blank. */
 function requireReferrerName(
-  values: { sourceCategory?: string; referrerName?: string } & Record<string, unknown>,
+  values: { sourceCategory?: string; referrerName?: string; referrerPhone?: string } & Record<string, unknown>,
   ctx: z.RefinementCtx
 ) {
   if (values.sourceCategory !== "REFERRAL") return;
   if (!values.referrerName || !values.referrerName.trim()) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["referrerName"], message: "Referrer name is required" });
+  }
+  if (!values.referrerPhone || !values.referrerPhone.trim()) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["referrerPhone"], message: "Referrer mobile number is required" });
   }
 }
 
@@ -159,6 +167,7 @@ export interface WalkInLeadFormInput {
   sourceCategory: WalkInLeadFormValues["sourceCategory"];
   subsource?: WalkInLeadFormValues["subsource"];
   referrerName?: string;
+  referrerPhone?: string;
   variant?: string;
   enquiryCategory?: WalkInLeadFormValues["enquiryCategory"];
   appointmentScheduled?: boolean;

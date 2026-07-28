@@ -5,7 +5,7 @@ import { Search, Bell, HelpCircle, Menu, Sun, Moon, BellOff, CheckCheck, User, C
 import { useTheme } from "../../hooks/useTheme";
 import { useNavItems } from "./navConfig";
 import { useGlobalSearch } from "../../hooks/useGlobalSearch";
-import { useNotifications, useMarkNotificationAsRead, useReminders } from "../../hooks/useNotifications";
+import { useNotifications, useMarkNotificationAsRead, useReminders, useDismissReminder, useDismissAllReminders } from "../../hooks/useNotifications";
 import type { AppNotification, Reminder } from "../../types";
 
 /** Compact relative time, e.g. "just now", "5m", "3h", "2d". */
@@ -35,6 +35,8 @@ export function Topbar({ onMenuToggle }: { onMenuToggle: () => void }) {
   const { data: notifications } = useNotifications();
   const { data: reminders } = useReminders();
   const markRead = useMarkNotificationAsRead();
+  const dismissReminder = useDismissReminder();
+  const dismissAllReminders = useDismissAllReminders();
   const unreadCount = notifications?.length ?? 0;
   const reminderCount = reminders?.length ?? 0;
   const badgeCount = unreadCount + reminderCount;
@@ -272,8 +274,14 @@ export function Topbar({ onMenuToggle }: { onMenuToggle: () => void }) {
                       {/* Reminders for today — follow-ups due, birthdays, delivery anniversaries. */}
                       {reminderCount > 0 && (
                         <div>
-                          <p className="bg-slate-50 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:bg-slate-800/60 dark:text-slate-500">
+                          <p className="flex items-center justify-between bg-slate-50 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:bg-slate-800/60 dark:text-slate-500">
                             Reminders for today
+                            <button
+                              onClick={() => dismissAllReminders.mutate()}
+                              className="normal-case text-primary-600 transition-colors hover:text-primary-700 dark:text-primary-400"
+                            >
+                              Clear all
+                            </button>
                           </p>
                           {reminders!.map((r) => {
                             const Icon = reminderIcon(r.type);
@@ -302,6 +310,13 @@ export function Topbar({ onMenuToggle }: { onMenuToggle: () => void }) {
                                     View <ArrowRight size={12} />
                                   </button>
                                 </span>
+                                <button
+                                  onClick={() => dismissReminder.mutate(r.id)}
+                                  aria-label="Clear reminder"
+                                  className="shrink-0 rounded-full p-1 text-slate-300 transition-colors hover:bg-slate-100 hover:text-slate-500 dark:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-300"
+                                >
+                                  <X size={13} />
+                                </button>
                               </div>
                             );
                           })}

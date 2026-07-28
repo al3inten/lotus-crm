@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, type ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import clsx from "clsx";
 import {
@@ -115,6 +115,10 @@ export function LeadHeroHeader({
   const [consultantEdit, setConsultantEdit] = useState(false);
   const [consultantValue, setConsultantValue] = useState("");
   const assignRef = useRef<HTMLDivElement>(null);
+  const location = useLocation();
+  const navState = location.state as { from?: { path: string; label: string } } | null;
+  const backTo = navState?.from?.path ?? "/leads";
+  const backLabel = navState?.from?.label ?? "Leads";
 
   const phoneDigits = lead.phoneRaw?.replace(/\D/g, "") ?? "";
   const category = enquiry?.enquiryCategory ? CATEGORY_STYLE[enquiry.enquiryCategory] : undefined;
@@ -142,11 +146,11 @@ export function LeadHeroHeader({
       <div className="flex items-center justify-between px-1">
         <nav className="flex items-center gap-1.5 text-sm">
           <Link
-            to="/leads"
+            to={backTo}
             className="flex items-center gap-1.5 rounded-md px-1.5 py-0.5 -ml-1.5 font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500 dark:text-slate-400 dark:hover:bg-white/[0.06] dark:hover:text-white"
           >
             <ArrowLeft size={15} />
-            Leads
+            {backLabel}
           </Link>
           <span className="text-slate-300 dark:text-slate-600">/</span>
           <span className="truncate font-medium text-slate-900 dark:text-white">{lead.name}</span>
@@ -180,6 +184,7 @@ export function LeadHeroHeader({
               {enquiry?.referrerName && (
                 <p className="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">
                   Referred by: <span className="font-medium text-slate-700 dark:text-slate-300">{enquiry.referrerName}</span>
+                  {enquiry.referrerPhone && <span> ({enquiry.referrerPhone})</span>}
                 </p>
               )}
               {enquiry && (

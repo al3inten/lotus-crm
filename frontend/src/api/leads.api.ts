@@ -64,6 +64,7 @@ export interface LeadEnrichmentPayload {
    * omitting the field entirely leaves whatever was already saved untouched. */
   subsource?: LeadSubsource | null;
   referrerName?: string;
+  referrerPhone?: string;
   variant?: string;
   enquiryCategory?: EnquiryCategory;
   financeRequired?: boolean;

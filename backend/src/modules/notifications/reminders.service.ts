@@ -21,12 +21,33 @@ const leadLink = (leadId: string, enquiryId: string) => `/leads/${leadId}/enquir
 const sameMonthDay = (d: Date, today: Date) =>
   d.getMonth() === today.getMonth() && d.getDate() === today.getDate();
 
+/** Explicitly clear one reminder (id like "followup:<enquiryId>") from the bell — persists
+ * until the user dismisses it, since the reminder itself is recomputed on every poll. */
+export async function dismissReminder(userId: string, reminderId: string): Promise<void> {
+  await prisma.reminderDismissal.upsert({
+    where: { userId_reminderId: { userId, reminderId } },
+    update: {},
+    create: { userId, reminderId },
+  });
+}
+
+/** Clear every reminder currently showing for this user in one shot ("Clear all"). */
+export async function dismissAllReminders(ctx: Ctx): Promise<void> {
+  const reminders = await getRemindersForUser(ctx, { includeDismissed: true });
+  await prisma.reminderDismissal.createMany({
+    data: reminders.map((r) => ({ userId: ctx.userId, reminderId: r.id })),
+    skipDuplicates: true,
+  });
+}
+
 /**
  * Live "reminders for today" for the bell menu: follow-ups due today plus customer birthdays
  * and delivery anniversaries. Computed on the fly (not stored), scoped to what the user owns:
  * CR/consultants see their own enquiries, branch managers their branch, admins everything.
+ * A reminder only disappears when the user explicitly dismisses it (see dismissReminder) —
+ * it does NOT clear itself just because time passes or the poll refetches.
  */
-export async function getRemindersForUser(ctx: Ctx): Promise<Reminder[]> {
+export async function getRemindersForUser(ctx: Ctx, opts: { includeDismissed?: boolean } = {}): Promise<Reminder[]> {
   // Base visibility scope, mirroring the follow-ups module.
   const scope: Prisma.EnquiryWhereInput = {};
   if (ctx.role === "CR_TEAM" || ctx.role === "CONSULTANT") {
@@ -112,5 +133,12 @@ export async function getRemindersForUser(ctx: Ctx): Promise<Reminder[]> {
     });
   }
 
-  return reminders;
+  if (opts.includeDismissed) return reminders;
+
+  const dismissed = await prisma.reminderDismissal.findMany({
+    where: { userId: ctx.userId, reminderId: { in: reminders.map((r) => r.id) } },
+    select: { reminderId: true },
+  });
+  const dismissedIds = new Set(dismissed.map((d) => d.reminderId));
+  return reminders.filter((r) => !dismissedIds.has(r.id));
 }

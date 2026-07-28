@@ -123,7 +123,10 @@ export function FollowUpsPage() {
   // Carries this page of the follow-up queue along as nav state, so the detail page can
   // offer "Next/Prev lead" through exactly the follow-ups the CR is working through.
   const queue = (data?.items ?? []).map((item) => ({ leadId: item.leadId, enquiryId: item.enquiryId }));
-  const open = (item: UpcomingFollowUp) => navigate(`/leads/${item.leadId}/enquiries/${item.enquiryId}`, { state: { queue } });
+  const open = (item: UpcomingFollowUp) =>
+    navigate(`/leads/${item.leadId}/enquiries/${item.enquiryId}`, {
+      state: { queue, from: { path: "/follow-ups", label: "Follow-ups" } },
+    });
 
   return (
     <motion.div variants={staggerContainer} initial="hidden" animate="show" className="flex flex-col gap-5">

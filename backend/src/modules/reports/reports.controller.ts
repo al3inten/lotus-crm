@@ -54,6 +54,11 @@ export async function referralLeadsHandler(req: Request, res: Response) {
   res.json(result);
 }
 
+export async function referralPerformanceHandler(req: Request, res: Response) {
+  const result = await analyticsService.getReferralPerformance(req.query as unknown as ReportQuery, req.branchFilter);
+  res.json(result);
+}
+
 export async function lostReasonsHandler(req: Request, res: Response) {
   const result = await analyticsService.getLostReasons(req.query as unknown as ReportQuery, req.branchFilter);
   res.json(result);

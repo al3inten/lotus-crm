@@ -367,6 +367,7 @@ model User {
   leadDrafts              LeadDraft[]
   comments                Comment[]
   notifications           Notification[]
+  reminderDismissals      ReminderDismissal[]
 
   @@index([branchId, role])
   @@map("users")
@@ -439,6 +440,7 @@ model Enquiry {
   // Name of the existing customer/employee who referred this lead — only meaningful when
   // sourceCategory is REFERRAL, but left unconstrained since it's plain intake text.
   referrerName         String?
+  referrerPhone        String?
   variant              String?
   enquiryCategory      EnquiryCategory?
   financeRequired      Boolean?
@@ -972,6 +974,21 @@ model Notification {
 
   @@index([userId, isRead])
   @@map("notifications")
+}
+
+// Explicit user dismissal of a bell reminder (follow-up/birthday/anniversary). Reminders
+// themselves are computed live, not stored — this table is the only thing that makes a
+// dismissal persist, so a reminder only disappears when the user clears it, not on its own.
+model ReminderDismissal {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  reminderId String
+  dismissedAt DateTime @default(now())
+
+  @@unique([userId, reminderId])
+  @@index([userId])
+  @@map("reminder_dismissals")
 }
 
 model SystemSettings {

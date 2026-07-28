@@ -1,6 +1,6 @@
 import { memo } from "react";
 import clsx from "clsx";
-import { CalendarClock, Car, MapPin, Star, User as UserIcon } from "lucide-react";
+import { CalendarClock, Car, ChevronRight, MapPin, Star, User as UserIcon } from "lucide-react";
 import type { TestDriveItem } from "../../api/testDrives.api";
 import { Avatar } from "../common/Avatar";
 
@@ -69,7 +69,7 @@ function TestDriveRowImpl({
       aria-label={`Open test drive for ${item.leadName}`}
       onClick={() => onOpen(item)}
       onKeyDown={onKey}
-      className="group flex cursor-pointer flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 transition-all hover:-translate-y-0.5 hover:border-primary-300 hover:shadow-[0_12px_30px_rgb(0,0,0,0.07)] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-primary-500/40 sm:flex-row sm:items-center"
+      className="group relative flex cursor-pointer flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 pr-9 transition-all hover:-translate-y-0.5 hover:border-primary-300 hover:shadow-[0_12px_30px_rgb(0,0,0,0.07)] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-primary-500/40 sm:flex-row sm:items-center"
     >
       {/* Identity */}
       <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -77,15 +77,15 @@ function TestDriveRowImpl({
         <div className="min-w-0">
           <p className="truncate font-semibold text-slate-900 dark:text-white">{item.leadName}</p>
           <p className="truncate text-xs text-slate-500 dark:text-slate-400">{item.phoneRaw}</p>
-          <p className="mt-0.5 flex items-center gap-1 truncate text-xs text-slate-400 dark:text-slate-500">
-            <Car size={11} /> {item.carModel}
+          <p className="mt-0.5 flex items-center gap-1 truncate text-xs font-medium text-slate-500 dark:text-slate-400">
+            <Car size={11} className="text-primary-500" /> {item.carModel}
             {item.variant ? ` · ${item.variant}` : ""}
           </p>
         </div>
       </div>
 
       {/* Address / rating */}
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 border-t border-slate-100 pt-3 dark:border-slate-800 sm:border-t-0 sm:pt-0">
         {item.address ? (
           <div className="flex items-start gap-1.5 text-xs text-slate-600 dark:text-slate-300">
             <MapPin size={12} className="mt-0.5 shrink-0 text-slate-400" />
@@ -95,14 +95,22 @@ function TestDriveRowImpl({
           <span className="text-xs italic text-slate-400 dark:text-slate-500">No address logged</span>
         )}
         {item.rating != null && (
-          <div className="mt-1 flex items-center gap-1 text-xs text-amber-500">
-            <Star size={12} fill="currentColor" /> {item.rating}/5
+          <div className="mt-1.5 flex items-center gap-0.5" aria-label={`Rated ${item.rating} out of 5`}>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Star
+                key={i}
+                size={12}
+                className={i < item.rating! ? "text-amber-400" : "text-slate-200 dark:text-slate-700"}
+                fill="currentColor"
+              />
+            ))}
+            <span className="ml-1 text-xs font-medium text-amber-600 dark:text-amber-400">{item.rating}/5</span>
           </div>
         )}
       </div>
 
       {/* Meta: status, CR/consultant, schedule */}
-      <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1.5 sm:flex-col sm:items-end sm:gap-1.5">
+      <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-slate-100 pt-3 dark:border-slate-800 sm:flex-col sm:items-end sm:gap-1.5 sm:border-t-0 sm:pt-0">
         <TestDriveStatusBadge status={item.status} />
         {item.assignedCr && (
           <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
@@ -118,6 +126,11 @@ function TestDriveRowImpl({
           <CalendarClock size={12} /> {schedule.label}
         </span>
       </div>
+
+      <ChevronRight
+        size={16}
+        className="absolute right-3 top-1/2 hidden -translate-y-1/2 text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-primary-400 dark:text-slate-700 sm:block"
+      />
     </div>
   );
 }

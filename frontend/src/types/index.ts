@@ -315,6 +315,7 @@ export interface Enquiry {
   sourceCategory?: SourceCategory | null;
   subsource?: LeadSubsource | null;
   referrerName?: string | null;
+  referrerPhone?: string | null;
   variant?: string | null;
   enquiryCategory?: EnquiryCategory | null;
   financeRequired?: boolean | null;

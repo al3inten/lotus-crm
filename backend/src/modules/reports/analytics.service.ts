@@ -263,12 +263,77 @@ export async function getReferralLeads(query: ReportQuery, branchFilter?: { bran
       name: e.lead.name,
       phone: e.lead.phoneRaw,
       referrerName: e.referrerName,
+      referrerPhone: e.referrerPhone,
       carModel: e.carModel,
       status: e.status,
       branch: e.branch.name,
       createdAt: e.createdAt.toISOString(),
     })),
   };
+}
+
+const TOP_REFERRAL_ROWS = 15;
+
+/** Who's actually driving referral business, and which cars those referrals are for —
+ * two leaderboards for the Reports "Referrals" tab, ranked by volume. Referrers are
+ * identified by mobile number, not name — the same person can be typed as "Kishore" one
+ * time and "kishore k" the next, so name alone would double-count them; the number doesn't
+ * lie. Rows from before referrerPhone existed fall back to name so old data isn't dropped. */
+export async function getReferralPerformance(query: ReportQuery, branchFilter?: { branchId: string }) {
+  const where: Prisma.EnquiryWhereInput = {
+    ...buildWhere(query, branchFilter),
+    sourceCategory: "REFERRAL",
+    referrerName: { not: null },
+  };
+
+  const [referrals, byModel, convertedByModel] = await Promise.all([
+    prisma.enquiry.findMany({
+      where,
+      select: { referrerName: true, referrerPhone: true, status: true },
+    }),
+    prisma.enquiry.groupBy({
+      by: ["carModel"],
+      where: { ...buildWhere(query, branchFilter), sourceCategory: "REFERRAL" },
+      _count: true,
+      orderBy: { _count: { carModel: "desc" } },
+    }),
+    prisma.enquiry.groupBy({
+      by: ["carModel"],
+      where: { ...buildWhere(query, branchFilter), sourceCategory: "REFERRAL", status: { in: [...CONVERTED_STATUSES] } },
+      _count: true,
+    }),
+  ]);
+
+  const converted = new Set<string>(CONVERTED_STATUSES);
+  const referrerStats = new Map<string, { referrerName: string; referrerPhone: string | null; count: number; converted: number }>();
+  for (const r of referrals) {
+    const phone = r.referrerPhone?.trim() || null;
+    const key = phone ?? `name:${r.referrerName!.trim().toLowerCase()}`;
+    const existing = referrerStats.get(key);
+    if (existing) {
+      existing.count += 1;
+      if (converted.has(r.status)) existing.converted += 1;
+    } else {
+      referrerStats.set(key, {
+        referrerName: r.referrerName!,
+        referrerPhone: phone,
+        count: 1,
+        converted: converted.has(r.status) ? 1 : 0,
+      });
+    }
+  }
+  const topReferrers = [...referrerStats.values()]
+    .sort((a, b) => b.count - a.count)
+    .slice(0, TOP_REFERRAL_ROWS);
+
+  const convertedModelMap = new Map(convertedByModel.map((r) => [r.carModel, r._count]));
+  const topModels = byModel.slice(0, TOP_REFERRAL_ROWS).map((r) => ({
+    carModel: r.carModel,
+    count: r._count,
+    converted: convertedModelMap.get(r.carModel) ?? 0,
+  }));
+
+  return { topReferrers, topModels };
 }
 
 /** Why deals are being lost, from the lossReason captured at LOST transition. */
@@ -701,6 +766,14 @@ function buildExportWhere(query: ReportQuery, branchFilter?: { branchId: string 
   if (query.consultantId) where.consultantId = query.consultantId;
   if (query.carModel) where.carModel = query.carModel;
   if (query.enquiryType) where.enquiryType = query.enquiryType as Prisma.EnquiryWhereInput["enquiryType"];
+  if (query.phone) {
+    where.lead = { phoneRaw: { contains: query.phone } };
+  }
+  if (query.sourceCategory) where.sourceCategory = query.sourceCategory as Prisma.EnquiryWhereInput["sourceCategory"];
+  // Phone is the true identity key for a referrer (see getReferralPerformance); name is
+  // only used as a fallback for rows predating referrerPhone.
+  if (query.referrerPhone) where.referrerPhone = query.referrerPhone;
+  else if (query.referrerName) where.referrerName = query.referrerName;
   return where;
 }
 

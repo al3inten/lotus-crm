@@ -44,6 +44,7 @@ export const leadEnrichmentSchema = z.object({
   // Only meaningful when sourceCategory is REFERRAL — the existing customer/employee
   // who referred this lead.
   referrerName: z.string().optional(),
+  referrerPhone: z.string().optional(),
   variant: z.string().optional(),
   enquiryCategory: z.enum(["HOT", "WARM", "COLD"]).optional(),
   financeRequired: z.boolean().optional(),

@@ -50,6 +50,7 @@ const FIELD_ORDER: (keyof AddLeadFormInput)[] = [
   "sourceCategory",
   "subsource",
   "referrerName",
+  "referrerPhone",
   "name",
   "phone",
   "alternateMobile",
@@ -76,7 +77,7 @@ const FIELD_ORDER: (keyof AddLeadFormInput)[] = [
 /** Fields owned by each wizard step (index-aligned to SECTIONS) — used to validate
  * a step before advancing and to jump to the offending step on a failed save. */
 const STEP_FIELDS: (keyof AddLeadFormInput)[][] = [
-  ["branchId", "assignedCrId", "department", "sourceCategory", "subsource", "referrerName"],
+  ["branchId", "assignedCrId", "department", "sourceCategory", "subsource", "referrerName", "referrerPhone"],
   ["name", "phone", "alternateMobile", "email", "dob", "profession", "pincode", "area", "location", "address"],
   ["carModel", "variant", "enquiryType", "enquiryCategory"],
   ["exchangeCarModel", "exchangeCarYear", "exchangeCarKms", "exchangeCarOwners", "exchangeCarRegNumber"],
@@ -375,6 +376,7 @@ export function AddLeadWizard({
     // subsource was already saved in place even though the dropdown now shows blank.
     subsource: values.subsource || null,
     referrerName: values.referrerName || undefined,
+    referrerPhone: values.referrerPhone || undefined,
     variant: values.variant || undefined,
     enquiryCategory: values.enquiryCategory || undefined,
     exchangeCarModel: values.exchangeCarModel || undefined,
