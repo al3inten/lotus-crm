@@ -386,6 +386,8 @@ export function LeadDetailPage() {
                 department: enquiry.department ?? undefined,
                 sourceCategory: enquiry.sourceCategory ?? undefined,
                 subsource: enquiry.subsource ?? undefined,
+                referrerName: enquiry.referrerName ?? undefined,
+                referrerPhone: enquiry.referrerPhone ?? undefined,
                 variant: enquiry.variant ?? undefined,
                 enquiryCategory: enquiry.enquiryCategory ?? undefined,
                 financeRequired: enquiry.financeRequired ?? false,
