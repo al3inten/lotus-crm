@@ -1,5 +1,6 @@
 import { Prisma, Role } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
+import { istDayBounds, istDayKey } from "../../lib/istDate";
 
 export interface Reminder {
   id: string;
@@ -58,7 +59,7 @@ export async function getRemindersForUser(ctx: Ctx, opts: { includeDismissed?: b
   }
 
   const now = new Date();
-  const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  const { endOfToday } = istDayBounds(now);
 
   const [dueToday, withDob, delivered] = await Promise.all([
     // Follow-ups due today OR already overdue — skip closed/delivered enquiries. Mirrors
@@ -89,7 +90,7 @@ export async function getRemindersForUser(ctx: Ctx, opts: { includeDismissed?: b
   const reminders: Reminder[] = [];
 
   for (const e of dueToday) {
-    const isOverdue = !!e.followUpDueAt && e.followUpDueAt < now && e.followUpDueAt.toDateString() !== now.toDateString();
+    const isOverdue = !!e.followUpDueAt && e.followUpDueAt < now && istDayKey(e.followUpDueAt) !== istDayKey(now);
     reminders.push({
       id: `followup:${e.id}`,
       type: "FOLLOW_UP",

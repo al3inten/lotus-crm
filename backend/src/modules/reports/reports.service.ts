@@ -44,8 +44,6 @@ export async function getSummary(query: ReportQuery, branchFilter?: { branchId: 
 export async function getCrPerformance(query: ReportQuery, branchFilter?: { branchId: string }) {
   const where = buildWhere(query, branchFilter);
 
-  const endOfToday = new Date();
-  endOfToday.setHours(23, 59, 59, 999);
   const now = new Date();
 
   const [assignedCounts, convertedCounts, pendingCounts, overdueCounts] = await Promise.all([

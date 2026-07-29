@@ -1,6 +1,7 @@
 import { Prisma, Role, EnquiryStatus, EnquiryCategory, LeadSource } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { TERMINAL_STATUSES } from "../../config/constants";
+import { istDayBounds, istDayEnd, istDayKey, istDayStart } from "../../lib/istDate";
 import { FollowUpListQuery, FollowUpCalendarQuery } from "./follow-ups.schema";
 
 export interface FollowUpContext {
@@ -11,20 +12,8 @@ export interface FollowUpContext {
   branchFilter?: { branchId: string };
 }
 
-// Day boundaries in server local time, reused for both bucket filtering and stats.
-function dayBounds() {
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
-  const endOfToday = new Date();
-  endOfToday.setHours(23, 59, 59, 999);
-  const endOfWeek = new Date(startOfToday);
-  endOfWeek.setDate(endOfWeek.getDate() + 7);
-  endOfWeek.setHours(23, 59, 59, 999);
-  return { startOfToday, endOfToday, endOfWeek };
-}
-
 function timeframeFilter(timeframe: FollowUpListQuery["timeframe"]): Prisma.DateTimeFilter | undefined {
-  const { startOfToday, endOfToday, endOfWeek } = dayBounds();
+  const { startOfToday, endOfToday, endOfWeek } = istDayBounds();
   switch (timeframe) {
     case "overdue":
       return { lt: startOfToday };
@@ -77,7 +66,7 @@ export async function getUpcomingFollowUps(query: FollowUpListQuery, ctx: Follow
 
   // Bucket stats are computed over the scoped set BEFORE the timeframe filter so the
   // category tiles always show the full picture regardless of which tab is active.
-  const { startOfToday, endOfToday, endOfWeek } = dayBounds();
+  const { startOfToday, endOfToday, endOfWeek } = istDayBounds();
   const [overdue, today, thisWeek, later, total] = await Promise.all([
     prisma.enquiry.count({ where: { ...where, followUpDueAt: { lt: startOfToday } } }),
     prisma.enquiry.count({ where: { ...where, followUpDueAt: { gte: startOfToday, lte: endOfToday } } }),
@@ -90,11 +79,7 @@ export async function getUpcomingFollowUps(query: FollowUpListQuery, ctx: Follow
   // day (dueDate) wins over the timeframe bucket when both are present.
   const listWhere: Prisma.EnquiryWhereInput = { ...where };
   if (query.dueDate) {
-    const [y, m, d] = query.dueDate.split("-").map(Number);
-    listWhere.followUpDueAt = {
-      gte: new Date(y, m - 1, d, 0, 0, 0, 0),
-      lte: new Date(y, m - 1, d, 23, 59, 59, 999),
-    };
+    listWhere.followUpDueAt = { gte: istDayStart(query.dueDate), lte: istDayEnd(query.dueDate) };
   } else {
     const tf = timeframeFilter(query.timeframe);
     if (tf) listWhere.followUpDueAt = tf;
@@ -181,11 +166,6 @@ export async function getUpcomingFollowUps(query: FollowUpListQuery, ctx: Follow
   };
 }
 
-/** Local-day ISO key (YYYY-MM-DD) for a date, in server local time. */
-function dayKey(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-}
-
 /**
  * Per-day follow-up counts over a date range for the calendar heat view, plus a
  * per-CR breakdown (own row for restricted roles, everyone in scope otherwise).
@@ -194,10 +174,8 @@ export async function getFollowUpCalendar(query: FollowUpCalendarQuery, ctx: Fol
   const canSeeOthers = !ctx.restrictLeadsToOwn;
   const crossBranch = ctx.role === "SUPER_ADMIN" || ctx.canViewAllBranches;
 
-  const [ys, ms, ds] = query.start.split("-").map(Number);
-  const [ye, me, de] = query.end.split("-").map(Number);
-  const rangeStart = new Date(ys, ms - 1, ds, 0, 0, 0, 0);
-  const rangeEnd = new Date(ye, me - 1, de, 23, 59, 59, 999);
+  const rangeStart = istDayStart(query.start);
+  const rangeEnd = istDayEnd(query.end);
 
   const where: Prisma.EnquiryWhereInput = {
     status: { notIn: TERMINAL_STATUSES },
@@ -227,7 +205,7 @@ export async function getFollowUpCalendar(query: FollowUpCalendarQuery, ctx: Fol
 
   for (const row of rows) {
     if (!row.followUpDueAt) continue;
-    const key = dayKey(row.followUpDueAt);
+    const key = istDayKey(row.followUpDueAt);
     counts[key] = (counts[key] ?? 0) + 1;
 
     if (canSeeOthers) {

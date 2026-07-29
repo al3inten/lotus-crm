@@ -1,5 +1,6 @@
 import { Prisma, Role } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
+import { istDayEnd, istDayStart } from "../../lib/istDate";
 import { TestDriveListQuery } from "./test-drives.schema";
 
 export interface TestDriveContext {
@@ -81,14 +82,8 @@ export async function getTestDrives(query: TestDriveListQuery, ctx: TestDriveCon
   let listWhere: Prisma.TestDriveFeedbackWhereInput;
   if (query.dateFrom || query.dateTo) {
     const range: Prisma.DateTimeFilter = {};
-    if (query.dateFrom) {
-      const [y, m, d] = query.dateFrom.split("-").map(Number);
-      range.gte = new Date(y, m - 1, d, 0, 0, 0, 0);
-    }
-    if (query.dateTo) {
-      const [y, m, d] = query.dateTo.split("-").map(Number);
-      range.lte = new Date(y, m - 1, d, 23, 59, 59, 999);
-    }
+    if (query.dateFrom) range.gte = istDayStart(query.dateFrom);
+    if (query.dateTo) range.lte = istDayEnd(query.dateTo);
     listWhere = {
       ...where,
       OR: [{ completedAt: range }, { AND: [{ completedAt: null }, { scheduledAt: range }] }],

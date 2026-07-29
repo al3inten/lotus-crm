@@ -5,6 +5,7 @@ import { notifyRepeatEnquiry } from "../notifications/repeatEnquiry.service";
 import { normalizePhone } from "./phone.util";
 import { getNextCrForBranch } from "../enquiries/routing.service";
 import { DIGITAL_SOURCES, TERMINAL_STATUSES, TRANSACTION_OPTIONS } from "../../config/constants";
+import { istDayBounds } from "../../lib/istDate";
 import { CreateEnquiryInput, LeadListQuery, CustomerListQuery } from "./leads.schema";
 import { triggerAutoCallForEnquiry } from "../voice/voice.service";
 
@@ -495,8 +496,7 @@ export async function getReminders(user: {
   canViewAllBranches: boolean;
   branchId: string | null;
 }) {
-  const endOfToday = new Date();
-  endOfToday.setHours(23, 59, 59, 999);
+  const { endOfToday } = istDayBounds();
 
   const where: Prisma.EnquiryWhereInput = {
     status: { notIn: TERMINAL_STATUSES },

@@ -1,11 +1,10 @@
 import { Prisma, PrismaClient } from "@prisma/client";
+import { istDayBounds } from "../../lib/istDate";
 
 type Tx = Prisma.TransactionClient | PrismaClient;
 
 function startOfToday(): Date {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d;
+  return istDayBounds().startOfToday;
 }
 
 /**
