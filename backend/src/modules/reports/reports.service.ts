@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
+import { TERMINAL_STATUSES } from "../../config/constants";
 import { ReportQuery, TrendQuery } from "./reports.schema";
 
 const CONVERTED_STATUSES = ["RETAIL_DONE"] as const;
@@ -46,8 +47,6 @@ export async function getCrPerformance(query: ReportQuery, branchFilter?: { bran
   const endOfToday = new Date();
   endOfToday.setHours(23, 59, 59, 999);
   const now = new Date();
-  
-  const TERMINAL_STATUSES = ["RETAIL_DONE", "CLOSED"] as const;
 
   const [assignedCounts, convertedCounts, pendingCounts, overdueCounts] = await Promise.all([
     prisma.enquiry.groupBy({ by: ["assignedCrId"], where: { ...where, assignedCrId: { not: null } }, _count: true }),

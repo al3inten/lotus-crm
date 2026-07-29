@@ -4,13 +4,9 @@ import { ConflictError, NotFoundError } from "../../lib/errors";
 import { notifyRepeatEnquiry } from "../notifications/repeatEnquiry.service";
 import { normalizePhone } from "./phone.util";
 import { getNextCrForBranch } from "../enquiries/routing.service";
-import { DIGITAL_SOURCES, TRANSACTION_OPTIONS } from "../../config/constants";
+import { DIGITAL_SOURCES, TERMINAL_STATUSES, TRANSACTION_OPTIONS } from "../../config/constants";
 import { CreateEnquiryInput, LeadListQuery, CustomerListQuery } from "./leads.schema";
 import { triggerAutoCallForEnquiry } from "../voice/voice.service";
-
-// A lead with an enquiry in any of these states is mid-journey; new contacts from any
-// source attach to that journey instead of opening a parallel one.
-const TERMINAL_STATUSES: EnquiryStatus[] = ["RETAIL_DONE", "CLOSED"];
 
 /**
  * Phone number is the identity key. Every inbound contact records a LeadTouch.

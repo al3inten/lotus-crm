@@ -1,6 +1,6 @@
 import { prisma } from "../../lib/prisma";
 import { NotFoundError, ValidationError } from "../../lib/errors";
-import { ALLOWED_TRANSITIONS, CONSULTANT_REQUIRED_AT_STATUS, STAGE_RANK, TRANSACTION_OPTIONS } from "../../config/constants";
+import { ALLOWED_TRANSITIONS, CONSULTANT_REQUIRED_AT_STATUS, STAGE_RANK, TERMINAL_STATUSES, TRANSACTION_OPTIONS } from "../../config/constants";
 import { ChangeStatusInput, ReassignInput, EnquiryDetailsInput, BookingDetailsInput, RetailDetailsInput, RtoDetailsInput, DeliveryDateInput, UpdateKeyDateInput } from "./enquiries.schema";
 
 export async function getEnquiry(enquiryId: string) {
@@ -631,7 +631,10 @@ export async function addFollowUp(enquiryId: string, input: CreateFollowUpInput,
       include: { createdBy: { select: { id: true, name: true } } },
     });
 
-    if (input.nextFollowUpDate) {
+    // A closed/delivered enquiry is done — scheduling a next follow-up on it would leave a
+    // stale due date that keeps surfacing as "overdue" forever, since nothing ever advances
+    // its status again to auto-clear it (see the autoClosingFollowUp logic in changeStatus).
+    if (input.nextFollowUpDate && !TERMINAL_STATUSES.includes(enquiry.status)) {
       await tx.enquiry.update({
         where: { id: enquiryId },
         data: { followUpDueAt: new Date(input.nextFollowUpDate) },

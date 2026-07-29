@@ -21,6 +21,12 @@ export const ALLOWED_TRANSITIONS: Record<EnquiryStatus, EnquiryStatus[]> = {
 // Statuses that require a lossReason to be supplied.
 export const TERMINAL_LOSS_STATUS: EnquiryStatus = "CLOSED";
 
+// Statuses with no further pipeline moves (derived from ALLOWED_TRANSITIONS) — once an
+// enquiry reaches one of these, it's done and should drop out of follow-up/reminder queues.
+export const TERMINAL_STATUSES: EnquiryStatus[] = (Object.keys(ALLOWED_TRANSITIONS) as EnquiryStatus[]).filter(
+  (status) => ALLOWED_TRANSITIONS[status].length === 0
+);
+
 // Sources captured digitally (Phase 2 will wire real ingestion for these).
 // These respect the branch's autoAssignEnabled toggle for round-robin routing.
 export const DIGITAL_SOURCES: LeadSource[] = ["META_ADS", "WHATSAPP", "INSTAGRAM", "GOOGLE_SHEETS"];

@@ -1,9 +1,7 @@
 import { Prisma, Role, EnquiryStatus, EnquiryCategory, LeadSource } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
+import { TERMINAL_STATUSES } from "../../config/constants";
 import { FollowUpListQuery, FollowUpCalendarQuery } from "./follow-ups.schema";
-
-// Follow-ups on won/lost enquiries are done — never surface them in the queue.
-const TERMINAL_STATUSES: EnquiryStatus[] = ["RETAIL_DONE", "CLOSED"];
 
 export interface FollowUpContext {
   userId: string;
