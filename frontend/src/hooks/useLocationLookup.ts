@@ -11,18 +11,26 @@ interface PincodeLookupResult {
  * district/city, state, and the list of post-office (locality) names serving that pincode,
  * so the wizard can auto-fill City and suggest Area options as the CR types the pincode. */
 async function fetchPincodeDetails(pincode: string): Promise<PincodeLookupResult | null> {
-  const res = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
-  if (!res.ok) return null;
-  const data = await res.json();
-  const record = data?.[0];
-  if (record?.Status !== "Success" || !record.PostOffice?.length) return null;
+  try {
+    const res = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    const record = data?.[0];
+    if (record?.Status !== "Success" || !record.PostOffice?.length) return null;
 
-  const offices = record.PostOffice as Array<{ Name: string; District: string; State: string }>;
-  return {
-    city: offices[0].District,
-    state: offices[0].State,
-    areas: [...new Set(offices.map((o) => o.Name))],
-  };
+    const offices = record.PostOffice as Array<{ Name: string; District: string; State: string }>;
+    return {
+      city: offices[0].District,
+      state: offices[0].State,
+      areas: [...new Set(offices.map((o) => o.Name))],
+    };
+  } catch {
+    // This is a best-effort autocomplete suggestion, not critical data — a CORS-blocked or
+    // network-level failure (fetch() rejects with "Failed to fetch" before `res.ok` is even
+    // reachable, e.g. when the third-party API omits CORS headers on a non-2xx response)
+    // should just mean "no suggestion", not surface a scary toast mid-lead-entry.
+    return null;
+  }
 }
 
 export function usePincodeLookup(pincode: string) {
@@ -47,14 +55,19 @@ interface PostOfficeMatch {
  * post offices with their pincodes, so the wizard can suggest Pincode options as the CR types
  * the Area or City field (the reverse direction of the pincode lookup above). */
 async function searchPostOffices(query: string): Promise<PostOfficeMatch[]> {
-  const res = await fetch(`https://api.postalpincode.in/postoffice/${encodeURIComponent(query)}`);
-  if (!res.ok) return [];
-  const data = await res.json();
-  const record = data?.[0];
-  if (record?.Status !== "Success" || !record.PostOffice?.length) return [];
+  try {
+    const res = await fetch(`https://api.postalpincode.in/postoffice/${encodeURIComponent(query)}`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    const record = data?.[0];
+    if (record?.Status !== "Success" || !record.PostOffice?.length) return [];
 
-  const offices = record.PostOffice as Array<{ Name: string; Pincode: string; District: string; State: string }>;
-  return offices.map((o) => ({ name: o.Name, pincode: o.Pincode, city: o.District, state: o.State }));
+    const offices = record.PostOffice as Array<{ Name: string; Pincode: string; District: string; State: string }>;
+    return offices.map((o) => ({ name: o.Name, pincode: o.Pincode, city: o.District, state: o.State }));
+  } catch {
+    // Same reasoning as fetchPincodeDetails above — degrade to "no matches", not an error toast.
+    return [];
+  }
 }
 
 /** Debounces a fast-changing value (e.g. keystrokes) so dependent queries don't fire on
