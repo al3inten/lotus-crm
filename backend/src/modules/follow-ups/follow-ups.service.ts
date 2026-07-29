@@ -30,7 +30,6 @@ function timeframeFilter(timeframe: FollowUpListQuery["timeframe"]): Prisma.Date
 }
 
 export async function getUpcomingFollowUps(query: FollowUpListQuery, ctx: FollowUpContext) {
-  const canSeeOthers = !ctx.restrictLeadsToOwn;
   const crossBranch = ctx.role === "SUPER_ADMIN" || ctx.canViewAllBranches;
 
   // Base scope: active enquiries that actually have a next-follow-up scheduled.
@@ -39,16 +38,13 @@ export async function getUpcomingFollowUps(query: FollowUpListQuery, ctx: Follow
     followUpDueAt: { not: null },
   };
 
-  if (canSeeOthers) {
-    // Branch managers are pinned to their branch via branchFilter; admins are unscoped
-    // but may narrow to a branch. CR / consultant filters apply to anyone who can see others.
-    if (ctx.branchFilter) where.branchId = ctx.branchFilter.branchId;
-    if (crossBranch && query.branchId) where.branchId = query.branchId;
-    if (query.assignedCrId) where.assignedCrId = query.assignedCrId;
-  } else {
-    // CR / consultant: hard-locked to their own follow-ups, ignoring any cr/branch filters.
-    where.assignedCrId = ctx.userId;
-  }
+  // restrictLeadsToOwn only gates writes (see requireEnquiryOwnership) — reading the
+  // list is unrestricted for everyone in scope, same as branch managers/admins.
+  // Branch managers are pinned to their branch via branchFilter; admins are unscoped
+  // but may narrow to a branch. CR / consultant filters apply to anyone in scope.
+  if (ctx.branchFilter) where.branchId = ctx.branchFilter.branchId;
+  if (crossBranch && query.branchId) where.branchId = query.branchId;
+  if (query.assignedCrId) where.assignedCrId = query.assignedCrId;
 
   if (query.status) where.status = query.status as EnquiryStatus;
   if (query.enquiryCategory) where.enquiryCategory = query.enquiryCategory as EnquiryCategory;
@@ -134,25 +130,23 @@ export async function getUpcomingFollowUps(query: FollowUpListQuery, ctx: Follow
     };
   });
 
-  // CR facet (for the admin/manager "categorise by rep" dropdown). Only meaningful when
-  // the user can see more than their own; computed over the scoped set, not the page.
-  let crs: { id: string; name: string; count: number }[] = [];
-  if (canSeeOthers) {
-    const grouped = await prisma.enquiry.groupBy({
-      by: ["assignedCrId"],
-      where,
-      _count: true,
-    });
-    const crIds = grouped.map((g) => g.assignedCrId).filter((id): id is string => !!id);
-    const users = crIds.length
-      ? await prisma.user.findMany({ where: { id: { in: crIds } }, select: { id: true, name: true } })
-      : [];
-    const nameById = new Map(users.map((u) => [u.id, u.name]));
-    crs = grouped
-      .filter((g) => g.assignedCrId)
-      .map((g) => ({ id: g.assignedCrId as string, name: nameById.get(g.assignedCrId as string) ?? "Unknown", count: g._count }))
-      .sort((a, b) => b.count - a.count);
-  }
+  // CR facet (for the "categorise by rep" dropdown), computed over the scoped set.
+  // restrictLeadsToOwn no longer restricts reading, so this is always computed now —
+  // a restricted CR can browse everyone's follow-ups, they just can't act on them.
+  const grouped = await prisma.enquiry.groupBy({
+    by: ["assignedCrId"],
+    where,
+    _count: true,
+  });
+  const crIds = grouped.map((g) => g.assignedCrId).filter((id): id is string => !!id);
+  const users = crIds.length
+    ? await prisma.user.findMany({ where: { id: { in: crIds } }, select: { id: true, name: true } })
+    : [];
+  const nameById = new Map(users.map((u) => [u.id, u.name]));
+  const crs = grouped
+    .filter((g) => g.assignedCrId)
+    .map((g) => ({ id: g.assignedCrId as string, name: nameById.get(g.assignedCrId as string) ?? "Unknown", count: g._count }))
+    .sort((a, b) => b.count - a.count);
 
   return {
     items,
@@ -161,7 +155,7 @@ export async function getUpcomingFollowUps(query: FollowUpListQuery, ctx: Follow
     pageSize: query.pageSize,
     stats: { overdue, today, thisWeek, later, total },
     crs,
-    canSeeOthers,
+    canSeeOthers: true,
     crossBranch,
   };
 }
@@ -171,7 +165,6 @@ export async function getUpcomingFollowUps(query: FollowUpListQuery, ctx: Follow
  * per-CR breakdown (own row for restricted roles, everyone in scope otherwise).
  */
 export async function getFollowUpCalendar(query: FollowUpCalendarQuery, ctx: FollowUpContext) {
-  const canSeeOthers = !ctx.restrictLeadsToOwn;
   const crossBranch = ctx.role === "SUPER_ADMIN" || ctx.canViewAllBranches;
 
   const rangeStart = istDayStart(query.start);
@@ -182,13 +175,10 @@ export async function getFollowUpCalendar(query: FollowUpCalendarQuery, ctx: Fol
     followUpDueAt: { gte: rangeStart, lte: rangeEnd },
   };
 
-  if (canSeeOthers) {
-    if (ctx.branchFilter) where.branchId = ctx.branchFilter.branchId;
-    if (crossBranch && query.branchId) where.branchId = query.branchId;
-    if (query.assignedCrId) where.assignedCrId = query.assignedCrId;
-  } else {
-    where.assignedCrId = ctx.userId;
-  }
+  // restrictLeadsToOwn only gates writes — reading is unrestricted, same as above.
+  if (ctx.branchFilter) where.branchId = ctx.branchFilter.branchId;
+  if (crossBranch && query.branchId) where.branchId = query.branchId;
+  if (query.assignedCrId) where.assignedCrId = query.assignedCrId;
 
   const rows = await prisma.enquiry.findMany({
     where,
@@ -208,17 +198,15 @@ export async function getFollowUpCalendar(query: FollowUpCalendarQuery, ctx: Fol
     const key = istDayKey(row.followUpDueAt);
     counts[key] = (counts[key] ?? 0) + 1;
 
-    if (canSeeOthers) {
-      const id = row.assignedCr?.id ?? "unassigned";
-      const name = row.assignedCr?.name ?? "Unassigned";
-      let entry = crMap.get(id);
-      if (!entry) {
-        entry = { id, name, count: 0, countsByDate: {} };
-        crMap.set(id, entry);
-      }
-      entry.count += 1;
-      entry.countsByDate[key] = (entry.countsByDate[key] ?? 0) + 1;
+    const id = row.assignedCr?.id ?? "unassigned";
+    const name = row.assignedCr?.name ?? "Unassigned";
+    let entry = crMap.get(id);
+    if (!entry) {
+      entry = { id, name, count: 0, countsByDate: {} };
+      crMap.set(id, entry);
     }
+    entry.count += 1;
+    entry.countsByDate[key] = (entry.countsByDate[key] ?? 0) + 1;
   }
 
   const byCr = Array.from(crMap.values()).sort((a, b) => b.count - a.count);
@@ -227,7 +215,7 @@ export async function getFollowUpCalendar(query: FollowUpCalendarQuery, ctx: Fol
     counts,
     byCr,
     total: rows.length,
-    canSeeOthers,
+    canSeeOthers: true,
     crossBranch,
   };
 }

@@ -37,6 +37,8 @@ export function EditStaffModal({ member, branchId, isOpen, onClose }: EditStaffM
   }, [member, isOpen]);
 
   const activeRoles = roles?.filter((r) => r.isActive) ?? [];
+  const selectedRole = activeRoles.find((r) => r.id === roleDefinitionId);
+  const roleAlreadyCr = selectedRole?.restrictLeadsToOwn ?? false;
 
   const handleSave = () => {
     updateUser.mutate(
@@ -96,9 +98,14 @@ export function EditStaffModal({ member, branchId, isOpen, onClose }: EditStaffM
           />
           <Toggle
             label="Also consider as CR"
-            description="Lets this person appear in the CR-assignment dropdown, on top of their role's permissions"
-            checked={isCr}
+            description={
+              roleAlreadyCr
+                ? "Their role already restricts them to their own leads, so they already show up as a CR — this toggle isn't needed"
+                : "Lets this person appear in the CR-assignment dropdown, on top of their role's permissions"
+            }
+            checked={roleAlreadyCr || isCr}
             onChange={setIsCr}
+            disabled={roleAlreadyCr}
           />
         </div>
 

@@ -48,7 +48,7 @@ interface LeadFiltersProps {
 export function LeadFilters({ filters, onChange }: LeadFiltersProps) {
   const { data: branches } = useBranches();
   const { data: branchStaff } = useBranchStaff(filters.branchId);
-  const crTeam = branchStaff?.filter((u) => u.isCr);
+  const crTeam = branchStaff?.filter((u) => u.isCrEligible);
 
   // Local, debounced search so we don't fire a request on every keystroke.
   const [searchInput, setSearchInput] = useState(filters.search ?? "");

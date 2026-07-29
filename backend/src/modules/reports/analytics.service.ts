@@ -30,6 +30,7 @@ function buildWhere(query: ReportQuery, branchFilter?: { branchId: string }): Pr
   const where: Prisma.EnquiryWhereInput = {};
   if (branchFilter) where.branchId = branchFilter.branchId;
   if (query.branchId) where.branchId = query.branchId;
+  if (query.assignedCrId) where.assignedCrId = query.assignedCrId;
   if (query.dateFrom || query.dateTo) {
     where.createdAt = {
       ...(query.dateFrom ? { gte: istDayStart(query.dateFrom) } : {}),
@@ -61,6 +62,7 @@ export async function getYearOverYear(query: ReportQuery, branchFilter?: { branc
   const branchWhere: Prisma.EnquiryWhereInput = {};
   if (branchFilter) branchWhere.branchId = branchFilter.branchId;
   if (query.branchId) branchWhere.branchId = query.branchId;
+  if (query.assignedCrId) branchWhere.assignedCrId = query.assignedCrId;
 
   async function periodStats(from: Date, to: Date) {
     const where: Prisma.EnquiryWhereInput = { ...branchWhere, createdAt: { gte: from, lte: to } };

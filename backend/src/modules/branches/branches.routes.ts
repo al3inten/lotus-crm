@@ -26,7 +26,11 @@ router.post(
   asyncHandler(createBranchHandler)
 );
 
-router.get("/", requirePermission("branches", "read"), applyBranchScope, asyncHandler(listBranchesHandler));
+// No permission gate here deliberately — this list is used app-wide just to populate
+// branch dropdowns (lead wizard, filters, reports, etc.), not only the Branches admin
+// page, so every authenticated user can read it (already scoped to what they can see
+// via applyBranchScope). Only creating/editing/deleting a branch needs "branches" access.
+router.get("/", applyBranchScope, asyncHandler(listBranchesHandler));
 router.get("/:branchId", requirePermission("branches", "read"), asyncHandler(getBranchHandler));
 
 router.patch(

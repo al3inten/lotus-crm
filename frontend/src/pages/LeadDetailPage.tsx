@@ -121,7 +121,7 @@ export function LeadDetailPage() {
     }
   }, [enquiry, tabParam, setActiveTab]);
   const { data: branchStaff } = useBranchStaff(enquiry?.branchId);
-  const crTeam = branchStaff?.filter((u) => u.isCr);
+  const crTeam = branchStaff?.filter((u) => u.isCrEligible);
   const { data: consultants } = useConsultants(enquiry?.branchId);
   const { data: callLogs } = useCallLogsForLead(leadId);
   const { data: settings } = useSettings();
