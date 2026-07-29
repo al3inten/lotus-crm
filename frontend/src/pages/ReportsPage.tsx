@@ -276,6 +276,10 @@ export function ReportsPage() {
   const filteredStatusOrder = STATUS_ORDER.filter(
     (s) => !debouncedStatusSearch || (STAGE_LABELS[s] ?? s).toLowerCase().includes(debouncedStatusSearch)
   );
+  // Overdue isn't a pipeline stage — it's a cross-cutting subset of still-open enquiries
+  // (a Test Drive or Booking case can also be overdue), so it's an extra row rather than
+  // part of STATUS_ORDER, and left out of the donut chart to avoid double-counting there.
+  const showOverdueRow = !debouncedStatusSearch || "overdue".includes(debouncedStatusSearch);
   const filteredTimeInStage = (timeInStage ?? []).filter(
     (row) => !debouncedTimeInStageSearch || (STAGE_LABELS[row.stage] ?? row.stage).toLowerCase().includes(debouncedTimeInStageSearch)
   );
@@ -497,7 +501,7 @@ export function ReportsPage() {
             ) : (
               <div className="flex flex-col gap-3">
                 <TableSearch value={statusSearch} onChange={setStatusSearch} placeholder="Search status…" />
-                {filteredStatusOrder.length === 0 ? (
+                {filteredStatusOrder.length === 0 && !showOverdueRow ? (
                   <p className="py-6 text-center text-sm text-gray-400 dark:text-slate-500">No status matches "{statusSearch}".</p>
                 ) : (
                   <ChartTableToggle
@@ -535,6 +539,29 @@ export function ReportsPage() {
                                 </tr>
                               );
                             })}
+                            {showOverdueRow && (
+                              <tr className="bg-amber-50/60 transition-colors hover:bg-amber-100/70 dark:bg-amber-500/[0.06] dark:hover:bg-amber-500/[0.1]">
+                                <td className="px-4 py-2.5 font-medium text-amber-800 dark:text-amber-300">Overdue</td>
+                                <td className="px-4 py-2.5 tabular-nums text-amber-800 dark:text-amber-300">{summary?.overdue ?? 0}</td>
+                                <td className="px-4 py-2.5 tabular-nums text-amber-700/80 dark:text-amber-400/80">
+                                  {summary?.totalEnquiries
+                                    ? Math.round(((summary.overdue ?? 0) / summary.totalEnquiries) * 1000) / 10
+                                    : 0}
+                                  %
+                                </td>
+                                <td className="px-4 py-2.5 text-right">
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    disabled={!summary?.overdue}
+                                    icon={<Download size={14} />}
+                                    onClick={() => openList("Overdue", "overdue", { overdue: "true" })}
+                                  >
+                                    Download
+                                  </Button>
+                                </td>
+                              </tr>
+                            )}
                           </tbody>
                         </table>
                       </div>

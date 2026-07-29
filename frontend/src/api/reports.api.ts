@@ -18,6 +18,8 @@ export interface ReportFilters {
   sourceCategory?: string;
   referrerPhone?: string;
   referrerName?: string;
+  /** Narrows a download to open enquiries whose follow-up due date has already passed. */
+  overdue?: "true";
 }
 
 export interface SummaryReport {
@@ -26,6 +28,8 @@ export interface SummaryReport {
   converted: number;
   followUpPending: number;
   lost: number;
+  /** Still-open enquiries whose follow-up due date has already passed. */
+  overdue: number;
   statusBreakdown: Record<string, number>;
 }
 

@@ -20,6 +20,10 @@ export const reportQuerySchema = z.object({
   // (it's the true identity key), name is the fallback for pre-referrerPhone rows.
   referrerPhone: z.string().optional(),
   referrerName: z.string().optional(),
+  // Narrows an export/preview to open enquiries whose follow-up is past due (see
+  // getSummary's `overdue` count) — a cross-cutting subset, not a real EnquiryStatus, so it
+  // can't be expressed via `status`.
+  overdue: z.enum(["true"]).optional(),
 });
 
 export const customerPreviewQuerySchema = reportQuerySchema.extend({

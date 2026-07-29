@@ -4,6 +4,7 @@ import { prisma } from "../../lib/prisma";
 import { ReportQuery, BreakdownQuery, BreakdownDimension } from "./reports.schema";
 import { cacheKey, getOrCompute } from "../../lib/simpleCache";
 import { istDayStart, istDayEnd } from "../../lib/istDate";
+import { TERMINAL_STATUSES } from "../../config/constants";
 
 // Heavy report aggregations (funnel, time-in-stage, vehicle performance) are read-only and
 // tolerate a short staleness window, so they're cached per distinct filter combination for
@@ -782,6 +783,11 @@ function buildExportWhere(query: ReportQuery, branchFilter?: { branchId: string 
   // only used as a fallback for rows predating referrerPhone.
   if (query.referrerPhone) where.referrerPhone = query.referrerPhone;
   else if (query.referrerName) where.referrerName = query.referrerName;
+  // Same "overdue" definition as getSummary/getCrPerformance — still open, follow-up past due.
+  if (query.overdue) {
+    where.status = { notIn: [...TERMINAL_STATUSES] };
+    where.followUpDueAt = { lt: new Date() };
+  }
   return where;
 }
 

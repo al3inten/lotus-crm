@@ -22,9 +22,14 @@ function buildWhere(query: ReportQuery, branchFilter?: { branchId: string }): Pr
 export async function getSummary(query: ReportQuery, branchFilter?: { branchId: string }) {
   const where = buildWhere(query, branchFilter);
 
-  const [total, byStatus] = await Promise.all([
+  const [total, byStatus, overdue] = await Promise.all([
     prisma.enquiry.count({ where }),
     prisma.enquiry.groupBy({ by: ["status"], where, _count: true }),
+    // Same "overdue" definition used by CR Performance: still open (not Closed/Delivered)
+    // and its follow-up due date has already passed.
+    prisma.enquiry.count({
+      where: { ...where, status: { notIn: [...TERMINAL_STATUSES] }, followUpDueAt: { lt: new Date() } },
+    }),
   ]);
 
   const statusCounts = Object.fromEntries(byStatus.map((row) => [row.status, row._count]));
@@ -38,6 +43,7 @@ export async function getSummary(query: ReportQuery, branchFilter?: { branchId: 
     converted,
     followUpPending,
     lost,
+    overdue,
     statusBreakdown: statusCounts,
   };
 }
