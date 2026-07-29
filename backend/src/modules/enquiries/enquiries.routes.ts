@@ -52,11 +52,12 @@ const router = Router();
 
 router.use(verifyJwt);
 
-// Viewing a lead is always allowed, regardless of assignment — only the mutating routes
-// below are ownership-gated (CR_TEAM can only act on enquiries assigned to them).
-router.get("/:enquiryId", asyncHandler(getEnquiryHandler));
-
 const ownership = asyncHandler(requireEnquiryOwnership);
+
+// Viewing a lead is always allowed regardless of assignment (only the mutating routes
+// below additionally restrict CR_TEAM to enquiries assigned to them) — but branch scoping
+// still applies, so `ownership` is used here too to keep cross-branch enquiries out of reach.
+router.get("/:enquiryId", ownership, asyncHandler(getEnquiryHandler));
 
 router.patch("/:enquiryId/status", ownership, validateBody(changeStatusSchema), asyncHandler(changeStatusHandler));
 router.patch("/:enquiryId/details", ownership, validateBody(enquiryDetailsSchema), asyncHandler(updateDetailsHandler));

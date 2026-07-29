@@ -1,6 +1,6 @@
 import { Prisma, Role } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
-import { istDayBounds, istDayKey } from "../../lib/istDate";
+import { istDayBounds, istDayKey, istParts } from "../../lib/istDate";
 
 export interface Reminder {
   id: string;
@@ -20,8 +20,13 @@ interface Ctx {
 }
 
 const leadLink = (leadId: string, enquiryId: string) => `/leads/${leadId}/enquiries/${enquiryId}`;
-const sameMonthDay = (d: Date, today: Date) =>
-  d.getMonth() === today.getMonth() && d.getDate() === today.getDate();
+// Both sides read as IST wall-clock fields — comparing server-local (UTC on Render) fields
+// would make "today" lag behind the IST calendar day until 5:30am IST.
+const sameMonthDay = (d: Date, today: Date) => {
+  const a = istParts(d);
+  const b = istParts(today);
+  return a.month === b.month && a.day === b.day;
+};
 
 /** Explicitly clear one reminder (id like "followup:<enquiryId>") from the bell — persists
  * until the user dismisses it, since the reminder itself is recomputed on every poll. */
@@ -122,7 +127,7 @@ export async function getRemindersForUser(ctx: Ctx, opts: { includeDismissed?: b
     if (!del) continue;
     const d = new Date(del);
     if (!sameMonthDay(d, now)) continue;
-    const years = now.getFullYear() - d.getFullYear();
+    const years = istParts(now).year - istParts(d).year;
     if (years < 1) continue;
     reminders.push({
       id: `anniv:${e.id}`,

@@ -99,6 +99,9 @@ interface StatusChangeModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialTargetStatus?: EnquiryStatus;
+  /** Pre-selects the Won/Lost toggle when opening straight to a Closed target — e.g. the
+   * "Close (Lost)" quick action must not silently default to Won. */
+  initialOutcome?: "WON" | "LOST";
   /** Whether the enquiry has at least one completed test drive — required before Booking. */
   hasCompletedTestDrive?: boolean;
   /** Consultant already assigned to the enquiry — prefills the consultant dropdown. */
@@ -114,6 +117,7 @@ export function StatusChangeModal({
   isOpen,
   onClose,
   initialTargetStatus,
+  initialOutcome,
   hasCompletedTestDrive,
   currentConsultantId,
   enquiry,
@@ -181,13 +185,13 @@ export function StatusChangeModal({
         dob: enquiry?.lead?.dob ? enquiry.lead.dob.slice(0, 10) : undefined,
         profession: enquiry?.lead?.profession ?? undefined,
       });
-      setOutcome("WON");
+      setOutcome(initialOutcome ?? "WON");
       setTestDrivesConfirmed(false);
       setProgressSaved(false);
       setMilestoneSaved(null);
     }
     wasOpenRef.current = isOpen;
-  }, [isOpen, initialTargetStatus, allowedNext, currentConsultantId, enquiry, reset]);
+  }, [isOpen, initialTargetStatus, initialOutcome, allowedNext, currentConsultantId, enquiry, reset]);
 
   const toStatus = watch("toStatus");
   const financeRequired = watch("financeRequired");

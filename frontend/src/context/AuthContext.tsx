@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import type { ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import type { User } from "../types";
 import { fetchCurrentUser, loginRequest } from "../api/auth.api";
 import { TOKEN_STORAGE_KEY } from "../api/axiosClient";
@@ -18,6 +19,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const token = localStorage.getItem(TOKEN_STORAGE_KEY);
@@ -35,15 +37,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
+    // Drop any cached queries from a previous session on this device before seeding the new
+    // one — react-query keys by filter/id, not by user, so a stale cache would otherwise let
+    // the next user briefly see the previous user's (possibly different-branch) data.
+    queryClient.clear();
     const { token, user: loggedInUser } = await loginRequest({ email, password });
     localStorage.setItem(TOKEN_STORAGE_KEY, token);
     setUser(loggedInUser);
-  }, []);
+  }, [queryClient]);
 
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_STORAGE_KEY);
     setUser(null);
-  }, []);
+    queryClient.clear();
+  }, [queryClient]);
 
   const patchUser = useCallback((partial: Partial<User>) => {
     setUser((prev) => (prev ? { ...prev, ...partial } : prev));

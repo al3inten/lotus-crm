@@ -590,6 +590,10 @@ export async function reassign(enquiryId: string, input: ReassignInput, reassign
 
     const toUser = await tx.user.findUnique({ where: { id: input.toUserId } });
     if (!toUser) throw new NotFoundError("Target user not found");
+    if (!toUser.isCr) throw new ValidationError("Target user is not enabled as a consultant/CR.");
+    if (toUser.branchId !== enquiry.branchId) {
+      throw new ValidationError("Target user must belong to the same branch as the enquiry.");
+    }
 
     const updated = await tx.enquiry.update({
       where: { id: enquiryId },

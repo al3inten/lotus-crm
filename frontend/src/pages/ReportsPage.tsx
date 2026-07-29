@@ -251,8 +251,8 @@ export function ReportsPage() {
   const [topModelSearch, setTopModelSearch] = useState("");
   const debouncedTopModelSearch = useDebouncedValue(topModelSearch, 300).trim().toLowerCase();
 
-  const referralConverted = referralLeads?.rows.filter((r) => r.status === "RETAIL_DONE").length ?? 0;
-  const referralLost = referralLeads?.rows.filter((r) => r.status === "CLOSED").length ?? 0;
+  const referralConverted = referralLeads?.converted ?? 0;
+  const referralLost = referralLeads?.lost ?? 0;
   const referralConversionRate = referralLeads?.total
     ? Number(((referralConverted / referralLeads.total) * 100).toFixed(1))
     : 0;

@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { TERMINAL_STATUSES } from "../../config/constants";
 import { ReportQuery, TrendQuery } from "./reports.schema";
+import { istDayStart, istDayEnd } from "../../lib/istDate";
 
 const CONVERTED_STATUSES = ["RETAIL_DONE"] as const;
 
@@ -11,8 +12,8 @@ function buildWhere(query: ReportQuery, branchFilter?: { branchId: string }): Pr
   if (query.branchId) where.branchId = query.branchId;
   if (query.dateFrom || query.dateTo) {
     where.createdAt = {
-      ...(query.dateFrom ? { gte: new Date(query.dateFrom) } : {}),
-      ...(query.dateTo ? { lte: new Date(query.dateTo) } : {}),
+      ...(query.dateFrom ? { gte: istDayStart(query.dateFrom) } : {}),
+      ...(query.dateTo ? { lte: istDayEnd(query.dateTo) } : {}),
     };
   }
   return where;
@@ -122,13 +123,13 @@ export async function getBranchRollup(query: ReportQuery, branchFilter?: { branc
 
 export async function getTrend(query: TrendQuery, branchFilter?: { branchId: string }) {
   const branchId = branchFilter?.branchId ?? query.branchId ?? null;
-  const dateFrom = query.dateFrom ? new Date(query.dateFrom) : null;
-  const dateTo = query.dateTo ? new Date(query.dateTo) : null;
+  const dateFrom = query.dateFrom ? istDayStart(query.dateFrom) : null;
+  const dateTo = query.dateTo ? istDayEnd(query.dateTo) : null;
 
   const rows = await prisma.$queryRaw<{ bucket: Date; total: bigint; converted: bigint; lost: bigint }[]>(
     Prisma.sql`
       SELECT
-        date_trunc(${query.granularity}, "createdAt") AS bucket,
+        date_trunc(${query.granularity}, "createdAt" AT TIME ZONE 'Asia/Kolkata') AS bucket,
         COUNT(*)::bigint AS total,
         COUNT(*) FILTER (WHERE status = 'RETAIL_DONE')::bigint AS converted,
         COUNT(*) FILTER (WHERE status = 'CLOSED')::bigint AS lost

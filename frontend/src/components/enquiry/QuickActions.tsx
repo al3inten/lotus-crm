@@ -5,9 +5,13 @@ import type { EnquiryStatus } from "../../types";
 export function QuickActions({
   status,
   onChangeStatus,
+  onCloseLost,
 }: {
   status: EnquiryStatus;
   onChangeStatus: (targetStatus?: EnquiryStatus) => void;
+  /** Opens the status modal pre-set to Closed/Lost — falls back to onChangeStatus("CLOSED")
+   * (which defaults to Won) if not provided. */
+  onCloseLost?: () => void;
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -16,7 +20,7 @@ export function QuickActions({
           <Button size="sm" variant="secondary" icon={<Calendar size={14} />} onClick={() => onChangeStatus("APPOINTMENT_FIXED")}>
             Appointment Fixed
           </Button>
-          <Button size="sm" variant="secondary" className="text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border-red-200" icon={<XOctagon size={14} />} onClick={() => onChangeStatus("CLOSED")}>
+          <Button size="sm" variant="secondary" className="text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border-red-200" icon={<XOctagon size={14} />} onClick={() => (onCloseLost ? onCloseLost() : onChangeStatus("CLOSED"))}>
             Close (Lost)
           </Button>
         </>

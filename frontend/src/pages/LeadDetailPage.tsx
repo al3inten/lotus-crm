@@ -62,6 +62,7 @@ export function LeadDetailPage() {
 
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [statusModalTarget, setStatusModalTarget] = useState<EnquiryStatus | undefined>();
+  const [statusModalOutcome, setStatusModalOutcome] = useState<"WON" | "LOST" | undefined>();
 
   const [showDetailsWizard, setShowDetailsWizard] = useState(false);
   const [showCustomerView, setShowCustomerView] = useState(false);
@@ -170,6 +171,13 @@ export function LeadDetailPage() {
 
   const handleQuickActionStatus = (target?: EnquiryStatus) => {
     setStatusModalTarget(target);
+    setStatusModalOutcome(undefined);
+    setShowStatusModal(true);
+  };
+
+  const handleCloseLost = () => {
+    setStatusModalTarget("CLOSED");
+    setStatusModalOutcome("LOST");
     setShowStatusModal(true);
   };
 
@@ -324,9 +332,11 @@ export function LeadDetailPage() {
             onCloseFollowUp={() => closeFollowUp.mutate({})}
             isClosingFollowUp={closeFollowUp.isPending}
             handleQuickActionStatus={handleQuickActionStatus}
+            handleCloseLost={handleCloseLost}
             showStatusModal={showStatusModal}
             setShowStatusModal={setShowStatusModal}
             statusModalTarget={statusModalTarget}
+            statusModalOutcome={statusModalOutcome}
             setShowFollowUpsModal={setShowFollowUpsModal}
             setShowTimelineModal={setShowTimelineModal}
             setShowContactHistoryModal={setShowContactHistoryModal}

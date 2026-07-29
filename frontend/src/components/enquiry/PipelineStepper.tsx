@@ -42,7 +42,8 @@ function stageDetails(status: EnquiryStatus, enquiry?: Enquiry): DetailRow[] {
         ? [{ label: "Appointment", value: new Date(enquiry.appointmentAt).toLocaleString() }]
         : [];
     case "TEST_DRIVE": {
-      const td = enquiry.testDriveFeedbacks?.[enquiry.testDriveFeedbacks.length - 1];
+      // testDriveFeedbacks comes from the API ordered createdAt desc — [0] is the latest.
+      const td = enquiry.testDriveFeedbacks?.[0];
       if (!td) return [];
       return [
         ...(td.carModel ? [{ label: "Vehicle", value: td.variant ? `${td.carModel} (${td.variant})` : td.carModel }] : []),

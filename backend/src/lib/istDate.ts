@@ -23,6 +23,14 @@ export function istDayKey(date: Date): string {
   return `${shifted.getUTCFullYear()}-${String(shifted.getUTCMonth() + 1).padStart(2, "0")}-${String(shifted.getUTCDate()).padStart(2, "0")}`;
 }
 
+/** Year/month(0-based)/day of an instant, read as IST wall-clock fields — use this instead of
+ * `Date.prototype.getFullYear/getMonth/getDate`, which read the server process's own timezone
+ * (UTC on Render), not IST. */
+export function istParts(date: Date): { year: number; month: number; day: number } {
+  const shifted = new Date(date.getTime() + IST_OFFSET_MS);
+  return { year: shifted.getUTCFullYear(), month: shifted.getUTCMonth(), day: shifted.getUTCDate() };
+}
+
 /** "Today"/"this week" bounds for whatever instant `now` is, as IST calendar days —
  * independent of the server process's own timezone. */
 export function istDayBounds(now = new Date()) {

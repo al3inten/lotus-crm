@@ -4,6 +4,7 @@ import { logger } from "../../lib/logger";
 import { NotFoundError, ValidationError } from "../../lib/errors";
 import * as whatsappSend from "../webhooks/whatsappSend.service";
 import { CreateMessageCampaignInput, SegmentFilters } from "./campaigns.schema";
+import { istDayStart, istDayEnd } from "../../lib/istDate";
 
 const SEND_DELAY_MS = 1200; // paced sending — keeps us well under WhatsApp's rate limits
 
@@ -37,8 +38,8 @@ function buildSegmentWhere(filters: SegmentFilters): Prisma.EnquiryWhereInput {
   if (filters.assignedCrId) where.assignedCrId = filters.assignedCrId;
   if (filters.dateFrom || filters.dateTo) {
     where.createdAt = {
-      ...(filters.dateFrom ? { gte: new Date(filters.dateFrom) } : {}),
-      ...(filters.dateTo ? { lte: new Date(filters.dateTo) } : {}),
+      ...(filters.dateFrom ? { gte: istDayStart(filters.dateFrom) } : {}),
+      ...(filters.dateTo ? { lte: istDayEnd(filters.dateTo) } : {}),
     };
   }
   return where;

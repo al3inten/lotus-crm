@@ -43,9 +43,11 @@ export function LeadPipelinePanel({
   onCloseFollowUp,
   isClosingFollowUp,
   handleQuickActionStatus,
+  handleCloseLost,
   showStatusModal,
   setShowStatusModal,
   statusModalTarget,
+  statusModalOutcome,
   setShowFollowUpsModal,
   setShowTimelineModal,
   setShowContactHistoryModal,
@@ -70,9 +72,11 @@ export function LeadPipelinePanel({
   onCloseFollowUp: () => void;
   isClosingFollowUp: boolean;
   handleQuickActionStatus: (target?: EnquiryStatus) => void;
+  handleCloseLost: () => void;
   showStatusModal: boolean;
   setShowStatusModal: (v: boolean) => void;
   statusModalTarget: EnquiryStatus | undefined;
+  statusModalOutcome: "WON" | "LOST" | undefined;
   setShowFollowUpsModal: (v: boolean) => void;
   setShowTimelineModal: (v: boolean) => void;
   setShowContactHistoryModal: (v: boolean) => void;
@@ -188,7 +192,7 @@ export function LeadPipelinePanel({
                   <Button size="sm" icon={<Zap size={13} />} onClick={openFollowUp}>
                     Add follow-up
                   </Button>
-                  <QuickActions status={enquiry.status} onChangeStatus={handleQuickActionStatus} />
+                  <QuickActions status={enquiry.status} onChangeStatus={handleQuickActionStatus} onCloseLost={handleCloseLost} />
                   <button
                     type="button"
                     onClick={() => handleQuickActionStatus(undefined)}
@@ -291,6 +295,7 @@ export function LeadPipelinePanel({
         isOpen={showStatusModal}
         onClose={() => setShowStatusModal(false)}
         initialTargetStatus={statusModalTarget}
+        initialOutcome={statusModalOutcome}
         hasCompletedTestDrive={(enquiry.testDriveFeedbacks ?? []).some((td) => !!td.completedAt)}
         currentConsultantId={enquiry.consultantId ?? undefined}
         enquiry={enquiry}

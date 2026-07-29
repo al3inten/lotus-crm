@@ -8,6 +8,7 @@ import { isIntegrationEnabled } from "../integrations/integrations.service";
 import { logger } from "../../lib/logger";
 import { getSystemUserId } from "../../lib/systemUser";
 import { applyCallResult, isTerminalCallStatus } from "../integrations/callmaticSync.service";
+import { istDayStart, istDayEnd } from "../../lib/istDate";
 
 // Every auto-dialed digital lead lands in this one persistent campaign rather than a
 // fresh campaign per enquiry — keeps outbound_call_campaigns from growing one row per lead.
@@ -261,8 +262,8 @@ export async function listCallLogs(query: ListCallLogsQuery) {
   if (query.status) where.status = query.status as CallStatus;
   if (query.dateFrom || query.dateTo) {
     where.createdAt = {
-      ...(query.dateFrom ? { gte: new Date(query.dateFrom) } : {}),
-      ...(query.dateTo ? { lte: new Date(query.dateTo) } : {}),
+      ...(query.dateFrom ? { gte: istDayStart(query.dateFrom) } : {}),
+      ...(query.dateTo ? { lte: istDayEnd(query.dateTo) } : {}),
     };
   }
 

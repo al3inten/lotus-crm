@@ -3,6 +3,7 @@ import ExcelJS from "exceljs";
 import { prisma } from "../../lib/prisma";
 import { ReportQuery, BreakdownQuery, BreakdownDimension } from "./reports.schema";
 import { cacheKey, getOrCompute } from "../../lib/simpleCache";
+import { istDayStart, istDayEnd } from "../../lib/istDate";
 
 // Heavy report aggregations (funnel, time-in-stage, vehicle performance) are read-only and
 // tolerate a short staleness window, so they're cached per distinct filter combination for
@@ -30,8 +31,8 @@ function buildWhere(query: ReportQuery, branchFilter?: { branchId: string }): Pr
   if (query.branchId) where.branchId = query.branchId;
   if (query.dateFrom || query.dateTo) {
     where.createdAt = {
-      ...(query.dateFrom ? { gte: new Date(query.dateFrom) } : {}),
-      ...(query.dateTo ? { lte: new Date(query.dateTo) } : {}),
+      ...(query.dateFrom ? { gte: istDayStart(query.dateFrom) } : {}),
+      ...(query.dateTo ? { lte: istDayEnd(query.dateTo) } : {}),
     };
   }
   return where;
@@ -48,8 +49,8 @@ function growthPercent(current: number, previous: number): number | null {
  */
 export async function getYearOverYear(query: ReportQuery, branchFilter?: { branchId: string }) {
   const now = new Date();
-  const currentFrom = query.dateFrom ? new Date(query.dateFrom) : new Date(now.getFullYear(), 0, 1);
-  const currentTo = query.dateTo ? new Date(query.dateTo) : now;
+  const currentFrom = query.dateFrom ? istDayStart(query.dateFrom) : new Date(now.getFullYear(), 0, 1);
+  const currentTo = query.dateTo ? istDayEnd(query.dateTo) : now;
 
   const previousFrom = new Date(currentFrom);
   previousFrom.setFullYear(previousFrom.getFullYear() - 1);
@@ -118,8 +119,8 @@ async function computeFunnel(query: ReportQuery, branchFilter?: { branchId: stri
       WHERE h."toStatus"::text = ANY(${FUNNEL_STAGES})
         ${branchFilter?.branchId ? Prisma.sql`AND e."branchId" = ${branchFilter.branchId}` : Prisma.empty}
         ${query.branchId ? Prisma.sql`AND e."branchId" = ${query.branchId}` : Prisma.empty}
-        ${query.dateFrom ? Prisma.sql`AND e."createdAt" >= ${new Date(query.dateFrom)}` : Prisma.empty}
-        ${query.dateTo ? Prisma.sql`AND e."createdAt" <= ${new Date(query.dateTo)}` : Prisma.empty}
+        ${query.dateFrom ? Prisma.sql`AND e."createdAt" >= ${istDayStart(query.dateFrom)}` : Prisma.empty}
+        ${query.dateTo ? Prisma.sql`AND e."createdAt" <= ${istDayEnd(query.dateTo)}` : Prisma.empty}
       GROUP BY h."toStatus"
     `
   );
@@ -162,8 +163,8 @@ async function computeTimeInStage(query: ReportQuery, branchFilter?: { branchId:
         WHERE 1=1
           ${branchFilter?.branchId ? Prisma.sql`AND e."branchId" = ${branchFilter.branchId}` : Prisma.empty}
           ${query.branchId ? Prisma.sql`AND e."branchId" = ${query.branchId}` : Prisma.empty}
-          ${query.dateFrom ? Prisma.sql`AND e."createdAt" >= ${new Date(query.dateFrom)}` : Prisma.empty}
-          ${query.dateTo ? Prisma.sql`AND e."createdAt" <= ${new Date(query.dateTo)}` : Prisma.empty}
+          ${query.dateFrom ? Prisma.sql`AND e."createdAt" >= ${istDayStart(query.dateFrom)}` : Prisma.empty}
+          ${query.dateTo ? Prisma.sql`AND e."createdAt" <= ${istDayEnd(query.dateTo)}` : Prisma.empty}
       )
       SELECT stage, AVG(hours_in_stage)::float AS "avgHours", COUNT(hours_in_stage)::bigint AS transitions
       FROM stage_durations
@@ -185,8 +186,8 @@ export async function getCallAnalysis(query: ReportQuery) {
   const where: Prisma.CallLogWhereInput = {};
   if (query.dateFrom || query.dateTo) {
     where.createdAt = {
-      ...(query.dateFrom ? { gte: new Date(query.dateFrom) } : {}),
-      ...(query.dateTo ? { lte: new Date(query.dateTo) } : {}),
+      ...(query.dateFrom ? { gte: istDayStart(query.dateFrom) } : {}),
+      ...(query.dateTo ? { lte: istDayEnd(query.dateTo) } : {}),
     };
   }
 
@@ -242,8 +243,13 @@ const REFERRAL_LEAD_ROW_CAP = 500;
 export async function getReferralLeads(query: ReportQuery, branchFilter?: { branchId: string }) {
   const where: Prisma.EnquiryWhereInput = { ...buildWhere(query, branchFilter), sourceCategory: "REFERRAL" };
 
-  const [total, enquiries] = await Promise.all([
+  const [total, converted, lost, enquiries] = await Promise.all([
     prisma.enquiry.count({ where }),
+    // Computed over the full where-clause, not just the capped `rows` below — a dealership
+    // with more referral leads than the row cap would otherwise show a converted/lost count
+    // (and conversion rate) that silently excludes everything past the cap.
+    prisma.enquiry.count({ where: { ...where, status: "RETAIL_DONE" } }),
+    prisma.enquiry.count({ where: { ...where, status: "CLOSED" } }),
     prisma.enquiry.findMany({
       where,
       include: {
@@ -257,6 +263,8 @@ export async function getReferralLeads(query: ReportQuery, branchFilter?: { bran
 
   return {
     total,
+    converted,
+    lost,
     rows: enquiries.map((e) => ({
       id: e.id,
       leadId: e.leadId,
@@ -640,8 +648,8 @@ async function computeVehiclePerformance(query: ReportQuery, branchFilter?: { br
   // (via GROUP BY + FILTER) instead of pulling every row into memory and reducing in JS.
   const branchSql = branchFilter?.branchId ? Prisma.sql`AND e."branchId" = ${branchFilter.branchId}` : Prisma.empty;
   const queryBranchSql = query.branchId ? Prisma.sql`AND e."branchId" = ${query.branchId}` : Prisma.empty;
-  const dateFromSql = query.dateFrom ? Prisma.sql`AND e."createdAt" >= ${new Date(query.dateFrom)}` : Prisma.empty;
-  const dateToSql = query.dateTo ? Prisma.sql`AND e."createdAt" <= ${new Date(query.dateTo)}` : Prisma.empty;
+  const dateFromSql = query.dateFrom ? Prisma.sql`AND e."createdAt" >= ${istDayStart(query.dateFrom)}` : Prisma.empty;
+  const dateToSql = query.dateTo ? Prisma.sql`AND e."createdAt" <= ${istDayEnd(query.dateTo)}` : Prisma.empty;
 
   const [totals, booked, converted, testDriveRows, quoteRows] = await Promise.all([
     prisma.enquiry.groupBy({ by: ["carModel"], where, _count: true }),

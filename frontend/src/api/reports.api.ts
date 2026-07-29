@@ -207,6 +207,9 @@ export interface ReferralLeadRow {
 
 export interface ReferralLeadsResult {
   total: number;
+  /** Converted/lost counts over the full filtered set — not just `rows`, which is capped. */
+  converted: number;
+  lost: number;
   rows: ReferralLeadRow[];
 }
 

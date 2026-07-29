@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { getSystemUserId } from "../../lib/systemUser";
 import { normalizePhone } from "../leads/phone.util";
@@ -55,14 +56,28 @@ export async function handleIncomingMessages(value: WhatsappChangeValue) {
         { allowAttach: true }
       );
 
-      conversation = await prisma.conversation.create({
-        data: {
-          channel: "WHATSAPP",
-          externalContactId: phoneNormalized,
-          contactName,
-          leadId: lead.id,
-        },
-      });
+      // Two webhook deliveries for the same brand-new contact can interleave and both reach
+      // here with conversation === null; the loser's create hits the unique
+      // (channel, externalContactId) constraint. Fall back to the winner's row instead of
+      // throwing, so this message still gets recorded against the same conversation.
+      try {
+        conversation = await prisma.conversation.create({
+          data: {
+            channel: "WHATSAPP",
+            externalContactId: phoneNormalized,
+            contactName,
+            leadId: lead.id,
+          },
+        });
+      } catch (err) {
+        if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+          conversation = await prisma.conversation.findUniqueOrThrow({
+            where: { channel_externalContactId: { channel: "WHATSAPP", externalContactId: phoneNormalized } },
+          });
+        } else {
+          throw err;
+        }
+      }
     }
 
     await prisma.chatMessage.create({

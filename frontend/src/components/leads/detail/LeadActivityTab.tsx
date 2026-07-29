@@ -109,6 +109,7 @@ export function LeadActivityTab({
   const addNote = useAddNote(enquiry.id);
   const [noteError, setNoteError] = useState<string | null>(null);
   const submitNote = () => {
+    if (addNote.isPending) return;
     const val = localNote.trim();
     if (!val) return;
     setNoteError(null);
