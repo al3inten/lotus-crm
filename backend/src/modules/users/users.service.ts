@@ -66,11 +66,17 @@ export async function listBranchUsers(branchId: string, role?: Role) {
   const users = await prisma.user.findMany({
     where: { branchId, ...(role ? { role } : {}) },
     include: {
-      roleDefinition: { select: { id: true, name: true } },
+      roleDefinition: { select: { id: true, name: true, restrictLeadsToOwn: true } },
     },
     orderBy: { name: "asc" },
   });
-  return users.map(sanitize);
+  // A user counts as CR-eligible (shows up in "assign a CR" dropdowns) either because
+  // their own isCr toggle is on, or because the role they already hold is itself a CR
+  // role (restrictLeadsToOwn) — no need to separately flip isCr in that case.
+  return users.map((u) => ({
+    ...sanitize(u),
+    isCrEligible: u.isCr || (u.roleDefinition?.restrictLeadsToOwn ?? false),
+  }));
 }
 
 /** Branch-wise directory: every branch with its staff grouped for the admin overview. */

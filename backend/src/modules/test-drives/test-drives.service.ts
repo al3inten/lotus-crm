@@ -19,21 +19,16 @@ function deriveStatus(scheduledAt: Date | null, completedAt: Date | null, now: D
   return "UPCOMING";
 }
 
-function buildEnquiryScope(query: TestDriveListQuery, ctx: TestDriveContext, canSeeOthers: boolean, crossBranch: boolean) {
+function buildEnquiryScope(query: TestDriveListQuery, ctx: TestDriveContext, crossBranch: boolean) {
   const enquiryWhere: Prisma.EnquiryWhereInput = {};
 
-  if (canSeeOthers) {
-    // Branch managers are pinned to their branch via branchFilter; admins are unscoped
-    // but may narrow to a branch. CR / consultant filters apply to anyone who can see others.
-    if (ctx.branchFilter) enquiryWhere.branchId = ctx.branchFilter.branchId;
-    if (crossBranch && query.branchId) enquiryWhere.branchId = query.branchId;
-    if (query.assignedCrId) enquiryWhere.assignedCrId = query.assignedCrId;
-    if (query.consultantId) enquiryWhere.consultantId = query.consultantId;
-  } else {
-    // Consultants no longer log in (they're directory entries, not Users), so the
-    // only "own-only" restriction left here is a CR restricted to their own leads.
-    enquiryWhere.assignedCrId = ctx.userId;
-  }
+  // restrictLeadsToOwn only gates writes (see requireEnquiryOwnership) — reading the
+  // list is unrestricted for everyone in scope. Branch managers are pinned to their
+  // branch via branchFilter; admins are unscoped but may narrow to a branch.
+  if (ctx.branchFilter) enquiryWhere.branchId = ctx.branchFilter.branchId;
+  if (crossBranch && query.branchId) enquiryWhere.branchId = query.branchId;
+  if (query.assignedCrId) enquiryWhere.assignedCrId = query.assignedCrId;
+  if (query.consultantId) enquiryWhere.consultantId = query.consultantId;
 
   if (query.search) {
     enquiryWhere.lead = {
@@ -50,10 +45,9 @@ function buildEnquiryScope(query: TestDriveListQuery, ctx: TestDriveContext, can
 }
 
 export async function getTestDrives(query: TestDriveListQuery, ctx: TestDriveContext) {
-  const canSeeOthers = !ctx.restrictLeadsToOwn;
   const crossBranch = ctx.role === "SUPER_ADMIN" || ctx.canViewAllBranches;
 
-  const enquiryWhere = buildEnquiryScope(query, ctx, canSeeOthers, crossBranch);
+  const enquiryWhere = buildEnquiryScope(query, ctx, crossBranch);
   const where: Prisma.TestDriveFeedbackWhereInput = { enquiry: { is: enquiryWhere } };
 
   const now = new Date();
@@ -191,7 +185,7 @@ export async function getTestDrives(query: TestDriveListQuery, ctx: TestDriveCon
     stats: { overdue, upcoming, completed, total },
     crs,
     consultants,
-    canSeeOthers,
+    canSeeOthers: true,
     crossBranch,
   };
 }

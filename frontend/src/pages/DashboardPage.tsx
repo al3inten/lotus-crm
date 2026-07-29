@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import clsx from "clsx";
 import {
@@ -17,7 +18,6 @@ import {
   useSourcePerformanceReport,
 } from "../hooks/useReports";
 import { useLeads, useReminders } from "../hooks/useLeads";
-import { useUpcomingFollowUps } from "../hooks/useFollowUps";
 import { Card } from "../components/common/Card";
 import { TrendChart } from "../components/reports/TrendChart";
 import { HBarList } from "../components/reports/HBarList";
@@ -64,7 +64,14 @@ function useVariants() {
 export function DashboardPage() {
   const { user } = useAuth();
   const variants = useVariants();
-  const canSeeStats = !!user && (user.role === "SUPER_ADMIN" || user.permissions.reports === "read" || user.permissions.reports === "write");
+  // Reports access unlocks BOTH scopes (org/branch-wide "Common" and personal "My
+  // stats") plus the toggle between them. Without it, the dashboard still shows
+  // stats — just locked to the viewer's own numbers, no toggle, no permission needed.
+  const hasReportsAccess = !!user && (user.role === "SUPER_ADMIN" || user.permissions.reports === "read" || user.permissions.reports === "write");
+
+  const [statsScope, setStatsScope] = useState<"common" | "mine">("common");
+  const effectiveScope = hasReportsAccess ? statsScope : "mine";
+  const scopeFilters = effectiveScope === "mine" && user ? { assignedCrId: user.id } : {};
 
   const { data: reminders } = useReminders();
   const actionItems =
@@ -75,17 +82,11 @@ export function DashboardPage() {
       return (due < now && due.toDateString() !== now.toDateString()) || due.toDateString() === now.toDateString();
     }) ?? [];
 
-  const { data: summary } = useSummaryReport({}, canSeeStats);
-  const { data: yoy } = useYoyReport({}, canSeeStats);
-  const { data: trend } = useTrendReport({ granularity: "week" }, canSeeStats);
-  const { data: sources } = useSourcePerformanceReport({}, canSeeStats);
-  const { data: recentLeads } = useLeads({ page: 1, pageSize: 6 });
-  const { data: upcomingFollowUps } = useUpcomingFollowUps({
-    timeframe: "week",
-    pageSize: 8,
-    sortBy: "dueDate",
-    order: "asc",
-  });
+  const { data: summary } = useSummaryReport(scopeFilters, !!user);
+  const { data: yoy } = useYoyReport(scopeFilters, !!user);
+  const { data: trend } = useTrendReport({ granularity: "week", ...scopeFilters }, !!user);
+  const { data: sources } = useSourcePerformanceReport(scopeFilters, !!user);
+  const { data: recentLeads } = useLeads({ page: 1, pageSize: 6, ...scopeFilters });
 
   const visibleActions = QUICK_ACTIONS.filter(
     (a) =>
@@ -94,11 +95,9 @@ export function DashboardPage() {
   );
   const maxSource = Math.max(1, ...(sources ?? []).map((s) => s.total));
   const conversionRate = yoy?.currentPeriod.conversionRate ?? 0;
-  const statsLoading = canSeeStats && !summary;
+  const statsLoading = !summary;
   const firstName = user?.name?.split(" ")[0];
-  const dueNowCount = canSeeStats
-    ? actionItems.length
-    : (upcomingFollowUps?.stats.overdue ?? 0) + (upcomingFollowUps?.stats.today ?? 0);
+  const dueNowCount = actionItems.length;
 
   return (
     <motion.div
@@ -152,8 +151,32 @@ export function DashboardPage() {
         </div>
       </motion.header>
 
-      {canSeeStats ? (
-        <>
+      <>
+          {/* ── Scope toggle: Common (branch/org) vs Mine (just this user) — only
+              shown when the viewer has Reports access to actually see Common data;
+              otherwise the dashboard is silently locked to their own stats below. ── */}
+          {hasReportsAccess && (
+            <motion.div variants={variants.item} className="flex justify-end">
+              <div className="inline-flex overflow-hidden rounded-lg border border-slate-200/70 bg-white p-0.5 dark:border-white/[0.07] dark:bg-white/[0.03]">
+                {(["common", "mine"] as const).map((scope) => (
+                  <button
+                    key={scope}
+                    type="button"
+                    onClick={() => setStatsScope(scope)}
+                    className={clsx(
+                      "rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors",
+                      statsScope === scope
+                        ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900"
+                        : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+                    )}
+                  >
+                    {scope === "common" ? "Common stats" : "My stats"}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
           {/* ── Stat ledger: one surface, hairline-divided ── */}
           <motion.div variants={variants.item}>
             {statsLoading ? (
@@ -299,19 +322,6 @@ export function DashboardPage() {
             </div>
           </div>
         </>
-      ) : (
-        /* ── Focused view for CR / consultant roles ── */
-        <motion.div variants={variants.item}>
-          <Card padded={false} className={clsx(SURFACE, "overflow-hidden")}>
-            <div className={clsx("border-b px-5 py-4", HAIRLINE)}>
-              <SectionHeader title="Your recent leads" to="/leads" cta="All leads" />
-            </div>
-            <div className="divide-y divide-slate-100 dark:divide-white/[0.05]">
-              <PipelineRows data={recentLeads} />
-            </div>
-          </Card>
-        </motion.div>
-      )}
     </motion.div>
   );
 }

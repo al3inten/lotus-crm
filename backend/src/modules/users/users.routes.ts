@@ -31,7 +31,10 @@ router.use(verifyJwt);
 // parameterised routes so "me"/"activity" aren't swallowed by "/:userId".
 router.post("/me/heartbeat", asyncHandler(heartbeatHandler));
 router.patch("/me/break", validateBody(setBreakSchema), asyncHandler(setBreakHandler));
-router.get("/activity", requirePermission("branches", "read"), asyncHandler(teamActivityHandler));
+// No permission gate deliberately — this powers the "Team Activity" widget shown
+// broadly on the Dashboard, not just an admin surface, and getTeamActivity() already
+// scopes results to the caller's own branch (or cross-branch only for canViewAllBranches).
+router.get("/activity", asyncHandler(teamActivityHandler));
 
 // Profile photo — self, or any staff member with branches-write access (enforced in handler).
 router.post("/:userId/avatar", uploadAvatar.single("file"), asyncHandler(uploadAvatarHandler));

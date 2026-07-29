@@ -10,6 +10,7 @@ function buildWhere(query: ReportQuery, branchFilter?: { branchId: string }): Pr
   const where: Prisma.EnquiryWhereInput = {};
   if (branchFilter) where.branchId = branchFilter.branchId;
   if (query.branchId) where.branchId = query.branchId;
+  if (query.assignedCrId) where.assignedCrId = query.assignedCrId;
   if (query.dateFrom || query.dateTo) {
     where.createdAt = {
       ...(query.dateFrom ? { gte: istDayStart(query.dateFrom) } : {}),
@@ -29,6 +30,7 @@ export async function getSummary(query: ReportQuery, branchFilter?: { branchId: 
   const overdueWhere: Prisma.EnquiryWhereInput = {
     ...(branchFilter ? { branchId: branchFilter.branchId } : {}),
     ...(query.branchId ? { branchId: query.branchId } : {}),
+    ...(query.assignedCrId ? { assignedCrId: query.assignedCrId } : {}),
     status: { notIn: [...TERMINAL_STATUSES] },
     followUpDueAt: { lt: new Date() },
   };
@@ -140,6 +142,7 @@ export async function getTrend(query: TrendQuery, branchFilter?: { branchId: str
   const branchId = branchFilter?.branchId ?? query.branchId ?? null;
   const dateFrom = query.dateFrom ? istDayStart(query.dateFrom) : null;
   const dateTo = query.dateTo ? istDayEnd(query.dateTo) : null;
+  const assignedCrId = query.assignedCrId ?? null;
 
   const rows = await prisma.$queryRaw<{ bucket: Date; total: bigint; converted: bigint; lost: bigint }[]>(
     Prisma.sql`
@@ -153,6 +156,7 @@ export async function getTrend(query: TrendQuery, branchFilter?: { branchId: str
         ${branchId ? Prisma.sql`AND "branchId" = ${branchId}` : Prisma.empty}
         ${dateFrom ? Prisma.sql`AND "createdAt" >= ${dateFrom}` : Prisma.empty}
         ${dateTo ? Prisma.sql`AND "createdAt" <= ${dateTo}` : Prisma.empty}
+        ${assignedCrId ? Prisma.sql`AND "assignedCrId" = ${assignedCrId}` : Prisma.empty}
       GROUP BY bucket
       ORDER BY bucket ASC
     `

@@ -168,7 +168,7 @@ export function AddLeadWizard({
     resolver: zodResolver(addLeadFormSchema),
     defaultValues: {
       branchId: user?.branchId ?? "",
-      assignedCrId: user?.isCr ? user.id : "",
+      assignedCrId: user?.isCr || user?.restrictLeadsToOwn ? user.id : "",
       forceNew: false,
       ...initialValues,
     },
@@ -179,7 +179,7 @@ export function AddLeadWizard({
     !!user && (user.role === "SUPER_ADMIN" || (user.permissions.leads === "write" && !user.restrictLeadsToOwn));
 
   const { data: branchStaff } = useBranchStaff(watch("branchId"), undefined, isOpen);
-  const crStaff = (branchStaff ?? []).filter((u) => u.isCr);
+  const crStaff = (branchStaff ?? []).filter((u) => u.isCrEligible);
   const { data: consultantStaff } = useConsultants(watch("branchId"), isOpen);
   const { data: vehicleModels } = useVehicleModels(isOpen);
   const selectedSourceCategory = watch("sourceCategory");
@@ -331,7 +331,7 @@ export function AddLeadWizard({
       // initialValues (e.g. the lead's saved address) into the form every time it reopens.
       reset({
         branchId: user?.branchId ?? "",
-        assignedCrId: user?.isCr ? user.id : "",
+        assignedCrId: user?.isCr || user?.restrictLeadsToOwn ? user.id : "",
         forceNew: false,
         ...initialValues,
       });

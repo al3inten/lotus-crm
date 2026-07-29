@@ -199,6 +199,10 @@ export interface User {
   restrictLeadsToOwn: boolean;
   /** Independent per-user toggle letting this user additionally act as a CR. */
   isCr: boolean;
+  /** isCr OR their role is itself a CR role (restrictLeadsToOwn) — only present on
+   *  branch-staff listing responses; use this (not raw isCr) to decide who shows up
+   *  in "assign a CR" dropdowns. */
+  isCrEligible?: boolean;
   roleDefinition?: { id: string; name: string } | null;
   branchId: string | null;
   branch?: { id: string; name: string } | null;

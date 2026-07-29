@@ -49,23 +49,33 @@ export async function loadAuthUser(userId: string) {
 }
 
 export async function verifyJwt(req: Request, _res: Response, next: NextFunction) {
-  const header = req.headers.authorization;
-  if (!header || !header.startsWith("Bearer ")) {
-    throw new UnauthorizedError("Missing or malformed Authorization header");
-  }
-
-  const token = header.slice("Bearer ".length);
-
-  let payload: { id: string };
+  // This is an async function (it does a DB lookup below), so a bare `throw` here would
+  // become an unhandled promise rejection instead of an Express-handled error — Express
+  // only auto-catches synchronous throws in middleware. verifyJwt is registered directly
+  // as middleware all over the app (not wrapped in asyncHandler), so every error path
+  // below must go through next(err) instead of throw, or one bad/expired token crashes
+  // the entire server process.
   try {
-    payload = jwt.verify(token, env.JWT_SECRET) as { id: string };
-  } catch {
-    throw new UnauthorizedError("Invalid or expired token");
+    const header = req.headers.authorization;
+    if (!header || !header.startsWith("Bearer ")) {
+      throw new UnauthorizedError("Missing or malformed Authorization header");
+    }
+
+    const token = header.slice("Bearer ".length);
+
+    let payload: { id: string };
+    try {
+      payload = jwt.verify(token, env.JWT_SECRET) as { id: string };
+    } catch {
+      throw new UnauthorizedError("Invalid or expired token");
+    }
+
+    const authUser = await loadAuthUser(payload.id);
+    if (!authUser) throw new UnauthorizedError("User no longer exists or is inactive");
+
+    req.user = authUser;
+    next();
+  } catch (err) {
+    next(err);
   }
-
-  const authUser = await loadAuthUser(payload.id);
-  if (!authUser) throw new UnauthorizedError("User no longer exists or is inactive");
-
-  req.user = authUser;
-  next();
 }
