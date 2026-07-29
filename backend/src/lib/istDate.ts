@@ -1,18 +1,27 @@
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 
 /**
- * A "YYYY-MM-DD" filter/display value always means a calendar day in IST (the dealership's
- * timezone), regardless of what timezone the server process happens to run in — Render runs
- * containers in UTC, so `new Date(y, m-1, d, 0,0,0,0)` (server-local) silently drifts by 5:30h
- * from what the IST-based frontend shows, letting rows fall on the wrong side of a date-range
- * filter. These build the UTC instant that IS that IST calendar-day boundary.
+ * A bare "YYYY-MM-DD" filter/display value always means a calendar day in IST (the
+ * dealership's timezone), regardless of what timezone the server process happens to run in —
+ * Render runs containers in UTC, so `new Date(y, m-1, d, 0,0,0,0)` (server-local) silently
+ * drifts by 5:30h from what the IST-based frontend shows, letting rows fall on the wrong side
+ * of a date-range filter. These build the UTC instant that IS that IST calendar-day boundary.
+ *
+ * Some callers (e.g. the Reports page) instead pass a full ISO datetime — already a precise,
+ * correct instant computed client-side (`someDate.toISOString()`) — not a bare calendar day.
+ * Re-deriving a "calendar day" from that string's date the way a bare "YYYY-MM-DD" is
+ * evaluated below would be wrong, since an ISO instant's own date portion may straddle a
+ * different IST calendar day than what the caller means. Detect that shape (a "T" separator)
+ * and pass it through unchanged.
  */
 export function istDayStart(dateStr: string): Date {
+  if (dateStr.includes("T")) return new Date(dateStr);
   const [y, m, d] = dateStr.split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, d, 0, 0, 0, 0) - IST_OFFSET_MS);
 }
 
 export function istDayEnd(dateStr: string): Date {
+  if (dateStr.includes("T")) return new Date(dateStr);
   const [y, m, d] = dateStr.split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, d, 23, 59, 59, 999) - IST_OFFSET_MS);
 }
