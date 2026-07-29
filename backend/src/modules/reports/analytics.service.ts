@@ -783,8 +783,11 @@ function buildExportWhere(query: ReportQuery, branchFilter?: { branchId: string 
   // only used as a fallback for rows predating referrerPhone.
   if (query.referrerPhone) where.referrerPhone = query.referrerPhone;
   else if (query.referrerName) where.referrerName = query.referrerName;
-  // Same "overdue" definition as getSummary/getCrPerformance — still open, follow-up past due.
+  // Same "overdue" definition as getSummary/getCrPerformance — still open, follow-up past
+  // due, independent of the page's createdAt date range (an old lead with an overdue
+  // follow-up is still overdue today even if it falls outside the selected range).
   if (query.overdue) {
+    delete where.createdAt;
     where.status = { notIn: [...TERMINAL_STATUSES] };
     where.followUpDueAt = { lt: new Date() };
   }
