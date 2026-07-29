@@ -151,6 +151,7 @@ export function LeadPipelinePanel({
               appointmentScheduled={enquiry.appointmentScheduled}
               testDriveBooked={enquiry.testDriveInterested || (enquiry.testDriveFeedbacks?.length ?? 0) > 0}
               onStageClick={canAct ? handleQuickActionStatus : undefined}
+              enquiry={enquiry}
             />
           </div>
 

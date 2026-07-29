@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { Check, Inbox, CalendarCheck, Car, BadgeCheck, Trophy, FileCheck2, Truck, Ban, Flag, MousePointerClick, CalendarDays, User2, MessageSquareText } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import clsx from "clsx";
-import { ALLOWED_TRANSITIONS, type EnquiryStatus, type EnquiryStatusHistoryEntry } from "../../types";
+import { ALLOWED_TRANSITIONS, type Enquiry, type EnquiryStatus, type EnquiryStatusHistoryEntry } from "../../types";
 import { Modal } from "../common/Modal";
 
 // The stepper milestones. UNDER_FOLLOW_UP is deliberately NOT a node — it's a sub-state
@@ -20,6 +20,72 @@ const MAIN_PATH: { status: EnquiryStatus; label: string; Icon: LucideIcon }[] = 
 // UNDER_FOLLOW_UP sits at the "New" milestone visually.
 const statusToPathIndex = (status: EnquiryStatus) =>
   status === "UNDER_FOLLOW_UP" ? 0 : MAIN_PATH.findIndex((s) => s.status === status);
+
+interface DetailRow {
+  label: string;
+  value: string;
+}
+
+// What actually happened during each stage, pulled from the enquiry's own records rather
+// than statusHistory (which only knows the status transition, not the stage's content).
+function stageDetails(status: EnquiryStatus, enquiry?: Enquiry): DetailRow[] {
+  if (!enquiry) return [];
+  switch (status) {
+    case "NEW":
+      return [
+        { label: "Source", value: enquiry.source },
+        ...(enquiry.subsource ? [{ label: "Subsource", value: enquiry.subsource }] : []),
+        ...(enquiry.referrerName ? [{ label: "Referrer", value: enquiry.referrerName }] : []),
+      ];
+    case "APPOINTMENT_FIXED":
+      return enquiry.appointmentAt
+        ? [{ label: "Appointment", value: new Date(enquiry.appointmentAt).toLocaleString() }]
+        : [];
+    case "TEST_DRIVE": {
+      const td = enquiry.testDriveFeedbacks?.[enquiry.testDriveFeedbacks.length - 1];
+      if (!td) return [];
+      return [
+        ...(td.carModel ? [{ label: "Vehicle", value: td.variant ? `${td.carModel} (${td.variant})` : td.carModel }] : []),
+        ...(td.completedAt ? [{ label: "Completed", value: new Date(td.completedAt).toLocaleString() }] : []),
+        ...(td.rating ? [{ label: "Rating", value: `${td.rating}/5` }] : []),
+        ...(td.comments ? [{ label: "Feedback", value: td.comments }] : []),
+      ];
+    }
+    case "BOOKED": {
+      const rows: DetailRow[] = [];
+      if (enquiry.quotation) rows.push({ label: "Final price", value: enquiry.quotation.finalPrice });
+      if (enquiry.exchangeEvaluation) {
+        rows.push({
+          label: "Exchange",
+          value: `${enquiry.exchangeEvaluation.oldCarMake} ${enquiry.exchangeEvaluation.oldCarModel} · ${enquiry.exchangeEvaluation.valuationAmount}`,
+        });
+      }
+      if (enquiry.financeRequired) rows.push({ label: "Finance", value: enquiry.financeApplication?.status ?? "Required" });
+      if (enquiry.bookedAt) rows.push({ label: "Booked on", value: new Date(enquiry.bookedAt).toLocaleString() });
+      return rows;
+    }
+    case "RETAIL_DONE":
+      return enquiry.retailDoneAt ? [{ label: "Retail done", value: new Date(enquiry.retailDoneAt).toLocaleString() }] : [];
+    case "RTO_DONE":
+      return [
+        ...(enquiry.rtoDoneAt ? [{ label: "RTO done", value: new Date(enquiry.rtoDoneAt).toLocaleString() }] : []),
+        ...(enquiry.colour ? [{ label: "Colour", value: enquiry.colour }] : []),
+      ];
+    case "DELIVERED": {
+      const d = enquiry.deliveryDetails;
+      if (!d) return enquiry.deliveredAt ? [{ label: "Delivered", value: new Date(enquiry.deliveredAt).toLocaleString() }] : [];
+      return [
+        { label: "Delivered", value: d.deliveredAt ? new Date(d.deliveredAt).toLocaleString() : "—" },
+        { label: "RC transfer", value: d.rcTransferDone ? "Done" : "Pending" },
+        { label: "Insurance", value: d.insuranceDone ? "Done" : "Pending" },
+        { label: "Accessories", value: d.accessoriesFitted ? "Fitted" : "Pending" },
+        ...(d.notes ? [{ label: "Notes", value: d.notes }] : []),
+      ];
+    }
+    default:
+      return [];
+  }
+}
 
 type NodeTone = "blue" | "green" | "red" | "muted";
 
@@ -108,7 +174,7 @@ function StageNode({
   return (
     <div
       className={clsx(
-        "relative flex w-20 flex-col items-center gap-1.5 p-1 sm:w-28",
+        "relative flex w-20 shrink-0 flex-col items-center gap-1.5 p-1 sm:w-28",
         clickable && "group cursor-pointer transition-transform hover:-translate-y-0.5"
       )}
       onClick={clickable ? onClick : undefined}
@@ -162,7 +228,7 @@ function StageNode({
 }
 
 function Connector({ tone }: { tone: NodeTone }) {
-  return <div className={clsx("mt-[38px] h-[3px] w-8 shrink-0 rounded-full sm:w-12", CONNECTOR[tone])} />;
+  return <div aria-hidden className={clsx("mt-[38px] h-[3px] min-w-6 flex-1 rounded-full sm:min-w-8", CONNECTOR[tone])} />;
 }
 
 /**
@@ -177,6 +243,7 @@ export function PipelineStepper({
   appointmentScheduled,
   testDriveBooked,
   onStageClick,
+  enquiry,
 }: PipelineStepperProps) {
   const isClosed = status === "CLOSED";
   const isLost = isClosed && !!lossReason;
@@ -208,6 +275,7 @@ export function PipelineStepper({
   // A completed stage is clicked to view when/who/why it happened, not to change status.
   const [detailsStage, setDetailsStage] = useState<(typeof MAIN_PATH)[number] | null>(null);
   const detailsEntry = detailsStage ? (statusHistory ?? []).find((h) => h.toStatus === detailsStage.status) : undefined;
+  const detailsRows = detailsStage ? stageDetails(detailsStage.status, enquiry) : [];
 
   return (
     <div className="flex flex-col">
@@ -220,7 +288,7 @@ export function PipelineStepper({
       <div className="relative min-w-0">
         <div className="overflow-x-auto pb-4">
           <div className="flex min-w-max flex-col">
-            <div className="flex items-start">
+            <div className="flex w-full items-start">
               {MAIN_PATH.map((step, index) => {
               const done = index < currentIndex;
               const current = index === currentIndex;
@@ -277,7 +345,7 @@ export function PipelineStepper({
                 : () => setDetailsStage(step);
 
               return (
-                <div key={step.status} className="flex items-start">
+                <Fragment key={step.status}>
                   {index > 0 && <Connector tone={connectorTone} />}
                   <StageNode
                     number={index + 1}
@@ -291,27 +359,27 @@ export function PipelineStepper({
                     hint={canChangeStatus ? undefined : "Click for stage details"}
                     onClick={handleClick}
                   />
-                </div>
+                </Fragment>
               );
             })}
             </div>
 
             {isClosed && (
-              <div className="relative mt-1 flex items-start">
+              <div className="relative mt-1 flex w-full items-start">
                 {MAIN_PATH.map((step, index) => {
                   if (index < currentIndex) {
                     return (
-                      <div key={step.status} className="flex shrink-0">
-                        {index > 0 && <div className="w-8 shrink-0 sm:w-12" />}
+                      <Fragment key={step.status}>
+                        {index > 0 && <div aria-hidden className="min-w-6 flex-1 sm:min-w-8" />}
                         <div className="w-20 shrink-0 sm:w-28" />
-                      </div>
+                      </Fragment>
                     );
                   }
                   if (index === currentIndex) {
                     return (
-                      <div key={step.status} className="flex shrink-0">
-                        {index > 0 && <div className="w-8 shrink-0 sm:w-12" />}
-                        <div className="relative">
+                      <Fragment key={step.status}>
+                        {index > 0 && <div aria-hidden className="min-w-6 flex-1 sm:min-w-8" />}
+                        <div className="relative shrink-0">
                           {/* Vertical drop centered under the stage the enquiry was closed from,
                               so the branch clearly forks out of that exact stage. */}
                           <span
@@ -342,7 +410,7 @@ export function PipelineStepper({
                             />
                           </div>
                         </div>
-                      </div>
+                      </Fragment>
                     );
                   }
                   return null;
@@ -373,6 +441,16 @@ export function PipelineStepper({
                 <p className="leading-relaxed">{detailsEntry.note}</p>
               </div>
             )}
+            {detailsRows.length > 0 && (
+              <div className="flex flex-col gap-2 border-t border-slate-100 pt-3 dark:border-white/[0.06]">
+                {detailsRows.map((row) => (
+                  <div key={row.label} className="flex items-start justify-between gap-3">
+                    <span className="shrink-0 text-slate-400 dark:text-slate-500">{row.label}</span>
+                    <span className="text-right font-medium text-slate-700 dark:text-slate-200">{row.value}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </Modal>
@@ -391,4 +469,7 @@ interface PipelineStepperProps {
   /** Called when a CR clicks a pipeline node to change status — with the target stage for a
    * next-stage node, or undefined for the current node (opens the modal to pick any move). */
   onStageClick?: (status?: EnquiryStatus) => void;
+  /** Source for the stage-details modal — what actually happened at each stage (vehicle,
+   * price, finance, delivery checklist, etc), beyond just the status-change timestamp. */
+  enquiry?: Enquiry;
 }
