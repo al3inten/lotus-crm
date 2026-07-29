@@ -285,6 +285,9 @@ model RoleDefinition {
   permissions        Json // { [section: ModuleKey]: "none" | "read" | "write" }
   canViewAllBranches Boolean  @default(false)
   restrictLeadsToOwn Boolean  @default(false)
+  // Only meaningful when restrictLeadsToOwn is true: lets the CR view (not edit/change-status
+  // on) leads assigned to other CRs in their own branch, instead of only their own.
+  canViewBranchLeads Boolean  @default(false)
   isActive           Boolean  @default(true)
   // True only for the built-in seeded "CR" role — its name can't be renamed and the
   // role can't be deleted, but its permissions/toggles stay fully editable like any

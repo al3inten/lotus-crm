@@ -11,6 +11,7 @@ export const createRoleSchema = z.object({
   permissions: permissionsMapSchema,
   canViewAllBranches: z.boolean().optional().default(false),
   restrictLeadsToOwn: z.boolean().optional().default(false),
+  canViewBranchLeads: z.boolean().optional().default(false),
 });
 
 export const updateRoleSchema = z.object({
@@ -18,6 +19,7 @@ export const updateRoleSchema = z.object({
   permissions: permissionsMapSchema.optional(),
   canViewAllBranches: z.boolean().optional(),
   restrictLeadsToOwn: z.boolean().optional(),
+  canViewBranchLeads: z.boolean().optional(),
   isActive: z.boolean().optional(),
 });
 

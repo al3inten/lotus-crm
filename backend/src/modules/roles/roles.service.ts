@@ -32,6 +32,7 @@ export async function createRole(input: CreateRoleInput) {
       permissions: input.permissions,
       canViewAllBranches: input.canViewAllBranches,
       restrictLeadsToOwn: input.restrictLeadsToOwn,
+      canViewBranchLeads: input.canViewBranchLeads,
     },
   });
 }

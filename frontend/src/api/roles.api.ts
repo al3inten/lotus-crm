@@ -7,6 +7,7 @@ export interface CreateRolePayload {
   permissions: ModulePermissions;
   canViewAllBranches: boolean;
   restrictLeadsToOwn: boolean;
+  canViewBranchLeads: boolean;
 }
 
 export interface UpdateRolePayload {
@@ -14,6 +15,7 @@ export interface UpdateRolePayload {
   permissions?: ModulePermissions;
   canViewAllBranches?: boolean;
   restrictLeadsToOwn?: boolean;
+  canViewBranchLeads?: boolean;
   isActive?: boolean;
 }
 

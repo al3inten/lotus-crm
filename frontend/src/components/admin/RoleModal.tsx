@@ -69,6 +69,7 @@ export function RoleModal({ isOpen, onClose, branches, editing, defaultBranchId 
   const [permissions, setPermissions] = useState<ModulePermissions>(DEFAULT_PERMISSIONS);
   const [canViewAllBranches, setCanViewAllBranches] = useState(false);
   const [restrictLeadsToOwn, setRestrictLeadsToOwn] = useState(false);
+  const [canViewBranchLeads, setCanViewBranchLeads] = useState(false);
 
   useEffect(() => {
     if (editing) {
@@ -77,12 +78,14 @@ export function RoleModal({ isOpen, onClose, branches, editing, defaultBranchId 
       setPermissions({ ...emptyPermissions(), ...editing.permissions });
       setCanViewAllBranches(editing.canViewAllBranches);
       setRestrictLeadsToOwn(editing.restrictLeadsToOwn);
+      setCanViewBranchLeads(editing.canViewBranchLeads);
     } else {
       setName("");
       setBranchId(defaultBranchId ?? "");
       setPermissions(DEFAULT_PERMISSIONS);
       setCanViewAllBranches(false);
       setRestrictLeadsToOwn(false);
+      setCanViewBranchLeads(false);
     }
   }, [editing, defaultBranchId, isOpen]);
 
@@ -98,12 +101,12 @@ export function RoleModal({ isOpen, onClose, branches, editing, defaultBranchId 
     if (!name || !hasAnyAccess) return;
     if (editing) {
       updateRole.mutate(
-        { roleId: editing.id, payload: { name, permissions, canViewAllBranches, restrictLeadsToOwn } },
+        { roleId: editing.id, payload: { name, permissions, canViewAllBranches, restrictLeadsToOwn, canViewBranchLeads } },
         { onSuccess: onClose }
       );
     } else {
       createRole.mutate(
-        { name, branchId: branchId || null, permissions, canViewAllBranches, restrictLeadsToOwn },
+        { name, branchId: branchId || null, permissions, canViewAllBranches, restrictLeadsToOwn, canViewBranchLeads },
         { onSuccess: onClose }
       );
     }
@@ -155,12 +158,25 @@ export function RoleModal({ isOpen, onClose, branches, editing, defaultBranchId 
                   <LevelPicker value={permissions[module.key]} onChange={(v) => setLevel(module.key, v)} />
                 </div>
                 {module.key === "leads" && (
-                  <div className="ml-0 rounded-md bg-gray-50 px-2.5 py-2">
+                  <div className="ml-0 flex flex-col gap-2 rounded-md bg-gray-50 px-2.5 py-2">
                     <Toggle
                       label="Restrict to only leads assigned to me"
                       checked={restrictLeadsToOwn}
-                      onChange={setRestrictLeadsToOwn}
+                      onChange={(v) => {
+                        setRestrictLeadsToOwn(v);
+                        if (!v) setCanViewBranchLeads(false);
+                      }}
                     />
+                    {restrictLeadsToOwn && (
+                      <div className="ml-4 border-l-2 border-gray-200 pl-2.5">
+                        <Toggle
+                          label="Can view other CRs' leads in this branch"
+                          description="Still can't edit or change status on a lead unless it's assigned to them"
+                          checked={canViewBranchLeads}
+                          onChange={setCanViewBranchLeads}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

@@ -21,7 +21,13 @@ export async function loadAuthUser(userId: string) {
     where: { id: userId },
     include: {
       roleDefinition: {
-        select: { permissions: true, canViewAllBranches: true, restrictLeadsToOwn: true, isActive: true },
+        select: {
+          permissions: true,
+          canViewAllBranches: true,
+          restrictLeadsToOwn: true,
+          canViewBranchLeads: true,
+          isActive: true,
+        },
       },
     },
   });
@@ -44,6 +50,7 @@ export async function loadAuthUser(userId: string) {
     permissions,
     canViewAllBranches: user.role === "SUPER_ADMIN" || (roleDefinition?.canViewAllBranches ?? false),
     restrictLeadsToOwn: user.role === "SUPER_ADMIN" ? false : (roleDefinition?.restrictLeadsToOwn ?? false),
+    canViewBranchLeads: user.role === "SUPER_ADMIN" || (roleDefinition?.canViewBranchLeads ?? false),
     isCr: user.isCr,
   };
 }

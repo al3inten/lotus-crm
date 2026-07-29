@@ -179,6 +179,9 @@ export interface RoleDefinition {
   permissions: ModulePermissions;
   canViewAllBranches: boolean;
   restrictLeadsToOwn: boolean;
+  /** Only meaningful when restrictLeadsToOwn is true: lets this role view (not edit) leads
+   * assigned to other CRs in their own branch, instead of only their own. */
+  canViewBranchLeads: boolean;
   isActive: boolean;
   /** True only for the built-in seeded "CR" role — name locked, can't be deleted. */
   isSystemDefault: boolean;
@@ -197,6 +200,9 @@ export interface User {
   permissions: ModulePermissions;
   canViewAllBranches: boolean;
   restrictLeadsToOwn: boolean;
+  /** Only meaningful when restrictLeadsToOwn is true: lets this user view (not edit) leads
+   * assigned to other CRs in their own branch, instead of only their own. */
+  canViewBranchLeads: boolean;
   /** Independent per-user toggle letting this user additionally act as a CR. */
   isCr: boolean;
   /** isCr OR their role is itself a CR role (restrictLeadsToOwn) — only present on

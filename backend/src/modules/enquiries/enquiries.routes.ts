@@ -2,7 +2,7 @@ import { Router } from "express";
 import { asyncHandler } from "../../lib/asyncHandler";
 import { verifyJwt } from "../../middleware/auth";
 import { requirePermission } from "../../middleware/rbac";
-import { requireEnquiryOwnership } from "../../middleware/enquiryOwnership";
+import { requireEnquiryOwnership, requireEnquiryViewAccess } from "../../middleware/enquiryOwnership";
 import { validateBody } from "../../middleware/validate";
 import {
   changeStatusSchema,
@@ -54,10 +54,11 @@ router.use(verifyJwt);
 
 const ownership = asyncHandler(requireEnquiryOwnership);
 
-// Viewing a lead is always allowed regardless of assignment (only the mutating routes
-// below additionally restrict CR_TEAM to enquiries assigned to them) — but branch scoping
-// still applies, so `ownership` is used here too to keep cross-branch enquiries out of reach.
-router.get("/:enquiryId", ownership, asyncHandler(getEnquiryHandler));
+// Viewing a lead is gated by requireEnquiryViewAccess: branch scoping always applies, and
+// restrictLeadsToOwn additionally locks it to "assigned to me" unless canViewBranchLeads
+// widens that to the whole branch. The mutating routes below always use the stricter
+// requireEnquiryOwnership regardless of canViewBranchLeads.
+router.get("/:enquiryId", asyncHandler(requireEnquiryViewAccess), asyncHandler(getEnquiryHandler));
 
 router.patch("/:enquiryId/status", ownership, validateBody(changeStatusSchema), asyncHandler(changeStatusHandler));
 router.patch("/:enquiryId/details", ownership, validateBody(enquiryDetailsSchema), asyncHandler(updateDetailsHandler));
