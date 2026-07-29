@@ -16,8 +16,11 @@ export async function createUserHandler(req: Request, res: Response) {
 
 export async function listBranchUsersHandler(req: Request, res: Response) {
   const branchId = req.params.branchId;
-  const role = req.query.role as Role | undefined;
-  const users = await usersService.listBranchUsers(branchId, role);
+  const roleParam = req.query.role as string | undefined;
+  if (roleParam !== undefined && !(Object.values(Role) as string[]).includes(roleParam)) {
+    throw new ValidationError(`Invalid role: ${roleParam}`);
+  }
+  const users = await usersService.listBranchUsers(branchId, roleParam as Role | undefined);
   res.json(users);
 }
 
