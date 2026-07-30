@@ -173,7 +173,6 @@ export function LeadPipelinePanel({
           <div className={clsx("p-6", moodStyle.border && "border-l-2", moodStyle.border)}>
             <PipelineStepper
               status={enquiry.status}
-              lossReason={enquiry.lossReason}
               statusHistory={enquiry.statusHistory}
               appointmentScheduled={enquiry.appointmentScheduled}
               testDriveBooked={enquiry.testDriveInterested || (enquiry.testDriveFeedbacks?.length ?? 0) > 0}

@@ -8,6 +8,7 @@ export interface CreateRolePayload {
   canViewAllBranches: boolean;
   restrictLeadsToOwn: boolean;
   canReassignCustomerCr: boolean;
+  canViewBranchLeads: boolean;
 }
 
 export interface UpdateRolePayload {
@@ -16,6 +17,7 @@ export interface UpdateRolePayload {
   canViewAllBranches?: boolean;
   restrictLeadsToOwn?: boolean;
   canReassignCustomerCr?: boolean;
+  canViewBranchLeads?: boolean;
   isActive?: boolean;
 }
 

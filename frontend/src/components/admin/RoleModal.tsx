@@ -70,6 +70,7 @@ export function RoleModal({ isOpen, onClose, branches, editing, defaultBranchId 
   const [canViewAllBranches, setCanViewAllBranches] = useState(false);
   const [restrictLeadsToOwn, setRestrictLeadsToOwn] = useState(false);
   const [canReassignCustomerCr, setCanReassignCustomerCr] = useState(false);
+  const [canViewBranchLeads, setCanViewBranchLeads] = useState(false);
 
   useEffect(() => {
     if (editing) {
@@ -79,6 +80,7 @@ export function RoleModal({ isOpen, onClose, branches, editing, defaultBranchId 
       setCanViewAllBranches(editing.canViewAllBranches);
       setRestrictLeadsToOwn(editing.restrictLeadsToOwn);
       setCanReassignCustomerCr(editing.canReassignCustomerCr);
+      setCanViewBranchLeads(editing.canViewBranchLeads);
     } else {
       setName("");
       setBranchId(defaultBranchId ?? "");
@@ -86,6 +88,7 @@ export function RoleModal({ isOpen, onClose, branches, editing, defaultBranchId 
       setCanViewAllBranches(false);
       setRestrictLeadsToOwn(false);
       setCanReassignCustomerCr(false);
+      setCanViewBranchLeads(false);
     }
   }, [editing, defaultBranchId, isOpen]);
 
@@ -101,12 +104,15 @@ export function RoleModal({ isOpen, onClose, branches, editing, defaultBranchId 
     if (!name || !hasAnyAccess) return;
     if (editing) {
       updateRole.mutate(
-        { roleId: editing.id, payload: { name, permissions, canViewAllBranches, restrictLeadsToOwn, canReassignCustomerCr } },
+        {
+          roleId: editing.id,
+          payload: { name, permissions, canViewAllBranches, restrictLeadsToOwn, canReassignCustomerCr, canViewBranchLeads },
+        },
         { onSuccess: onClose }
       );
     } else {
       createRole.mutate(
-        { name, branchId: branchId || null, permissions, canViewAllBranches, restrictLeadsToOwn, canReassignCustomerCr },
+        { name, branchId: branchId || null, permissions, canViewAllBranches, restrictLeadsToOwn, canReassignCustomerCr, canViewBranchLeads },
         { onSuccess: onClose }
       );
     }
@@ -161,10 +167,27 @@ export function RoleModal({ isOpen, onClose, branches, editing, defaultBranchId 
                   <div className="ml-0 flex flex-col gap-2 rounded-md bg-gray-50 px-2.5 py-2">
                     <Toggle
                       label="Can only edit leads assigned to me"
-                      description="Every lead in the branch is still visible — this only blocks editing/acting on leads assigned to someone else."
+                      description={
+                        canViewBranchLeads
+                          ? "Every lead in the branch is still visible — this only blocks editing/acting on leads assigned to someone else."
+                          : "Also hides leads assigned to someone else, unless \"Can view other CRs' leads\" below is on."
+                      }
                       checked={restrictLeadsToOwn}
-                      onChange={setRestrictLeadsToOwn}
+                      onChange={(v) => {
+                        setRestrictLeadsToOwn(v);
+                        if (!v) setCanViewBranchLeads(false);
+                      }}
                     />
+                    {restrictLeadsToOwn && (
+                      <div className="ml-4 border-l-2 border-gray-200 pl-2.5">
+                        <Toggle
+                          label="Can view other CRs' leads in this branch"
+                          description="Still can't edit or change status on a lead unless it's assigned to them."
+                          checked={canViewBranchLeads}
+                          onChange={setCanViewBranchLeads}
+                        />
+                      </div>
+                    )}
                     <Toggle
                       label="Can reassign a customer's CR"
                       description="Every enquiry a customer has is owned by one CR at a time — this lets the role move that ownership to a different CR. Super Admin can always do this regardless of this toggle."

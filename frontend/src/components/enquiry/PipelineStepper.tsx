@@ -239,7 +239,6 @@ function Connector({ tone }: { tone: NodeTone }) {
  */
 export function PipelineStepper({
   status,
-  lossReason,
   statusHistory,
   appointmentScheduled,
   testDriveBooked,
@@ -443,7 +442,6 @@ export function PipelineStepper({
 
 interface PipelineStepperProps {
   status: EnquiryStatus;
-  lossReason?: string | null;
   statusHistory?: EnquiryStatusHistoryEntry[];
   /** Appointment booked at intake — marks the Appointment stage even before the status moves there. */
   appointmentScheduled?: boolean;

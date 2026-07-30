@@ -210,6 +210,9 @@ export interface RoleDefinition {
   /** Lets this role reassign a customer's owning CR (moves every one of that
    *  customer's enquiries at once). SUPER_ADMIN always can, regardless of this. */
   canReassignCustomerCr: boolean;
+  /** Only meaningful when restrictLeadsToOwn is true: lets this role view (not edit) leads
+   * assigned to other CRs in their own branch, instead of only their own. */
+  canViewBranchLeads: boolean;
   isActive: boolean;
   /** True only for the built-in seeded "CR" role — name locked, can't be deleted. */
   isSystemDefault: boolean;
@@ -230,6 +233,9 @@ export interface User {
   restrictLeadsToOwn: boolean;
   /** Lets this user reassign a customer's owning CR — SUPER_ADMIN always has this. */
   canReassignCustomerCr: boolean;
+  /** Only meaningful when restrictLeadsToOwn is true: lets this user view (not edit) leads
+   * assigned to other CRs in their own branch, instead of only their own. */
+  canViewBranchLeads: boolean;
   /** Independent per-user toggle letting this user additionally act as a CR. */
   isCr: boolean;
   /** isCr OR their role is itself a CR role (restrictLeadsToOwn) — only present on
