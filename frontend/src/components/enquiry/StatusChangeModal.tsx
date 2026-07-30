@@ -14,7 +14,6 @@ import {
   PhoneCall,
   Save,
   Sparkles,
-  Trophy,
   XCircle,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -26,7 +25,7 @@ import { Button } from "../common/Button";
 import { StatusBadge } from "../common/StatusBadge";
 import { statusChangeFormSchema } from "../../schemas/enquiry.schema";
 import type { StatusChangeFormValues } from "../../schemas/enquiry.schema";
-import { ALLOWED_TRANSITIONS, LOSS_REASONS, STATUS_LABELS } from "../../types";
+import { ALLOWED_TRANSITIONS, LOST_REASONS, LOST_REASON_LABELS, CLOSE_REASONS, CLOSE_REASON_LABELS, STATUS_LABELS } from "../../types";
 import type { EnquiryStatus, Enquiry } from "../../types";
 import {
   useChangeStatus,
@@ -52,7 +51,8 @@ const STATUS_ICONS: Record<EnquiryStatus, LucideIcon> = {
   RETAIL_DONE: FileCheck2,
   RTO_DONE: FileCheck2,
   DELIVERED: PackageCheck,
-  CLOSED: CircleSlash,
+  CLOSED_TEMP: CircleSlash,
+  LOST: XCircle,
 };
 
 /** A compact Yes/No pair for the finance checklist. */
@@ -99,9 +99,6 @@ interface StatusChangeModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialTargetStatus?: EnquiryStatus;
-  /** Pre-selects the Won/Lost toggle when opening straight to a Closed target — e.g. the
-   * "Close (Lost)" quick action must not silently default to Won. */
-  initialOutcome?: "WON" | "LOST";
   /** Whether the enquiry has at least one completed test drive — required before Booking. */
   hasCompletedTestDrive?: boolean;
   /** Consultant already assigned to the enquiry — prefills the consultant dropdown. */
@@ -117,12 +114,10 @@ export function StatusChangeModal({
   isOpen,
   onClose,
   initialTargetStatus,
-  initialOutcome,
   hasCompletedTestDrive,
   currentConsultantId,
   enquiry,
 }: StatusChangeModalProps) {
-  const [outcome, setOutcome] = useState<"WON" | "LOST">("WON");
   // Feedback for the standalone "Save progress" action on the finance checklist — cleared
   // whenever the modal is reopened or the user changes something after saving.
   const [progressSaved, setProgressSaved] = useState(false);
@@ -185,13 +180,12 @@ export function StatusChangeModal({
         dob: enquiry?.lead?.dob ? enquiry.lead.dob.slice(0, 10) : undefined,
         profession: enquiry?.lead?.profession ?? undefined,
       });
-      setOutcome(initialOutcome ?? "WON");
       setTestDrivesConfirmed(false);
       setProgressSaved(false);
       setMilestoneSaved(null);
     }
     wasOpenRef.current = isOpen;
-  }, [isOpen, initialTargetStatus, initialOutcome, allowedNext, currentConsultantId, enquiry, reset]);
+  }, [isOpen, initialTargetStatus, allowedNext, currentConsultantId, enquiry, reset]);
 
   const toStatus = watch("toStatus");
   const financeRequired = watch("financeRequired");
@@ -279,6 +273,26 @@ export function StatusChangeModal({
         return;
       }
     }
+    if (values.toStatus === "LOST") {
+      if (!values.lossReason) {
+        setError("lossReason", { message: "Select a reason" });
+        return;
+      }
+      if (values.lossReason === "OTHER_REASON" && !values.lossNote?.trim()) {
+        setError("lossNote", { message: "Enter the reason" });
+        return;
+      }
+    }
+    if (values.toStatus === "CLOSED_TEMP") {
+      if (!values.closeReason) {
+        setError("closeReason", { message: "Select a reason" });
+        return;
+      }
+      if (values.closeReason === "OTHER" && !values.closeNote?.trim()) {
+        setError("closeNote", { message: "Enter the reason" });
+        return;
+      }
+    }
     const toIso = (v?: string) => (v ? new Date(v).toISOString() : undefined);
     // Delivery-stage customer details are saved on the lead (DOB + job) before the status move.
     if (values.toStatus === "DELIVERED") {
@@ -311,7 +325,10 @@ export function StatusChangeModal({
     await changeStatus.mutateAsync({
       toStatus: values.toStatus,
       note: values.note,
-      lossReason: values.toStatus === "CLOSED" && outcome === "LOST" ? values.lossReason || undefined : undefined,
+      lossReason: values.toStatus === "LOST" ? values.lossReason || undefined : undefined,
+      lossNote: values.toStatus === "LOST" ? values.lossNote : undefined,
+      closeReason: values.toStatus === "CLOSED_TEMP" ? values.closeReason || undefined : undefined,
+      closeNote: values.toStatus === "CLOSED_TEMP" ? values.closeNote : undefined,
       followUpDueAt: toIso(values.followUpDueAt),
       appointmentAt: toIso(values.appointmentAt),
       consultantId: values.consultantId,
@@ -321,7 +338,6 @@ export function StatusChangeModal({
       deliveredAt: toIso(values.deliveredAt),
     });
     reset();
-    setOutcome("WON");
     onClose();
   };
 
@@ -393,7 +409,7 @@ export function StatusChangeModal({
           <StatusBadge status={currentStatus} />
           <ArrowRight size={16} className="shrink-0 text-primary-400 dark:text-primary-500" />
           {toStatus ? (
-            <StatusBadge status={toStatus} lossReason={toStatus === "CLOSED" ? (outcome === "LOST" ? "pending" : null) : undefined} />
+            <StatusBadge status={toStatus} lossReason={toStatus === "LOST" ? "pending" : undefined} />
           ) : (
             <span className="text-sm text-slate-400">—</span>
           )}
@@ -718,47 +734,36 @@ export function StatusChangeModal({
           />
         )}
 
-        {/* Close outcome */}
-        {toStatus === "CLOSED" && (
+        {/* Lost: reason + free text when "Other" is picked. */}
+        {toStatus === "LOST" && (
           <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/50">
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setOutcome("WON")}
-                aria-pressed={outcome === "WON"}
-                className={clsx(
-                  "flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors",
-                  outcome === "WON"
-                    ? "border-primary-600 bg-primary-600 text-white"
-                    : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-400"
-                )}
-              >
-                <Trophy size={15} /> Won
-              </button>
-              <button
-                type="button"
-                onClick={() => setOutcome("LOST")}
-                aria-pressed={outcome === "LOST"}
-                className={clsx(
-                  "flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors",
-                  outcome === "LOST"
-                    ? "border-slate-500 bg-slate-600 text-white dark:border-slate-500 dark:bg-slate-600"
-                    : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-400"
-                )}
-              >
-                <XCircle size={15} /> Lost
-              </button>
-            </div>
+            <Select label="Reason" error={errors.lossReason?.message} {...register("lossReason")} required>
+              <option value="">Select a reason</option>
+              {LOST_REASONS.map((reason) => (
+                <option key={reason} value={reason}>
+                  {LOST_REASON_LABELS[reason]}
+                </option>
+              ))}
+            </Select>
+            {watch("lossReason") === "OTHER_REASON" && (
+              <Textarea label="Reason" error={errors.lossNote?.message} {...register("lossNote")} required />
+            )}
+          </div>
+        )}
 
-            {outcome === "LOST" && (
-              <Select label="Loss reason" error={errors.lossReason?.message} {...register("lossReason")} required>
-                <option value="">Select a reason</option>
-                {LOSS_REASONS.map((reason) => (
-                  <option key={reason} value={reason}>
-                    {reason.replaceAll("_", " ")}
-                  </option>
-                ))}
-              </Select>
+        {/* Closed Temporarily: reason + free text when "Others" is picked. */}
+        {toStatus === "CLOSED_TEMP" && (
+          <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/50">
+            <Select label="Reason" error={errors.closeReason?.message} {...register("closeReason")} required>
+              <option value="">Select a reason</option>
+              {CLOSE_REASONS.map((reason) => (
+                <option key={reason} value={reason}>
+                  {CLOSE_REASON_LABELS[reason]}
+                </option>
+              ))}
+            </Select>
+            {watch("closeReason") === "OTHER" && (
+              <Textarea label="Reason" error={errors.closeNote?.message} {...register("closeNote")} required />
             )}
           </div>
         )}

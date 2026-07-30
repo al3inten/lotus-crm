@@ -120,14 +120,28 @@ export async function createOrAttachEnquiry(
       );
     }
 
-    let assignedCrId: string | null = null;
-    if (input.assignedCrId) {
+    // One CR owns a customer across every enquiry they ever raise (Lead.primaryCrId).
+    // Once that's set, every new enquiry for this customer — no matter who logs it —
+    // inherits it outright; the creator never becomes the assignee of an enquiry for a
+    // customer someone else already owns. Only the customer-level reassign flow can move
+    // ownership after that (see enquiries.service.ts reassignCustomerCr).
+    let assignedCrId: string | null;
+    if (lead.primaryCrId) {
+      assignedCrId = lead.primaryCrId;
+    } else if (input.assignedCrId) {
       assignedCrId = input.assignedCrId;
     } else if (DIGITAL_SOURCES.includes(input.source) && branch.autoAssignEnabled) {
       assignedCrId = await getNextCrForBranch(tx, input.branchId);
+    } else {
+      // Manual sources (WALK_IN/MANUAL_OTHER/REFERRAL) without an explicit assignedCrId
+      // stay unassigned for a human to claim — this is intentional, not an oversight.
+      assignedCrId = null;
     }
-    // Manual sources (WALK_IN/MANUAL_OTHER/REFERRAL) without an explicit assignedCrId
-    // stay unassigned for a human to claim — this is intentional, not an oversight.
+
+    // First time this customer gets a CR, that CR becomes their permanent owner.
+    if (!lead.primaryCrId && assignedCrId) {
+      await tx.lead.update({ where: { id: lead.id }, data: { primaryCrId: assignedCrId } });
+    }
 
     const enquiry = await tx.enquiry.create({
       data: {

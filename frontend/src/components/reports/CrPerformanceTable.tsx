@@ -1,6 +1,28 @@
 import { Download } from "lucide-react";
 import type { CrPerformanceRow } from "../../api/reports.api";
 import { Button } from "../common/Button";
+import { ENQUIRY_STATUSES, STATUS_LABELS } from "../../types";
+
+export function StatusBreakdownCell({ statusBreakdown }: { statusBreakdown: Record<string, number> }) {
+  const entries = ENQUIRY_STATUSES.map((status) => [status, statusBreakdown[status] ?? 0] as const).filter(
+    ([, count]) => count > 0,
+  );
+  if (entries.length === 0) {
+    return <span className="text-gray-400 dark:text-slate-500">-</span>;
+  }
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {entries.map(([status, count]) => (
+        <span
+          key={status}
+          className="whitespace-nowrap rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-slate-800 dark:text-slate-300"
+        >
+          {STATUS_LABELS[status]}: {count}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 export function CrPerformanceTable({
   rows,
@@ -27,6 +49,7 @@ export function CrPerformanceTable({
             <th className="px-4 py-2.5">Pending Follow-ups</th>
             <th className="px-4 py-2.5">Overdue</th>
             <th className="px-4 py-2.5">Conversion Rate</th>
+            <th className="px-4 py-2.5">Status Breakdown</th>
             {onDownload && <th className="px-4 py-2.5 text-right">Download</th>}
           </tr>
         </thead>
@@ -39,6 +62,9 @@ export function CrPerformanceTable({
               <td className="px-4 py-2.5 tabular-nums font-medium text-amber-600 dark:text-amber-400">{row.followUpsPending}</td>
               <td className="px-4 py-2.5 tabular-nums font-bold text-rose-600 dark:text-rose-400">{row.followUpsOverdue > 0 ? row.followUpsOverdue : "-"}</td>
               <td className="px-4 py-2.5 tabular-nums font-semibold text-gray-700 dark:text-slate-200">{row.conversionRate}%</td>
+              <td className="px-4 py-2.5">
+                <StatusBreakdownCell statusBreakdown={row.statusBreakdown} />
+              </td>
               {onDownload && (
                 <td className="px-4 py-2.5 text-right">
                   <Button

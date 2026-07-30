@@ -31,3 +31,16 @@ export function requirePermission(section: ModuleKey, level: "read" | "write") {
     next();
   };
 }
+
+/**
+ * Gates reassigning a customer's owning CR. SUPER_ADMIN always passes; every other role
+ * needs canReassignCustomerCr explicitly enabled (a toggle in Roles & Responsibilities,
+ * independent of the leads read/write grid).
+ */
+export function requireCustomerReassignRights(req: Request, _res: Response, next: NextFunction) {
+  if (!req.user) throw new UnauthorizedError();
+  if (!req.user.canReassignCustomerCr) {
+    throw new ForbiddenError("Only an admin (or a role with reassign rights) can reassign a customer's CR.");
+  }
+  next();
+}

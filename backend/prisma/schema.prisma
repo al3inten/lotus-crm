@@ -44,7 +44,13 @@ enum EnquiryStatus {
   RETAIL_DONE
   RTO_DONE
   DELIVERED
+  // Deprecated: superseded by CLOSED_TEMP / LOST. Kept so historical rows still resolve;
+  // no new enquiry is written with this status.
   CLOSED
+  // "Close Temporarily" — parked, not a permanent loss. See CloseReason for why.
+  CLOSED_TEMP
+  // Permanently lost. See LossReason for why (UI now only offers LOST_TO_DEALER / OTHER_REASON).
+  LOST
 }
 
 enum LossReason {
@@ -56,6 +62,15 @@ enum LossReason {
   PRICE_ISSUE
   PURCHASED_ANOTHER_BRAND
   OTHER_REASON
+}
+
+// Reasons for parking an enquiry as "Closed Temporarily" (CLOSED_TEMP) — not a permanent loss.
+enum CloseReason {
+  OUT_OF_TERRITORY
+  RNR
+  PLAN_DROP
+  NOT_INTERESTED
+  OTHER
 }
 
 enum FollowUpType {
@@ -286,16 +301,17 @@ model RoleDefinition {
   permissions        Json // { [section: ModuleKey]: "none" | "read" | "write" }
   canViewAllBranches Boolean  @default(false)
   restrictLeadsToOwn Boolean  @default(false)
-  // Only meaningful when restrictLeadsToOwn is true: lets the CR view (not edit/change-status
-  // on) leads assigned to other CRs in their own branch, instead of only their own.
-  canViewBranchLeads Boolean  @default(false)
+  // Lets this role reassign a customer's owning CR (Lead.primaryCrId, which cascades to
+  // every one of that customer's enquiries). SUPER_ADMIN can always do this regardless of
+  // this toggle; other roles need it explicitly enabled — see requireCustomerReassignRights.
+  canReassignCustomerCr Boolean  @default(false)
   isActive           Boolean  @default(true)
   // True only for the built-in seeded "CR" role — its name can't be renamed and the
   // role can't be deleted, but its permissions/toggles stay fully editable like any
   // other role.
-  isSystemDefault    Boolean  @default(false)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  isSystemDefault       Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
   users User[]
 
@@ -347,6 +363,7 @@ model User {
   updatedAt             DateTime        @updatedAt
 
   assignedEnquiries       Enquiry[]              @relation("AssignedCr")
+  ownedCustomers          Lead[]                 @relation("PrimaryCr")
   statusChanges           EnquiryStatusHistory[] @relation("ChangedBy")
   dateChanges             DateChangeHistory[]    @relation("DateChangedBy")
   enquiryNotes            EnquiryNote[]          @relation("NoteAuthor")
@@ -390,6 +407,14 @@ model Lead {
   // valid; the Add Lead intake form requires it.
   area            String?
   address         String?
+  // The single CR who owns this customer across every enquiry they've ever raised — set
+  // when their first enquiry is created (whoever creates it becomes the owner) and from
+  // then on every new enquiry for this customer inherits this value rather than being
+  // independently assigned or auto-routed. Changed only via the customer-level reassign
+  // flow (enquiries.service.ts reassignCustomerCr), which cascades the new value onto
+  // every one of this customer's enquiries and is gated by canReassignCustomerCr/SUPER_ADMIN.
+  primaryCrId     String?
+  primaryCr       User?     @relation("PrimaryCr", fields: [primaryCrId], references: [id])
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -398,6 +423,7 @@ model Lead {
   touches       LeadTouch[]
 
   @@index([phoneNormalized])
+  @@index([primaryCrId])
   @@map("leads")
 }
 
@@ -464,6 +490,9 @@ model Enquiry {
   followUpDueAt DateTime?
   lossReason    LossReason?
   lossNote      String?
+  // Set only when status is CLOSED_TEMP.
+  closeReason   CloseReason?
+  closeNote     String?
 
   // ── Pipeline milestone metadata (set as the enquiry advances through the stepper) ──
   // Booking-phase finance: `financeRequired` (above) is the toggle; when on, these three
@@ -473,12 +502,12 @@ model Enquiry {
   financeDoReceived        Boolean?
   // Dates captured when the enquiry reaches each milestone, so the stepper and reports can
   // show exactly when each stage happened (distinct from createdAt of a status-history row).
-  bookedAt     DateTime?
-  retailDoneAt DateTime?
-  rtoDoneAt    DateTime?
-  deliveredAt  DateTime?
+  bookedAt                 DateTime?
+  retailDoneAt             DateTime?
+  rtoDoneAt                DateTime?
+  deliveredAt              DateTime?
   // Vehicle colour, captured at the RTO Done stage alongside the RTO date.
-  colour       String?
+  colour                   String?
 
   // Digital-lead auto-dial pipeline (Voice AI outbound call on new digital enquiries).
   score         Int              @default(0)
@@ -604,6 +633,10 @@ model ReassignmentLog {
   id             String   @id @default(cuid())
   enquiryId      String
   enquiry        Enquiry  @relation(fields: [enquiryId], references: [id])
+  // A customer-level reassign cascades across every enquiry that customer has — all the
+  // resulting rows (one per affected enquiry) share this so the audit trail can be grouped
+  // back into "one reassignment action" instead of looking like N unrelated ones.
+  batchId        String?
   fromUserId     String?
   fromUser       User?    @relation("ReassignFrom", fields: [fromUserId], references: [id])
   toUserId       String
@@ -639,9 +672,9 @@ model LeadDraft {
 // 1:many with Enquiry — a client can take several test drives (different variants,
 // family members, a second look) before deciding.
 model TestDriveFeedback {
-  id            String    @id @default(cuid())
+  id            String              @id @default(cuid())
   enquiryId     String
-  enquiry       Enquiry   @relation(fields: [enquiryId], references: [id])
+  enquiry       Enquiry             @relation(fields: [enquiryId], references: [id])
   // Points at the ConsultantDirectory entry who conducted the drive — consultants no
   // longer have login User accounts, so this can no longer be a User FK.
   conductedById String
@@ -659,7 +692,7 @@ model TestDriveFeedback {
   // an overall rating plus written comments.
   rating        Int?
   comments      String?
-  createdAt     DateTime  @default(now())
+  createdAt     DateTime            @default(now())
 
   @@index([enquiryId, createdAt])
   @@map("test_drive_feedback")
@@ -981,10 +1014,10 @@ model Notification {
 // themselves are computed live, not stored — this table is the only thing that makes a
 // dismissal persist, so a reminder only disappears when the user clears it, not on its own.
 model ReminderDismissal {
-  id         String   @id @default(cuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id])
-  reminderId String
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  reminderId  String
   dismissedAt DateTime @default(now())
 
   @@unique([userId, reminderId])

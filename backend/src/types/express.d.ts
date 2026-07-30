@@ -8,9 +8,7 @@ export interface AuthUser {
   permissions: PermissionsMap;
   canViewAllBranches: boolean;
   restrictLeadsToOwn: boolean;
-  /** Only meaningful when restrictLeadsToOwn is true: lets this user view (not edit) leads
-   * assigned to other CRs in their own branch, instead of only their own. */
-  canViewBranchLeads: boolean;
+  canReassignCustomerCr: boolean;
   isCr: boolean;
 }
 

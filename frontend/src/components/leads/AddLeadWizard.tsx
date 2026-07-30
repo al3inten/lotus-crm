@@ -174,9 +174,10 @@ export function AddLeadWizard({
     },
   });
 
-  // Only supervisors may override the "customer already exists" block (enforced by the API too).
-  const canForceNew =
-    !!user && (user.role === "SUPER_ADMIN" || (user.permissions.leads === "write" && !user.restrictLeadsToOwn));
+  // Any CR can override the "customer already exists" block — the new enquiry always
+  // auto-assigns to that customer's existing owning CR, never to the creator (enforced by
+  // the API too, see leads.controller.ts withCheckedForceNew).
+  const canForceNew = !!user && (user.role === "SUPER_ADMIN" || user.permissions.leads === "write");
 
   const { data: branchStaff } = useBranchStaff(watch("branchId"), undefined, isOpen);
   const crStaff = (branchStaff ?? []).filter((u) => u.isCrEligible);

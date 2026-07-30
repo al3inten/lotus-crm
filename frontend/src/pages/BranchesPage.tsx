@@ -179,7 +179,7 @@ function RolesTab() {
                   icon={<ShieldCheck size={20} />}
                   iconClassName="bg-violet-50 text-violet-600"
                   title={role.name}
-                  subtitle={`${role.branch?.name ?? "All branches"} · ${role._count?.users ?? 0} member(s)${role.canViewAllBranches ? " · all branches" : ""}${role.restrictLeadsToOwn ? " · own leads only" : ""}`}
+                  subtitle={`${role.branch?.name ?? "All branches"} · ${role._count?.users ?? 0} member(s)${role.canViewAllBranches ? " · all branches" : ""}${role.restrictLeadsToOwn ? " · edit own leads only" : ""}`}
                 />
                 <div className="flex items-center gap-1">
                   <button

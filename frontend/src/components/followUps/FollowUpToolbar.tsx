@@ -118,7 +118,7 @@ export function FollowUpToolbar({
             onChange={(e) => patch({ status: (e.target.value || undefined) as FollowUpFilters["status"] })}
           >
             <option value="">All statuses</option>
-            {ENQUIRY_STATUSES.filter((s) => s !== "RETAIL_DONE" && s !== "CLOSED").map((s) => (
+            {ENQUIRY_STATUSES.filter((s) => s !== "RETAIL_DONE" && s !== "CLOSED_TEMP" && s !== "LOST").map((s) => (
               <option key={s} value={s}>
                 {s.replaceAll("_", " ")}
               </option>

@@ -246,8 +246,9 @@ export function PipelineStepper({
   onStageClick,
   enquiry,
 }: PipelineStepperProps) {
-  const isClosed = status === "CLOSED";
-  const isLost = isClosed && !!lossReason;
+  const isLost = status === "LOST";
+  const isClosedTemp = status === "CLOSED_TEMP";
+  const isClosed = isLost || isClosedTemp;
   const isUnderFollowUp = status === "UNDER_FOLLOW_UP";
   // Reaching Delivered means the sale is won — the whole pipeline turns green.
   const isDelivered = status === "DELIVERED";
@@ -269,7 +270,7 @@ export function PipelineStepper({
     ...(testDriveBooked ? { TEST_DRIVE: "Booked" } : {}),
   };
 
-  const forkTone: NodeTone = isLost ? "red" : "green";
+  const forkTone: NodeTone = isLost ? "red" : "muted";
   // Show the "click a stage" hint only when there's actually somewhere to move to.
   const canChangeFromPipeline = !!onStageClick && !isClosed && !isDelivered && nextStatuses.length > 0;
 
@@ -297,17 +298,9 @@ export function PipelineStepper({
               const booked = bookedLabel[step.status];
               const { Icon } = step;
 
-              // Won (delivered) turns every reached stage green; a won-closed stage also goes
-              // green; otherwise reached/active stages are blue and upcoming ones muted.
-              const tone: NodeTone = upcoming
-                ? booked
-                  ? "blue"
-                  : "muted"
-                : isDelivered
-                  ? "green"
-                  : isClosed && current && !isLost
-                    ? "green"
-                    : "blue";
+              // Won (delivered) turns every reached stage green; otherwise reached/active
+              // stages are blue and upcoming ones muted.
+              const tone: NodeTone = upcoming ? (booked ? "blue" : "muted") : isDelivered ? "green" : "blue";
               const showCheck = done || (isClosed && current) || (isDelivered && current) || (!!booked && upcoming);
               const glow = current;
 
@@ -317,9 +310,7 @@ export function PipelineStepper({
                   ? isDelivered
                     ? { tone: "green", text: "Won", check: true }
                     : isClosed
-                      ? isLost
-                        ? { tone: "blue", text: "Last stage" }
-                        : { tone: "green", text: "Completed", check: true }
+                      ? { tone: "blue", text: "Last stage" }
                       : // An enquiry being actively followed up shows that as its status on the New node.
                         isUnderFollowUp
                         ? { tone: "blue", text: "Under Follow-up" }
@@ -393,21 +384,12 @@ export function PipelineStepper({
                           <div className="flex items-start pt-[26px]">
                             <StageNode
                               number={MAIN_PATH.length + 1}
-                              label={isLost ? "Cancelled" : "Won"}
-                              Icon={isLost ? Ban : Trophy}
-                              tone={forkTone}
-                              showCheck
-                              pill={isLost ? { tone: "red", text: "Lost" } : { tone: "green", text: "Completed", check: true }}
-                            />
-                            <Connector tone={forkTone} />
-                            <StageNode
-                              number={MAIN_PATH.length + 2}
-                              label="Closed"
-                              Icon={Flag}
+                              label={isLost ? "Lost" : "Closed Temporarily"}
+                              Icon={isLost ? Ban : Flag}
                               tone={forkTone}
                               glow
                               showCheck
-                              pill={{ tone: forkTone, text: isLost ? "Closed" : "Completed", check: !isLost }}
+                              pill={isLost ? { tone: "red", text: "Lost" } : { tone: "muted", text: "Parked" }}
                             />
                           </div>
                         </div>

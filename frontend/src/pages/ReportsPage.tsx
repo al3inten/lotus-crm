@@ -50,7 +50,7 @@ import { Skeleton } from "../components/ui/skeleton";
 import { FunnelChart } from "../components/reports/FunnelChart";
 import { HBarList } from "../components/reports/HBarList";
 import { SourcePerformanceTable } from "../components/reports/SourcePerformanceTable";
-import { CrPerformanceTable } from "../components/reports/CrPerformanceTable";
+import { CrPerformanceTable, StatusBreakdownCell } from "../components/reports/CrPerformanceTable";
 import { TrendChart } from "../components/reports/TrendChart";
 import { formatHours } from "../components/reports/vizTheme";
 import { Button } from "../components/common/Button";
@@ -111,7 +111,8 @@ const STATUS_ORDER = [
   "RETAIL_DONE",
   "RTO_DONE",
   "DELIVERED",
-  "CLOSED",
+  "CLOSED_TEMP",
+  "LOST",
 ] as const;
 
 /** Debounced (300ms) free-text search box for filtering a table already loaded client-side —
@@ -660,7 +661,7 @@ export function ReportsPage() {
                           valueLabel: `${row.count} (${row.percent}%)`,
                           onDownload: () =>
                             openList(`Lost — ${LOSS_REASON_LABELS[row.reason] ?? row.reason.replaceAll("_"," ")}`, `lost-${row.reason.toLowerCase().replace(/_/g, "-")}`, {
-                              status: "CLOSED",
+                              status: "LOST",
                               lossReason: row.reason,
                             }),
                         }))}
@@ -753,6 +754,7 @@ export function ReportsPage() {
                               <th className="px-4 py-2.5">Conversion</th>
                               <th className="px-4 py-2.5">Share of Sales</th>
                               <th className="px-4 py-2.5">Top Model</th>
+                              <th className="px-4 py-2.5">Status Breakdown</th>
                               <th className="px-4 py-2.5 text-right">Download</th>
                             </tr>
                           </thead>
@@ -766,6 +768,9 @@ export function ReportsPage() {
                                 <td className="px-4 py-2.5 tabular-nums text-gray-700 dark:text-slate-300">{row.shareOfSales}%</td>
                                 <td className="px-4 py-2.5 text-gray-700 dark:text-slate-300" title={row.models.map((m) => `${m.carModel}: ${m.sold}`).join(", ")}>
                                   {row.topModel ?? "—"}
+                                </td>
+                                <td className="px-4 py-2.5">
+                                  <StatusBreakdownCell statusBreakdown={row.statusBreakdown} />
                                 </td>
                                 <td className="px-4 py-2.5 text-right">
                                   <Button
@@ -893,7 +898,7 @@ export function ReportsPage() {
                                   <td className="px-4 py-2.5 font-medium text-gray-900 dark:text-slate-100">{row.branchName}</td>
                                   <td className="px-4 py-2.5 tabular-nums text-gray-700 dark:text-slate-300">{row.total}</td>
                                   <td className="px-4 py-2.5 tabular-nums text-gray-700 dark:text-slate-300">{row.statusCounts["RETAIL_DONE"] ?? 0}</td>
-                                  <td className="px-4 py-2.5 tabular-nums text-gray-700 dark:text-slate-300">{row.statusCounts["CLOSED"] ?? 0}</td>
+                                  <td className="px-4 py-2.5 tabular-nums text-gray-700 dark:text-slate-300">{(row.statusCounts["LOST"] ?? 0) + (row.statusCounts["CLOSED"] ?? 0)}</td>
                                   <td className="px-4 py-2.5 text-right">
                                     <Button
                                       size="sm"

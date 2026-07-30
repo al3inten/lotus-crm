@@ -14,7 +14,7 @@ interface LeadInsightsSectionProps {
 }
 
 export function LeadInsightsSection({ enquiry, leadScore, insights }: LeadInsightsSectionProps) {
-  if (!enquiry || enquiry.status === "CLOSED") return null;
+  if (!enquiry || enquiry.status === "CLOSED_TEMP" || enquiry.status === "LOST") return null;
 
   return (
     <motion.div
