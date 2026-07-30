@@ -35,6 +35,19 @@ const STATUS_LABELS: Record<IntegrationConfigSummary["status"], string> = {
 };
 
 const INTEGRATION_UI: Record<IntegrationKey, { title: string; desc: string; icon: ReactNode }> = {
+  // Not its own card — its credentials are saved from within the Meta Lead Ads form (see
+  // MetaAdsForm.tsx) and it's excluded from the list the Integrations page renders (see
+  // integrations.service.ts's ALL_KEYS). This entry only exists to satisfy the exhaustive
+  // Record<IntegrationKey, ...> type.
+  META_APP: {
+    title: "Meta Developer App",
+    desc: "Shared Facebook/Instagram app credentials, configured via Meta Lead Ads.",
+    icon: (
+      <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-slate-100 bg-white shadow-sm">
+        <Blocks className="h-6 w-6 text-slate-400" />
+      </div>
+    ),
+  },
   META_ADS: {
     title: "Meta Lead Ads",
     desc: "Sync leads from Facebook & Instagram ads.",
