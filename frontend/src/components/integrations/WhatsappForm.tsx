@@ -3,6 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "../common/Input";
 import { Button } from "../common/Button";
 import { CopyableField } from "../common/CopyableField";
+import { VerifyTokenField } from "./VerifyTokenField";
 import { whatsappCredentialsFormSchema } from "../../schemas/integration.schema";
 import type { WhatsappCredentialsFormValues } from "../../schemas/integration.schema";
 import { useSaveIntegration } from "../../hooks/useIntegrations";
@@ -13,8 +14,13 @@ export function WhatsappForm({ onSaved }: { onSaved: () => void }) {
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<WhatsappCredentialsFormValues>({ resolver: zodResolver(whatsappCredentialsFormSchema) });
+  // Generate needs to set the field imperatively — pull register()'s own onChange out so it
+  // doesn't fight the controlled value/onChange VerifyTokenField manages.
+  const { onChange: _verifyTokenOnChange, ...verifyTokenField } = register("verifyToken");
 
   const onSubmit = (values: WhatsappCredentialsFormValues) => {
     saveIntegration.mutate({ key: "WHATSAPP", credentials: values }, { onSuccess: onSaved });
@@ -30,7 +36,12 @@ export function WhatsappForm({ onSaved }: { onSaved: () => void }) {
       <Input label="Phone Number ID" error={errors.phoneNumberId?.message} {...register("phoneNumberId")} />
       <Input label="Access Token" type="password" error={errors.accessToken?.message} {...register("accessToken")} />
       <Input label="App Secret" type="password" error={errors.appSecret?.message} {...register("appSecret")} />
-      <Input label="Webhook Verify Token" error={errors.verifyToken?.message} {...register("verifyToken")} />
+      <VerifyTokenField
+        value={watch("verifyToken") ?? ""}
+        error={errors.verifyToken?.message}
+        onChange={(v) => setValue("verifyToken", v, { shouldValidate: true, shouldDirty: true })}
+        inputProps={verifyTokenField}
+      />
       {saveIntegration.isError && (
         <p className="text-sm text-red-600">Failed to save — check the values and try again.</p>
       )}
