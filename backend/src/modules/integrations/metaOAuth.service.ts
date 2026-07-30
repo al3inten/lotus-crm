@@ -14,22 +14,26 @@ const STATE_PURPOSE = "meta-oauth";
 // cap the backfill per form so a stale/huge form can't turn one click into a huge batch job.
 const MAX_LEADS_PER_FORM_SYNC = 100;
 
-function requireMetaAppConfig() {
-  if (!env.FACEBOOK_APP_ID || !env.FACEBOOK_APP_SECRET) {
-    throw new AppError(
-      "Meta (Facebook) OAuth isn't configured — set FACEBOOK_APP_ID and FACEBOOK_APP_SECRET in the backend environment.",
-      500
-    );
+/** Prefers the App ID/Secret saved from the Integrations UI; falls back to env vars for
+ *  environments that still configure Meta via FACEBOOK_APP_ID/FACEBOOK_APP_SECRET. */
+async function requireMetaAppConfig(): Promise<{ appId: string; appSecret: string }> {
+  const saved = await integrationsService.getMetaAppConfig();
+  if (saved) return saved;
+  if (env.FACEBOOK_APP_ID && env.FACEBOOK_APP_SECRET) {
+    return { appId: env.FACEBOOK_APP_ID, appSecret: env.FACEBOOK_APP_SECRET };
   }
-  return { appId: env.FACEBOOK_APP_ID, appSecret: env.FACEBOOK_APP_SECRET };
+  throw new AppError(
+    "Meta (Facebook) OAuth isn't configured — add the App ID and App Secret in Integrations, or set FACEBOOK_APP_ID/FACEBOOK_APP_SECRET in the backend environment.",
+    500
+  );
 }
 
-function getRedirectUri(): string {
+export function getRedirectUri(): string {
   return `${env.BACKEND_PUBLIC_URL.replace(/\/$/, "")}/api/integrations/meta/oauth/callback`;
 }
 
-export function buildAuthUrl(userId: string): string {
-  const { appId } = requireMetaAppConfig();
+export async function buildAuthUrl(userId: string): Promise<string> {
+  const { appId } = await requireMetaAppConfig();
   const state = jwt.sign({ purpose: STATE_PURPOSE, userId }, env.JWT_SECRET, { expiresIn: "10m" });
 
   const params = new URLSearchParams({
@@ -52,7 +56,7 @@ export function verifyState(state: string): { userId: string } {
 }
 
 async function exchangeCodeForLongLivedUserToken(code: string): Promise<string> {
-  const { appId, appSecret } = requireMetaAppConfig();
+  const { appId, appSecret } = await requireMetaAppConfig();
 
   const { data: shortLived } = await axios.get(`${GRAPH_API_BASE}/oauth/access_token`, {
     params: { client_id: appId, redirect_uri: getRedirectUri(), client_secret: appSecret, code },

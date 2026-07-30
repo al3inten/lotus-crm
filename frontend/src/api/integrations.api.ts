@@ -1,6 +1,7 @@
 import { axiosClient } from "./axiosClient";
 
 export type IntegrationKey =
+  | "META_APP"
   | "META_ADS"
   | "WHATSAPP"
   | "INSTAGRAM"
@@ -35,6 +36,12 @@ export interface MetaAdsStatus {
   connected: boolean;
   fbUserName: string | null;
   pages: MetaAdsPageSummary[];
+}
+
+export interface MetaAppConfig {
+  configured: boolean;
+  appId: string | null;
+  redirectUri: string;
 }
 
 export interface WhatsappCredentials {
@@ -75,6 +82,11 @@ export async function testIntegrationConnection(key: IntegrationKey): Promise<{ 
 
 export async function toggleIntegration(key: IntegrationKey, enabled: boolean): Promise<void> {
   await axiosClient.patch(`/integrations/${key}/enabled`, { enabled });
+}
+
+export async function fetchMetaAppConfig(): Promise<MetaAppConfig> {
+  const { data } = await axiosClient.get<MetaAppConfig>("/integrations/meta/app-config");
+  return data;
 }
 
 export async function startMetaOAuth(): Promise<{ url: string }> {

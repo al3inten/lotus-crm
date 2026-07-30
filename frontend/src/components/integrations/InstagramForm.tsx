@@ -2,6 +2,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "../common/Input";
 import { Button } from "../common/Button";
+import { CopyableField } from "../common/CopyableField";
 import { instagramCredentialsFormSchema } from "../../schemas/integration.schema";
 import type { InstagramCredentialsFormValues } from "../../schemas/integration.schema";
 import { useSaveIntegration } from "../../hooks/useIntegrations";
@@ -22,11 +23,11 @@ export function InstagramForm({ onSaved }: { onSaved: () => void }) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
       <p className="rounded-md bg-gray-50 p-2 text-xs text-gray-600">
-        Subscribe your Instagram professional account to <strong>messages</strong> and set the callback URL to{" "}
-        <code className="break-all">{getMetaWebhookUrl()}</code>, using the same Verify Token you enter below. Note:
-        Instagram DMs don't include a phone number — captured conversations land in the Social Inbox for manual
-        conversion.
+        Subscribe your Instagram professional account to <strong>messages</strong> and set the callback URL below,
+        using the same Verify Token you enter below. Note: Instagram DMs don't include a phone number — captured
+        conversations land in the Social Inbox for manual conversion.
       </p>
+      <CopyableField label="Callback URL" value={getMetaWebhookUrl()} />
       <Input
         label="Instagram Business Account ID"
         error={errors.instagramBusinessAccountId?.message}

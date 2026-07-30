@@ -1,8 +1,15 @@
 import { z } from "zod";
 
+// The Meta Developer App's own App ID/Secret, entered once so the OAuth "Login with Facebook"
+// flow (metaOAuth.service.ts) has something to build the auth URL with — falls back to the
+// FACEBOOK_APP_ID/FACEBOOK_APP_SECRET env vars when not set here.
+export const metaAppCredentialsSchema = z.object({
+  appId: z.string().min(1, "App ID is required"),
+  appSecret: z.string().min(1, "App secret is required"),
+});
+
 // Populated by the OAuth callback (metaOAuth.controller.ts), never by a manual form —
-// the app secret and webhook verify token are app-level env config now (FACEBOOK_APP_SECRET,
-// META_WEBHOOK_VERIFY_TOKEN), and per-Page access tokens live in the MetaAdsPage table.
+// per-Page access tokens live in the MetaAdsPage table.
 export const metaAdsCredentialsSchema = z.object({
   fbUserId: z.string().min(1),
   fbUserName: z.string().min(1),
@@ -60,6 +67,7 @@ export const callmaticCredentialsSchema = z.object({
 });
 
 export const CREDENTIAL_SCHEMAS = {
+  META_APP: metaAppCredentialsSchema,
   META_ADS: metaAdsCredentialsSchema,
   WHATSAPP: whatsappCredentialsSchema,
   INSTAGRAM: instagramCredentialsSchema,
@@ -74,6 +82,7 @@ export const CREDENTIAL_SCHEMAS = {
 
 export type IntegrationKey = keyof typeof CREDENTIAL_SCHEMAS;
 
+export type MetaAppCredentials = z.infer<typeof metaAppCredentialsSchema>;
 export type MetaAdsCredentials = z.infer<typeof metaAdsCredentialsSchema>;
 export type WhatsappCredentials = z.infer<typeof whatsappCredentialsSchema>;
 export type InstagramCredentials = z.infer<typeof instagramCredentialsSchema>;

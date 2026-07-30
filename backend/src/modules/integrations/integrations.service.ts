@@ -11,6 +11,7 @@ import { ForbiddenError, NotFoundError, ValidationError } from "../../lib/errors
 import {
   CREDENTIAL_SCHEMAS,
   IntegrationKey,
+  MetaAppCredentials,
   MetaAdsCredentials,
   WhatsappCredentials,
   InstagramCredentials,
@@ -124,6 +125,15 @@ async function getCredentials<T>(key: IntegrationKey): Promise<T> {
 export async function isIntegrationEnabled(key: IntegrationKey): Promise<boolean> {
   const row = await prisma.integrationConfig.findUnique({ where: { key: key as PrismaIntegrationKey } });
   return !!row?.encryptedCredentials && row.enabled;
+}
+
+export const getMetaAppCredentials = () => getCredentials<MetaAppCredentials>("META_APP");
+
+/** Reads the saved Meta App ID/Secret without throwing, for status display and as an env-var fallback. */
+export async function getMetaAppConfig(): Promise<MetaAppCredentials | null> {
+  const row = await prisma.integrationConfig.findUnique({ where: { key: "META_APP" } });
+  if (!row?.encryptedCredentials) return null;
+  return decryptJson<MetaAppCredentials>(row.encryptedCredentials);
 }
 
 export const getMetaAdsCredentials = () => getCredentials<MetaAdsCredentials>("META_ADS");

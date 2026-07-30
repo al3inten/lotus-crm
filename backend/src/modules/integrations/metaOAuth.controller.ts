@@ -12,8 +12,19 @@ function frontendOrigin(): string {
 
 export async function startMetaOAuthHandler(req: Request, res: Response) {
   if (!req.user) throw new UnauthorizedError();
-  const url = metaOAuthService.buildAuthUrl(req.user.id);
+  const url = await metaOAuthService.buildAuthUrl(req.user.id);
   res.json({ url });
+}
+
+/** App ID (masked secret) + the exact redirect URI to register in the Meta App dashboard. */
+export async function metaAppConfigHandler(_req: Request, res: Response) {
+  const saved = await integrationsService.getMetaAppConfig();
+  const appId = saved?.appId ?? env.FACEBOOK_APP_ID ?? null;
+  res.json({
+    configured: !!(saved || (env.FACEBOOK_APP_ID && env.FACEBOOK_APP_SECRET)),
+    appId,
+    redirectUri: metaOAuthService.getRedirectUri(),
+  });
 }
 
 export async function metaOAuthCallbackHandler(req: Request, res: Response) {
