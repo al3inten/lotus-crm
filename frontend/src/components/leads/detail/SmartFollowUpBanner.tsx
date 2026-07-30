@@ -12,7 +12,7 @@ interface SmartFollowUpBannerProps {
 }
 
 export function SmartFollowUpBanner({ enquiry, followUpUrgency, openFollowUp, handleQuickActionStatus }: SmartFollowUpBannerProps) {
-  if (enquiry.status === "CLOSED") return null;
+  if (enquiry.status === "CLOSED_TEMP" || enquiry.status === "LOST") return null;
 
   return (
     <motion.div

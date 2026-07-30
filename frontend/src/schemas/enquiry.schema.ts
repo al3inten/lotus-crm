@@ -1,10 +1,15 @@
 import { z } from "zod";
-import { ENQUIRY_STATUSES, LOSS_REASONS } from "../types";
+import { ENQUIRY_STATUSES, LOSS_REASONS, CLOSE_REASONS } from "../types";
 
 export const statusChangeFormSchema = z.object({
   toStatus: z.enum(ENQUIRY_STATUSES),
   note: z.string().optional(),
   lossReason: z.enum(LOSS_REASONS).optional().or(z.literal("")),
+  // Free-text detail, required when lossReason is OTHER_REASON.
+  lossNote: z.string().optional(),
+  closeReason: z.enum(CLOSE_REASONS).optional().or(z.literal("")),
+  // Free-text detail, required when closeReason is OTHER.
+  closeNote: z.string().optional(),
   followUpDueAt: z.string().optional(),
   appointmentAt: z.string().optional(),
   consultantId: z.string().optional(),

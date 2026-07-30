@@ -5,21 +5,27 @@ import { EnquiryStatus, LeadSource } from "@prisma/client";
 //   NEW → APPOINTMENT_FIXED → TEST_DRIVE → BOOKED → RETAIL_DONE → RTO_DONE → DELIVERED
 // UNDER_FOLLOW_UP is no longer directly reachable from NEW (New Lead moves straight to
 // Appointment Fixed); it's kept here only so enquiries already in that status can still
-// progress. CLOSED (Lost) is an off-ramp available at every stage until the car is delivered.
+// progress. Every open stage also has three off-ramps, available until the car is delivered:
+//   - DELIVERED ("Win" — closed early as a sale)
+//   - CLOSED_TEMP ("Closed Temporarily" — parked, not a real loss, see CloseReason)
+//   - LOST (permanent loss, see LossReason)
+// CLOSED is retired (kept in the enum only for historical rows) — see LOST/CLOSED_TEMP.
 export const ALLOWED_TRANSITIONS: Record<EnquiryStatus, EnquiryStatus[]> = {
-  NEW: ["APPOINTMENT_FIXED", "CLOSED"],
-  UNDER_FOLLOW_UP: ["APPOINTMENT_FIXED", "CLOSED"],
-  APPOINTMENT_FIXED: ["TEST_DRIVE", "CLOSED"],
-  TEST_DRIVE: ["BOOKED", "CLOSED"],
-  BOOKED: ["RETAIL_DONE", "CLOSED"],
-  RETAIL_DONE: ["RTO_DONE", "CLOSED"],
-  RTO_DONE: ["DELIVERED", "CLOSED"],
+  NEW: ["APPOINTMENT_FIXED", "DELIVERED", "CLOSED_TEMP", "LOST"],
+  UNDER_FOLLOW_UP: ["APPOINTMENT_FIXED", "DELIVERED", "CLOSED_TEMP", "LOST"],
+  APPOINTMENT_FIXED: ["TEST_DRIVE", "DELIVERED", "CLOSED_TEMP", "LOST"],
+  TEST_DRIVE: ["BOOKED", "DELIVERED", "CLOSED_TEMP", "LOST"],
+  BOOKED: ["RETAIL_DONE", "DELIVERED", "CLOSED_TEMP", "LOST"],
+  RETAIL_DONE: ["RTO_DONE", "DELIVERED", "CLOSED_TEMP", "LOST"],
+  RTO_DONE: ["DELIVERED", "CLOSED_TEMP", "LOST"],
   DELIVERED: [],
   CLOSED: [],
+  CLOSED_TEMP: [],
+  LOST: [],
 };
 
 // Statuses that require a lossReason to be supplied.
-export const TERMINAL_LOSS_STATUS: EnquiryStatus = "CLOSED";
+export const TERMINAL_LOSS_STATUS: EnquiryStatus = "LOST";
 
 // Statuses with no further pipeline moves (derived from ALLOWED_TRANSITIONS) — once an
 // enquiry reaches one of these, it's done and should drop out of follow-up/reminder queues.
@@ -49,6 +55,8 @@ export const STAGE_RANK: Record<EnquiryStatus, number> = {
   RTO_DONE: 5,
   DELIVERED: 6,
   CLOSED: -1,
+  CLOSED_TEMP: -1,
+  LOST: -1,
 };
 
 // Module keys a RoleDefinition can toggle on/off — these are the sidebar/dashboard

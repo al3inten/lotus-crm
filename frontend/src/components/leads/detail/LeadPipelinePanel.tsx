@@ -20,6 +20,7 @@ import {
 } from "./leadUtils";
 import { fadeUp } from "../../../lib/motion";
 import type { Enquiry, LeadWithHistory, EnquiryStatus } from "../../../types";
+import { LOST_REASONS, LOST_REASON_LABELS, CLOSE_REASON_LABELS } from "../../../types";
 import type { CallLog } from "../../../api/voice.api";
 import type { useSettings } from "../../../hooks/useSettings";
 
@@ -47,7 +48,6 @@ export function LeadPipelinePanel({
   showStatusModal,
   setShowStatusModal,
   statusModalTarget,
-  statusModalOutcome,
   setShowFollowUpsModal,
   setShowTimelineModal,
   setShowContactHistoryModal,
@@ -76,7 +76,6 @@ export function LeadPipelinePanel({
   showStatusModal: boolean;
   setShowStatusModal: (v: boolean) => void;
   statusModalTarget: EnquiryStatus | undefined;
-  statusModalOutcome: "WON" | "LOST" | undefined;
   setShowFollowUpsModal: (v: boolean) => void;
   setShowTimelineModal: (v: boolean) => void;
   setShowContactHistoryModal: (v: boolean) => void;
@@ -100,10 +99,12 @@ export function LeadPipelinePanel({
     RETAIL_DONE: 4,
     RTO_DONE: 5,
     DELIVERED: 6,
-    CLOSED: -1,
+    CLOSED_TEMP: -1,
+    LOST: -1,
   };
+  const isClosedOut = enquiry.status === "CLOSED_TEMP" || enquiry.status === "LOST";
   const editableFrom = (start: EnquiryStatus) =>
-    enquiry.status !== "CLOSED" && STAGE_RANK[enquiry.status] >= STAGE_RANK[start];
+    !isClosedOut && STAGE_RANK[enquiry.status] >= STAGE_RANK[start];
 
   const testDriveEditable = canAct && editableFrom("APPOINTMENT_FIXED");
   const quotationEditable = canAct && editableFrom("TEST_DRIVE");
@@ -121,7 +122,7 @@ export function LeadPipelinePanel({
   return (
     <>
       {/* ── Lost notice: neutral surface, rose reserved for the signal ── */}
-      {enquiry.status === "CLOSED" && enquiry.lossReason && (
+      {enquiry.status === "LOST" && enquiry.lossReason && (
         <motion.div
           variants={fadeUp}
           className={clsx(SURFACE, "flex items-start gap-3 p-4")}
@@ -132,12 +133,34 @@ export function LeadPipelinePanel({
               Enquiry lost
               <span className="mx-2 text-slate-300 dark:text-slate-600">·</span>
               <span className="text-rose-600 dark:text-rose-400">
-                {enquiry.lossReason.replaceAll("_", " ").toLowerCase()}
+                {LOST_REASON_LABELS[enquiry.lossReason as (typeof LOST_REASONS)[number]] ?? enquiry.lossReason.replaceAll("_", " ").toLowerCase()}
               </span>
             </p>
             {enquiry.lossNote && (
               <p className="mt-0.5 text-[13px] leading-relaxed text-slate-500 dark:text-slate-400">
                 {enquiry.lossNote}
+              </p>
+            )}
+          </div>
+        </motion.div>
+      )}
+
+      {/* ── Closed Temporarily notice ── */}
+      {enquiry.status === "CLOSED_TEMP" && enquiry.closeReason && (
+        <motion.div
+          variants={fadeUp}
+          className={clsx(SURFACE, "flex items-start gap-3 p-4")}
+        >
+          <XCircle size={16} strokeWidth={1.75} className="mt-0.5 shrink-0 text-slate-400 dark:text-slate-500" />
+          <div className="min-w-0">
+            <p className="text-[13px] font-medium text-slate-900 dark:text-slate-100">
+              Closed temporarily
+              <span className="mx-2 text-slate-300 dark:text-slate-600">·</span>
+              <span className="text-slate-600 dark:text-slate-300">{CLOSE_REASON_LABELS[enquiry.closeReason]}</span>
+            </p>
+            {enquiry.closeNote && (
+              <p className="mt-0.5 text-[13px] leading-relaxed text-slate-500 dark:text-slate-400">
+                {enquiry.closeNote}
               </p>
             )}
           </div>
@@ -159,7 +182,7 @@ export function LeadPipelinePanel({
             />
           </div>
 
-          {enquiry.status !== "CLOSED" && (
+          {!isClosedOut && (
             <div
               className={clsx(
                 "flex flex-col gap-3 border-t px-6 py-4 sm:flex-row sm:items-center sm:justify-between",
@@ -295,7 +318,6 @@ export function LeadPipelinePanel({
         isOpen={showStatusModal}
         onClose={() => setShowStatusModal(false)}
         initialTargetStatus={statusModalTarget}
-        initialOutcome={statusModalOutcome}
         hasCompletedTestDrive={(enquiry.testDriveFeedbacks ?? []).some((td) => !!td.completedAt)}
         currentConsultantId={enquiry.consultantId ?? undefined}
         enquiry={enquiry}

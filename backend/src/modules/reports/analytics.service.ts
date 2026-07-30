@@ -14,6 +14,10 @@ const REPORT_CACHE_TTL_MS = 60_000;
 
 const CONVERTED_STATUSES: EnquiryStatus[] = ["RETAIL_DONE"];
 
+// LOST is the current "permanently lost" status; CLOSED is the retired predecessor, kept
+// only so historical enquiries still count as lost in reports.
+const LOST_STATUSES: EnquiryStatus[] = ["LOST", "CLOSED"];
+
 // Pipeline stages in funnel order. UNDER_FOLLOW_UP is a sub-state (not a milestone) and
 // CLOSED is a terminal off-ramp, so both are excluded from stage-reach counting.
 const FUNNEL_STAGES: EnquiryStatus[] = [
@@ -69,7 +73,7 @@ export async function getYearOverYear(query: ReportQuery, branchFilter?: { branc
     const [total, converted, lost] = await Promise.all([
       prisma.enquiry.count({ where }),
       prisma.enquiry.count({ where: { ...where, status: { in: CONVERTED_STATUSES } } }),
-      prisma.enquiry.count({ where: { ...where, status: "CLOSED" } }),
+      prisma.enquiry.count({ where: { ...where, status: { in: LOST_STATUSES } } }),
     ]);
     return {
       total,
@@ -252,7 +256,7 @@ export async function getReferralLeads(query: ReportQuery, branchFilter?: { bran
     // with more referral leads than the row cap would otherwise show a converted/lost count
     // (and conversion rate) that silently excludes everything past the cap.
     prisma.enquiry.count({ where: { ...where, status: "RETAIL_DONE" } }),
-    prisma.enquiry.count({ where: { ...where, status: "CLOSED" } }),
+    prisma.enquiry.count({ where: { ...where, status: { in: LOST_STATUSES } } }),
     prisma.enquiry.findMany({
       where,
       include: {
@@ -353,7 +357,7 @@ export async function getLostReasons(query: ReportQuery, branchFilter?: { branch
 
   const rows = await prisma.enquiry.groupBy({
     by: ["lossReason"],
-    where: { ...where, status: "CLOSED", lossReason: { not: null } },
+    where: { ...where, status: { in: LOST_STATUSES }, lossReason: { not: null } },
     _count: true,
   });
 
@@ -442,7 +446,7 @@ export async function getBreakdown(query: BreakdownQuery, branchFilter?: { branc
   const [totals, converted, lost] = await Promise.all([
     groupBy({}),
     groupBy({ status: { in: CONVERTED_STATUSES } }),
-    groupBy({ status: "CLOSED" }),
+    groupBy({ status: { in: LOST_STATUSES } }),
   ]);
 
   const rawKey = (row: GroupRow) => {
@@ -581,7 +585,7 @@ export async function getConsultantPerformance(query: ReportQuery, branchFilter?
 async function computeConsultantPerformance(query: ReportQuery, branchFilter?: { branchId: string }) {
   const where = { ...buildWhere(query, branchFilter), consultantId: { not: null } };
 
-  const [handled, sold, soldByModel, consultants] = await Promise.all([
+  const [handled, sold, soldByModel, consultants, statusCounts] = await Promise.all([
     prisma.enquiry.groupBy({ by: ["consultantId"], where, _count: true }),
     prisma.enquiry.groupBy({ by: ["consultantId"], where: { ...where, status: { in: SOLD_STATUSES } }, _count: true }),
     prisma.enquiry.groupBy({
@@ -590,10 +594,18 @@ async function computeConsultantPerformance(query: ReportQuery, branchFilter?: {
       _count: true,
     }),
     prisma.consultantDirectory.findMany({ select: { id: true, name: true, branchId: true } }),
+    prisma.enquiry.groupBy({ by: ["consultantId", "status"], where, _count: true }),
   ]);
 
   const soldMap = new Map(sold.map((r) => [r.consultantId, r._count]));
   const nameMap = new Map(consultants.map((c) => [c.id, c]));
+  const statusBreakdownMap = new Map<string, Record<string, number>>();
+  for (const row of statusCounts) {
+    if (!row.consultantId) continue;
+    const entry = statusBreakdownMap.get(row.consultantId) ?? {};
+    entry[row.status] = row._count;
+    statusBreakdownMap.set(row.consultantId, entry);
+  }
 
   // Most-sold model per consultant, plus the full per-model split for the expandable detail.
   const modelsByConsultant = new Map<string, { carModel: string; sold: number }[]>();
@@ -624,6 +636,7 @@ async function computeConsultantPerformance(query: ReportQuery, branchFilter?: {
         shareOfSales: totalSold > 0 ? Number(((soldCount / totalSold) * 100).toFixed(1)) : 0,
         topModel: models[0]?.carModel ?? null,
         models,
+        statusBreakdown: statusBreakdownMap.get(id) ?? {},
       };
     })
     .sort((a, b) => b.sold - a.sold);

@@ -3,6 +3,7 @@ import type {
   Enquiry,
   EnquiryStatus,
   LossReason,
+  CloseReason,
   TestDriveFeedback,
   Quotation,
   ExchangeEvaluation,
@@ -24,6 +25,9 @@ export interface ChangeStatusPayload {
   toStatus: EnquiryStatus;
   note?: string;
   lossReason?: LossReason;
+  lossNote?: string;
+  closeReason?: CloseReason;
+  closeNote?: string;
   followUpDueAt?: string;
   appointmentAt?: string;
   consultantId?: string;

@@ -1,6 +1,7 @@
 import { Prisma, Role } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { istDayBounds, istDayKey, istParts } from "../../lib/istDate";
+import { TERMINAL_STATUSES } from "../../config/constants";
 
 export interface Reminder {
   id: string;
@@ -73,7 +74,7 @@ export async function getRemindersForUser(ctx: Ctx, opts: { includeDismissed?: b
     prisma.enquiry.findMany({
       where: {
         ...scope,
-        status: { notIn: ["CLOSED", "DELIVERED"] },
+        status: { notIn: TERMINAL_STATUSES },
         followUpDueAt: { lte: endOfToday },
       },
       select: { id: true, leadId: true, followUpDueAt: true, lead: { select: { name: true } } },

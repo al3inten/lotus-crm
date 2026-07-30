@@ -9,8 +9,8 @@ export function QuickActions({
 }: {
   status: EnquiryStatus;
   onChangeStatus: (targetStatus?: EnquiryStatus) => void;
-  /** Opens the status modal pre-set to Closed/Lost — falls back to onChangeStatus("CLOSED")
-   * (which defaults to Won) if not provided. */
+  /** Opens the status modal pre-set to Lost — falls back to onChangeStatus("LOST") if not
+   * provided. */
   onCloseLost?: () => void;
 }) {
   return (
@@ -20,8 +20,8 @@ export function QuickActions({
           <Button size="sm" variant="secondary" icon={<Calendar size={14} />} onClick={() => onChangeStatus("APPOINTMENT_FIXED")}>
             Appointment Fixed
           </Button>
-          <Button size="sm" variant="secondary" className="text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border-red-200" icon={<XOctagon size={14} />} onClick={() => (onCloseLost ? onCloseLost() : onChangeStatus("CLOSED"))}>
-            Close (Lost)
+          <Button size="sm" variant="secondary" className="text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border-red-200" icon={<XOctagon size={14} />} onClick={() => (onCloseLost ? onCloseLost() : onChangeStatus("LOST"))}>
+            Lost
           </Button>
         </>
       )}
@@ -52,8 +52,8 @@ export function QuickActions({
 
       {status === "RETAIL_DONE" && (
         <>
-          <Button size="sm" icon={<CheckCircle size={14} />} onClick={() => onChangeStatus("CLOSED")}>
-            Close (Won)
+          <Button size="sm" icon={<CheckCircle size={14} />} onClick={() => onChangeStatus("DELIVERED")}>
+            Win (Delivered)
           </Button>
         </>
       )}

@@ -28,9 +28,12 @@ export const changeStatusSchema = z.object({
     "RETAIL_DONE",
     "RTO_DONE",
     "DELIVERED",
-    "CLOSED",
+    "CLOSED_TEMP",
+    "LOST",
   ]),
   note: z.string().optional(),
+  // Required when toStatus is LOST — UI only offers LOST_TO_DEALER / OTHER_REASON now, the
+  // rest of the enum is kept for historical rows.
   lossReason: z.enum([
     "LOST_TO_DEALER",
     "BOOKING_CANCEL",
@@ -41,6 +44,12 @@ export const changeStatusSchema = z.object({
     "PURCHASED_ANOTHER_BRAND",
     "OTHER_REASON",
   ]).optional(),
+  // Free-text detail, required when lossReason is OTHER_REASON.
+  lossNote: z.string().optional(),
+  // Required when toStatus is CLOSED_TEMP.
+  closeReason: z.enum(["OUT_OF_TERRITORY", "RNR", "PLAN_DROP", "NOT_INTERESTED", "OTHER"]).optional(),
+  // Free-text detail, required when closeReason is OTHER.
+  closeNote: z.string().optional(),
   followUpDueAt: z.string().datetime().optional(),
   // Appointment Fixed: date + allocated consultant.
   appointmentAt: z.string().datetime().optional(),

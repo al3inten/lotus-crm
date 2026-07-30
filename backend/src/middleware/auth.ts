@@ -25,7 +25,7 @@ export async function loadAuthUser(userId: string) {
           permissions: true,
           canViewAllBranches: true,
           restrictLeadsToOwn: true,
-          canViewBranchLeads: true,
+          canReassignCustomerCr: true,
           isActive: true,
         },
       },
@@ -50,7 +50,7 @@ export async function loadAuthUser(userId: string) {
     permissions,
     canViewAllBranches: user.role === "SUPER_ADMIN" || (roleDefinition?.canViewAllBranches ?? false),
     restrictLeadsToOwn: user.role === "SUPER_ADMIN" ? false : (roleDefinition?.restrictLeadsToOwn ?? false),
-    canViewBranchLeads: user.role === "SUPER_ADMIN" || (roleDefinition?.canViewBranchLeads ?? false),
+    canReassignCustomerCr: user.role === "SUPER_ADMIN" || (roleDefinition?.canReassignCustomerCr ?? false),
     isCr: user.isCr,
   };
 }

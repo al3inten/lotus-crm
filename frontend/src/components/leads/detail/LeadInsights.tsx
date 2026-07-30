@@ -23,7 +23,7 @@ export function buildInsights(lead: LeadWithHistory, enquiry: Enquiry): Insight[
   const out: Insight[] = [];
   const now = new Date();
 
-  if (enquiry.status !== "CLOSED") {
+  if (enquiry.status !== "CLOSED_TEMP" && enquiry.status !== "LOST") {
     if (enquiry.followUpDueAt) {
       const due = new Date(enquiry.followUpDueAt);
       const overdueDays = daysBetween(now, due);

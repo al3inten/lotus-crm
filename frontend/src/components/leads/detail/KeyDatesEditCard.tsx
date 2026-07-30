@@ -34,7 +34,8 @@ const STAGE_RANK: Record<EnquiryStatus, number> = {
   RETAIL_DONE: 4,
   RTO_DONE: 5,
   DELIVERED: 6,
-  CLOSED: -1,
+  CLOSED_TEMP: -1,
+  LOST: -1,
 };
 
 function reachedRank(enquiry: Enquiry): number {

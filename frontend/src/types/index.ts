@@ -98,12 +98,16 @@ export const ENQUIRY_STATUSES = [
   "RETAIL_DONE",
   "RTO_DONE",
   "DELIVERED",
-  "CLOSED",
+  "CLOSED_TEMP",
+  "LOST",
 ] as const;
 export type EnquiryStatus = (typeof ENQUIRY_STATUSES)[number];
+// Retired status — no enquiry is written with this anymore (existing rows were backfilled to
+// LOST), but the type still needs to accept it for any stray historical reference.
+export type LegacyEnquiryStatus = EnquiryStatus | "CLOSED";
 
 /** Human labels for each status (badges, dropdowns). */
-export const STATUS_LABELS: Record<EnquiryStatus, string> = {
+export const STATUS_LABELS: Record<LegacyEnquiryStatus, string> = {
   NEW: "New Lead",
   UNDER_FOLLOW_UP: "Under Follow-up",
   APPOINTMENT_FIXED: "Appointment Fixed",
@@ -112,9 +116,13 @@ export const STATUS_LABELS: Record<EnquiryStatus, string> = {
   RETAIL_DONE: "Retail",
   RTO_DONE: "RTO",
   DELIVERED: "Delivered",
+  CLOSED_TEMP: "Closed Temporarily",
+  LOST: "Lost",
   CLOSED: "Closed (Lost)",
 };
 
+// Full reason enum (mirrors backend LossReason) — the "Lost" status UI only offers
+// LOST_TO_DEALER and OTHER_REASON now; the rest exist for historical rows.
 export const LOSS_REASONS = [
   "LOST_TO_DEALER",
   "BOOKING_CANCEL",
@@ -127,23 +135,43 @@ export const LOSS_REASONS = [
 ] as const;
 export type LossReason = (typeof LOSS_REASONS)[number];
 
+/** Reasons offered when marking a lead "Lost". */
+export const LOST_REASONS = ["OTHER_REASON", "LOST_TO_DEALER"] as const;
+export const LOST_REASON_LABELS: Record<(typeof LOST_REASONS)[number], string> = {
+  OTHER_REASON: "Enquiry - Lost Other Reason",
+  LOST_TO_DEALER: "Enquiry - Lost to Dealer",
+};
+
+/** Reasons offered when marking a lead "Closed Temporarily". */
+export const CLOSE_REASONS = ["OUT_OF_TERRITORY", "RNR", "PLAN_DROP", "NOT_INTERESTED", "OTHER"] as const;
+export type CloseReason = (typeof CLOSE_REASONS)[number];
+export const CLOSE_REASON_LABELS: Record<CloseReason, string> = {
+  OUT_OF_TERRITORY: "Out of Territory",
+  RNR: "RNR",
+  PLAN_DROP: "Plan Drop",
+  NOT_INTERESTED: "Not Interested",
+  OTHER: "Others",
+};
+
 export const FINANCE_STATUSES = ["NOT_STARTED", "DOCS_PENDING", "SUBMITTED", "APPROVED", "REJECTED"] as const;
 export type FinanceStatus = (typeof FINANCE_STATUSES)[number];
 
 // Mirrors backend ALLOWED_TRANSITIONS in backend/src/config/constants.ts —
 // client-side only for UX (disabling invalid options); server re-validates.
 // Strict forward-only pipeline (mirrors backend ALLOWED_TRANSITIONS). Each stage advances
-// only to the next; UNDER_FOLLOW_UP is an early sub-state, CLOSED an off-ramp until delivery.
+// only to the next; UNDER_FOLLOW_UP is an early sub-state. Every open stage also has three
+// off-ramps until delivery: DELIVERED ("Win"), CLOSED_TEMP ("Closed Temporarily"), LOST.
 export const ALLOWED_TRANSITIONS: Record<EnquiryStatus, EnquiryStatus[]> = {
-  NEW: ["APPOINTMENT_FIXED", "CLOSED"],
-  UNDER_FOLLOW_UP: ["APPOINTMENT_FIXED", "CLOSED"],
-  APPOINTMENT_FIXED: ["TEST_DRIVE", "CLOSED"],
-  TEST_DRIVE: ["BOOKED", "CLOSED"],
-  BOOKED: ["RETAIL_DONE", "CLOSED"],
-  RETAIL_DONE: ["RTO_DONE", "CLOSED"],
-  RTO_DONE: ["DELIVERED", "CLOSED"],
+  NEW: ["APPOINTMENT_FIXED", "DELIVERED", "CLOSED_TEMP", "LOST"],
+  UNDER_FOLLOW_UP: ["APPOINTMENT_FIXED", "DELIVERED", "CLOSED_TEMP", "LOST"],
+  APPOINTMENT_FIXED: ["TEST_DRIVE", "DELIVERED", "CLOSED_TEMP", "LOST"],
+  TEST_DRIVE: ["BOOKED", "DELIVERED", "CLOSED_TEMP", "LOST"],
+  BOOKED: ["RETAIL_DONE", "DELIVERED", "CLOSED_TEMP", "LOST"],
+  RETAIL_DONE: ["RTO_DONE", "DELIVERED", "CLOSED_TEMP", "LOST"],
+  RTO_DONE: ["DELIVERED", "CLOSED_TEMP", "LOST"],
   DELIVERED: [],
-  CLOSED: [],
+  CLOSED_TEMP: [],
+  LOST: [],
 };
 
 // Sidebar/dashboard modules a custom role can toggle. Mirrors backend MODULE_KEYS exactly.
@@ -179,9 +207,9 @@ export interface RoleDefinition {
   permissions: ModulePermissions;
   canViewAllBranches: boolean;
   restrictLeadsToOwn: boolean;
-  /** Only meaningful when restrictLeadsToOwn is true: lets this role view (not edit) leads
-   * assigned to other CRs in their own branch, instead of only their own. */
-  canViewBranchLeads: boolean;
+  /** Lets this role reassign a customer's owning CR (moves every one of that
+   *  customer's enquiries at once). SUPER_ADMIN always can, regardless of this. */
+  canReassignCustomerCr: boolean;
   isActive: boolean;
   /** True only for the built-in seeded "CR" role — name locked, can't be deleted. */
   isSystemDefault: boolean;
@@ -200,9 +228,8 @@ export interface User {
   permissions: ModulePermissions;
   canViewAllBranches: boolean;
   restrictLeadsToOwn: boolean;
-  /** Only meaningful when restrictLeadsToOwn is true: lets this user view (not edit) leads
-   * assigned to other CRs in their own branch, instead of only their own. */
-  canViewBranchLeads: boolean;
+  /** Lets this user reassign a customer's owning CR — SUPER_ADMIN always has this. */
+  canReassignCustomerCr: boolean;
   /** Independent per-user toggle letting this user additionally act as a CR. */
   isCr: boolean;
   /** isCr OR their role is itself a CR role (restrictLeadsToOwn) — only present on
@@ -328,6 +355,8 @@ export interface Enquiry {
   followUpDueAt?: string | null;
   lossReason?: LossReason | null;
   lossNote?: string | null;
+  closeReason?: CloseReason | null;
+  closeNote?: string | null;
   department?: Department | null;
   sourceCategory?: SourceCategory | null;
   subsource?: LeadSubsource | null;

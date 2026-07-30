@@ -220,7 +220,7 @@ export function LeadHeroHeader({
               label="Follow-up"
               onClick={openFollowUp}
               tone="primary"
-              disabled={!enquiry || enquiry.status === "CLOSED" || !canAct}
+              disabled={!enquiry || enquiry.status === "CLOSED_TEMP" || enquiry.status === "LOST" || !canAct}
             />
             <ActionButton icon={<Pencil size={16} />} label="Edit" onClick={() => setShowDetailsWizard(true)} disabled={!enquiry || !canAct} />
             {enquiry && (

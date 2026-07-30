@@ -1,7 +1,28 @@
+import { randomUUID } from "crypto";
 import { prisma } from "../../lib/prisma";
 import { NotFoundError, ValidationError } from "../../lib/errors";
 import { ALLOWED_TRANSITIONS, CONSULTANT_REQUIRED_AT_STATUS, STAGE_RANK, TERMINAL_STATUSES, TRANSACTION_OPTIONS } from "../../config/constants";
 import { ChangeStatusInput, ReassignInput, EnquiryDetailsInput, BookingDetailsInput, RetailDetailsInput, RtoDetailsInput, DeliveryDateInput, UpdateKeyDateInput } from "./enquiries.schema";
+import { LossReason, CloseReason } from "@prisma/client";
+
+const LOSS_REASON_LABELS: Record<LossReason, string> = {
+  LOST_TO_DEALER: "Enquiry - Lost to Dealer",
+  BOOKING_CANCEL: "Booking Cancelled",
+  RETAIL_CANCEL: "Retail Cancelled",
+  OUT_OF_TERRITORY: "Out of Territory",
+  NOT_CONTACTABLE: "Not Contactable",
+  PRICE_ISSUE: "Price Issue",
+  PURCHASED_ANOTHER_BRAND: "Purchased Another Brand",
+  OTHER_REASON: "Enquiry - Lost Other Reason",
+};
+
+const CLOSE_REASON_LABELS: Record<CloseReason, string> = {
+  OUT_OF_TERRITORY: "Out of Territory",
+  RNR: "RNR",
+  PLAN_DROP: "Plan Drop",
+  NOT_INTERESTED: "Not Interested",
+  OTHER: "Others",
+};
 
 export async function getEnquiry(enquiryId: string) {
   const enquiry = await prisma.enquiry.findUnique({
@@ -37,8 +58,22 @@ export async function changeStatus(enquiryId: string, input: ChangeStatusInput, 
       );
     }
 
-    if (input.toStatus === "CLOSED" && input.lossReason === undefined) {
-      // It's allowed if they are winning it (no lossReason)
+    if (input.toStatus === "LOST") {
+      if (!input.lossReason) {
+        throw new ValidationError("A reason is required to mark this enquiry as Lost.");
+      }
+      if (input.lossReason === "OTHER_REASON" && !input.lossNote?.trim()) {
+        throw new ValidationError("Enter the reason when Other is selected.");
+      }
+    }
+
+    if (input.toStatus === "CLOSED_TEMP") {
+      if (!input.closeReason) {
+        throw new ValidationError("A reason is required to close this enquiry temporarily.");
+      }
+      if (input.closeReason === "OTHER" && !input.closeNote?.trim()) {
+        throw new ValidationError("Enter the reason when Others is selected.");
+      }
     }
 
     if (input.toStatus === CONSULTANT_REQUIRED_AT_STATUS && !input.consultantId && !enquiry.consultantId) {
@@ -128,8 +163,10 @@ export async function changeStatus(enquiryId: string, input: ChangeStatusInput, 
       where: { id: enquiryId },
       data: {
         status: input.toStatus,
-        lossReason: input.toStatus === "CLOSED" ? input.lossReason : enquiry.lossReason,
-        lossNote: input.toStatus === "CLOSED" ? input.note : enquiry.lossNote,
+        lossReason: input.toStatus === "LOST" ? input.lossReason : enquiry.lossReason,
+        lossNote: input.toStatus === "LOST" ? input.lossNote : enquiry.lossNote,
+        closeReason: input.toStatus === "CLOSED_TEMP" ? input.closeReason : enquiry.closeReason,
+        closeNote: input.toStatus === "CLOSED_TEMP" ? input.closeNote : enquiry.closeNote,
         followUpDueAt: input.toStatus === "UNDER_FOLLOW_UP"
           ? (input.followUpDueAt ? new Date(input.followUpDueAt) : null)
           : autoClosingFollowUp
@@ -154,13 +191,22 @@ export async function changeStatus(enquiryId: string, input: ChangeStatusInput, 
       },
     });
 
+    // The history row has no dedicated reason columns, so fold the loss/close reason (and
+    // its free-text detail) into the note shown on the activity timeline.
+    const reasonNote =
+      input.toStatus === "LOST" && input.lossReason
+        ? `Reason: ${LOSS_REASON_LABELS[input.lossReason]}${input.lossNote ? ` — ${input.lossNote}` : ""}`
+        : input.toStatus === "CLOSED_TEMP" && input.closeReason
+          ? `Reason: ${CLOSE_REASON_LABELS[input.closeReason]}${input.closeNote ? ` — ${input.closeNote}` : ""}`
+          : undefined;
+
     await tx.enquiryStatusHistory.create({
       data: {
         enquiryId,
         fromStatus: enquiry.status,
         toStatus: input.toStatus,
         changedById,
-        note: input.note,
+        note: [input.note, reasonNote].filter(Boolean).join(" | ") || undefined,
       },
     });
 
@@ -386,7 +432,7 @@ export async function updateBookingDetails(enquiryId: string, input: BookingDeta
   return prisma.$transaction(async (tx) => {
     const enquiry = await tx.enquiry.findUnique({ where: { id: enquiryId } });
     if (!enquiry) throw new NotFoundError("Enquiry not found");
-    if (enquiry.status === "CLOSED" || STAGE_RANK[enquiry.status] < STAGE_RANK.BOOKED) {
+    if (STAGE_RANK[enquiry.status] < STAGE_RANK.BOOKED) {
       throw new ValidationError("Booking details can only be set once the enquiry has reached Booked.");
     }
 
@@ -431,7 +477,7 @@ export async function updateRetailDetails(enquiryId: string, input: RetailDetail
   return prisma.$transaction(async (tx) => {
     const enquiry = await tx.enquiry.findUnique({ where: { id: enquiryId } });
     if (!enquiry) throw new NotFoundError("Enquiry not found");
-    if (enquiry.status === "CLOSED" || STAGE_RANK[enquiry.status] < STAGE_RANK.RETAIL_DONE) {
+    if (STAGE_RANK[enquiry.status] < STAGE_RANK.RETAIL_DONE) {
       throw new ValidationError("Retail details can only be set once the enquiry has reached Retail Done.");
     }
 
@@ -465,7 +511,7 @@ export async function updateRtoDetails(enquiryId: string, input: RtoDetailsInput
   return prisma.$transaction(async (tx) => {
     const enquiry = await tx.enquiry.findUnique({ where: { id: enquiryId } });
     if (!enquiry) throw new NotFoundError("Enquiry not found");
-    if (enquiry.status === "CLOSED" || STAGE_RANK[enquiry.status] < STAGE_RANK.RTO_DONE) {
+    if (STAGE_RANK[enquiry.status] < STAGE_RANK.RTO_DONE) {
       throw new ValidationError("RTO details can only be set once the enquiry has reached RTO Done.");
     }
 
@@ -583,34 +629,57 @@ export async function updateKeyDate(enquiryId: string, input: UpdateKeyDateInput
   return getEnquiry(enquiryId);
 }
 
+/**
+ * Reassigns the CR who owns this customer (Lead.primaryCrId) — not just the one enquiry.
+ * Every enquiry this customer has ever raised moves to the new CR in the same transaction,
+ * since a customer only ever has one owning CR. Callers must be SUPER_ADMIN or hold the
+ * canReassignCustomerCr role toggle — enforced by requireCustomerReassignRights before this
+ * runs (see enquiries.routes.ts).
+ */
 export async function reassign(enquiryId: string, input: ReassignInput, reassignedById: string) {
   return prisma.$transaction(async (tx) => {
     const enquiry = await tx.enquiry.findUnique({ where: { id: enquiryId } });
     if (!enquiry) throw new NotFoundError("Enquiry not found");
 
-    const toUser = await tx.user.findUnique({ where: { id: input.toUserId } });
+    const toUser = await tx.user.findUnique({
+      where: { id: input.toUserId },
+      include: { roleDefinition: { select: { restrictLeadsToOwn: true } } },
+    });
     if (!toUser) throw new NotFoundError("Target user not found");
-    if (!toUser.isCr) throw new ValidationError("Target user is not enabled as a consultant/CR.");
+    // Same "eligible as a CR" definition the assignment dropdown uses (see
+    // users.service.ts isCrEligible) — either their own isCr toggle is on, or the role
+    // they hold is itself a CR role (restrictLeadsToOwn), so a CR-role user without the
+    // separate isCr flag flipped can still be reassigned leads.
+    const isCrEligible = toUser.isCr || (toUser.roleDefinition?.restrictLeadsToOwn ?? false);
+    if (!isCrEligible) throw new ValidationError("Target user is not enabled as a consultant/CR.");
     if (toUser.branchId !== enquiry.branchId) {
       throw new ValidationError("Target user must belong to the same branch as the enquiry.");
     }
 
-    const updated = await tx.enquiry.update({
-      where: { id: enquiryId },
+    const customerEnquiries = await tx.enquiry.findMany({
+      where: { leadId: enquiry.leadId },
+      select: { id: true, assignedCrId: true },
+    });
+
+    await tx.lead.update({ where: { id: enquiry.leadId }, data: { primaryCrId: input.toUserId } });
+    await tx.enquiry.updateMany({
+      where: { leadId: enquiry.leadId },
       data: { assignedCrId: input.toUserId },
     });
 
-    await tx.reassignmentLog.create({
-      data: {
-        enquiryId,
-        fromUserId: enquiry.assignedCrId,
+    const batchId = randomUUID();
+    await tx.reassignmentLog.createMany({
+      data: customerEnquiries.map((e) => ({
+        enquiryId: e.id,
+        batchId,
+        fromUserId: e.assignedCrId,
         toUserId: input.toUserId,
         reassignedById,
         reason: input.reason,
-      },
+      })),
     });
 
-    return updated;
+    return tx.enquiry.findUnique({ where: { id: enquiryId } });
   }, TRANSACTION_OPTIONS);
 }
 

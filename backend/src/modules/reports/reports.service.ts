@@ -46,7 +46,7 @@ export async function getSummary(query: ReportQuery, branchFilter?: { branchId: 
   const statusCounts = Object.fromEntries(byStatus.map((row) => [row.status, row._count]));
   const converted = CONVERTED_STATUSES.reduce((sum, status) => sum + (statusCounts[status] ?? 0), 0);
   const followUpPending = statusCounts["UNDER_FOLLOW_UP"] ?? 0;
-  const lost = statusCounts["CLOSED"] ?? 0;
+  const lost = (statusCounts["LOST"] ?? 0) + (statusCounts["CLOSED"] ?? 0);
 
   return {
     totalEnquiries: total,
@@ -64,7 +64,7 @@ export async function getCrPerformance(query: ReportQuery, branchFilter?: { bran
 
   const now = new Date();
 
-  const [assignedCounts, convertedCounts, pendingCounts, overdueCounts] = await Promise.all([
+  const [assignedCounts, convertedCounts, pendingCounts, overdueCounts, statusCounts] = await Promise.all([
     prisma.enquiry.groupBy({ by: ["assignedCrId"], where: { ...where, assignedCrId: { not: null } }, _count: true }),
     prisma.enquiry.groupBy({
       by: ["assignedCrId"],
@@ -81,11 +81,23 @@ export async function getCrPerformance(query: ReportQuery, branchFilter?: { bran
       where: { ...where, assignedCrId: { not: null }, status: { notIn: [...TERMINAL_STATUSES] }, followUpDueAt: { lt: now } },
       _count: true,
     }),
+    prisma.enquiry.groupBy({
+      by: ["assignedCrId", "status"],
+      where: { ...where, assignedCrId: { not: null } },
+      _count: true,
+    }),
   ]);
 
   const convertedMap = new Map(convertedCounts.map((row) => [row.assignedCrId, row._count]));
   const pendingMap = new Map(pendingCounts.map((row) => [row.assignedCrId, row._count]));
   const overdueMap = new Map(overdueCounts.map((row) => [row.assignedCrId, row._count]));
+  const statusBreakdownMap = new Map<string, Record<string, number>>();
+  for (const row of statusCounts) {
+    if (!row.assignedCrId) continue;
+    const entry = statusBreakdownMap.get(row.assignedCrId) ?? {};
+    entry[row.status] = row._count;
+    statusBreakdownMap.set(row.assignedCrId, entry);
+  }
   const crIds = assignedCounts.map((row) => row.assignedCrId).filter((id): id is string => !!id);
 
   const crUsers = await prisma.user.findMany({
@@ -111,6 +123,7 @@ export async function getCrPerformance(query: ReportQuery, branchFilter?: { bran
         followUpsPending: pending,
         followUpsOverdue: overdue,
         conversionRate: assigned > 0 ? Number(((converted / assigned) * 100).toFixed(1)) : 0,
+        statusBreakdown: statusBreakdownMap.get(row.assignedCrId!) ?? {},
       };
     })
     .sort((a, b) => b.conversionRate - a.conversionRate);
@@ -150,7 +163,7 @@ export async function getTrend(query: TrendQuery, branchFilter?: { branchId: str
         date_trunc(${query.granularity}, "createdAt" AT TIME ZONE 'Asia/Kolkata') AS bucket,
         COUNT(*)::bigint AS total,
         COUNT(*) FILTER (WHERE status = 'RETAIL_DONE')::bigint AS converted,
-        COUNT(*) FILTER (WHERE status = 'CLOSED')::bigint AS lost
+        COUNT(*) FILTER (WHERE status IN ('LOST', 'CLOSED'))::bigint AS lost
       FROM enquiries
       WHERE 1=1
         ${branchId ? Prisma.sql`AND "branchId" = ${branchId}` : Prisma.empty}

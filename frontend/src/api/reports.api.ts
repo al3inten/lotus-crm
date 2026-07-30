@@ -42,6 +42,7 @@ export interface CrPerformanceRow {
   followUpsPending: number;
   followUpsOverdue: number;
   conversionRate: number;
+  statusBreakdown: Record<string, number>;
 }
 
 export interface BranchRollupRow {
@@ -144,6 +145,7 @@ export interface ConsultantPerformanceRow {
   shareOfSales: number;
   topModel: string | null;
   models: { carModel: string; sold: number }[];
+  statusBreakdown: Record<string, number>;
 }
 
 export async function fetchConsultantPerformance(filters: ReportFilters): Promise<ConsultantPerformanceRow[]> {

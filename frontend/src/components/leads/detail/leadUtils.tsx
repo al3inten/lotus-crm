@@ -18,13 +18,11 @@ import {
 import type { EnquiryStatus, Enquiry, LeadWithHistory } from "../../../types";
 import { DIGITAL_SOURCES } from "../../../types";
 
-export const WIN_STATUS: EnquiryStatus = "RETAIL_DONE";
-
-/** Same condition the API uses to gate reassignment — a plain CR restricted to their
- * own leads can't reassign; anyone with write access to Leads (and not restricted) can. */
-export function canReassignLeads(user: { role: string; permissions: Record<string, string>; restrictLeadsToOwn: boolean } | null | undefined) {
+/** Same condition the API uses to gate reassignment (requireCustomerReassignRights) —
+ * SUPER_ADMIN always can; everyone else needs their role's canReassignCustomerCr toggle. */
+export function canReassignLeads(user: { role: string; canReassignCustomerCr: boolean } | null | undefined) {
   if (!user) return false;
-  return user.role === "SUPER_ADMIN" || (user.permissions.leads === "write" && !user.restrictLeadsToOwn);
+  return user.role === "SUPER_ADMIN" || user.canReassignCustomerCr;
 }
 
 export const PIPELINE_ORDER: EnquiryStatus[] = [
@@ -34,8 +32,10 @@ export const PIPELINE_ORDER: EnquiryStatus[] = [
   "TEST_DRIVE",
   "BOOKED",
   "RETAIL_DONE",
-  "CLOSED",
+  "LOST",
 ];
+
+export const TERMINAL_STATUSES: EnquiryStatus[] = ["DELIVERED", "CLOSED_TEMP", "LOST"];
 
 export const toDateInput = (iso?: string | null) => (iso ? iso.slice(0, 10) : undefined);
 export const toDatetimeLocalInput = (iso?: string | null) => (iso ? iso.slice(0, 16) : undefined);
@@ -98,8 +98,10 @@ export const MOOD_STYLES: Record<Mood, MoodStyle> = {
 };
 
 export function moodOf(enquiry?: Enquiry): Mood {
-  if (!enquiry || enquiry.status !== "CLOSED") return "blue";
-  return enquiry.lossReason ? "red" : "emerald";
+  if (!enquiry) return "blue";
+  if (enquiry.status === "DELIVERED") return "emerald";
+  if (enquiry.status === "LOST" || enquiry.status === "CLOSED_TEMP") return "red";
+  return "blue";
 }
 
 export function buildInsights(lead: LeadWithHistory, enquiry: Enquiry): Insight[] {
@@ -110,11 +112,11 @@ export function buildInsights(lead: LeadWithHistory, enquiry: Enquiry): Insight[
     out.push({
       tone: "positive",
       icon: <Sparkles size={14} />,
-      text: "Retail is complete! Please update the status to CLOSED to finalise this deal.",
+      text: "Retail is complete! Move it through RTO and Delivered to finalise this deal.",
     });
   }
 
-  if (enquiry.status !== "CLOSED") {
+  if (enquiry.status !== "CLOSED_TEMP" && enquiry.status !== "LOST") {
     if (enquiry.followUpDueAt) {
       const due = new Date(enquiry.followUpDueAt);
       const overdueDays = daysBetween(now, due);

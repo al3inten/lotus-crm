@@ -14,7 +14,6 @@ import { useSettings } from "../hooks/useSettings";
 
 import { Button } from "../components/common/Button";
 import { Card } from "../components/common/Card";
-import { ConfettiBurst } from "../components/common/ConfettiBurst";
 
 import { AddLeadWizard } from "../components/leads/AddLeadWizard";
 
@@ -27,7 +26,6 @@ import { LeadDetailError } from "../components/leads/detail/LeadDetailError";
 import { LeadPipelinePanel } from "../components/leads/detail/LeadPipelinePanel";
 
 import {
-  WIN_STATUS,
   canReassignLeads,
   type DetailTab,
   buildInsights,
@@ -62,7 +60,6 @@ export function LeadDetailPage() {
 
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [statusModalTarget, setStatusModalTarget] = useState<EnquiryStatus | undefined>();
-  const [statusModalOutcome, setStatusModalOutcome] = useState<"WON" | "LOST" | undefined>();
 
   const [showDetailsWizard, setShowDetailsWizard] = useState(false);
   const [showCustomerView, setShowCustomerView] = useState(false);
@@ -71,7 +68,6 @@ export function LeadDetailPage() {
   const [showContactHistoryModal, setShowContactHistoryModal] = useState(false);
   const [showCallHistoryModal, setShowCallHistoryModal] = useState(false);
   const [showFollowUpForm, setShowFollowUpForm] = useState(false);
-  const [celebrate, setCelebrate] = useState(false);
   const [showNewEnquiry, setShowNewEnquiry] = useState(false);
 
   // The active tab lives in the URL (?tab=...) so a reload — or a shared/bookmarked link —
@@ -97,7 +93,6 @@ export function LeadDetailPage() {
     [setSearchParams]
   );
 
-  const prevStatusRef = useRef<EnquiryStatus | null>(null);
   const tabDefaultedFor = useRef<string | null>(null);
   const prevEnquiryIdRef = useRef<string | undefined>(undefined);
 
@@ -125,16 +120,6 @@ export function LeadDetailPage() {
   const { data: consultants } = useConsultants(enquiry?.branchId);
   const { data: callLogs } = useCallLogsForLead(leadId);
   const { data: settings } = useSettings();
-
-  useEffect(() => {
-    const status = enquiry?.status;
-    if (!status) return;
-    const prev = prevStatusRef.current;
-    if (prev && prev !== status && status === WIN_STATUS) {
-      setCelebrate(true);
-    }
-    prevStatusRef.current = status;
-  }, [enquiry?.status]);
 
   // Reset to the default tab when actually switching to a different enquiry (via the
   // enquiries switcher) — but not on the initial mount, where activeEnquiryId "changing"
@@ -171,13 +156,11 @@ export function LeadDetailPage() {
 
   const handleQuickActionStatus = (target?: EnquiryStatus) => {
     setStatusModalTarget(target);
-    setStatusModalOutcome(undefined);
     setShowStatusModal(true);
   };
 
   const handleCloseLost = () => {
-    setStatusModalTarget("CLOSED");
-    setStatusModalOutcome("LOST");
+    setStatusModalTarget("LOST");
     setShowStatusModal(true);
   };
 
@@ -231,15 +214,6 @@ export function LeadDetailPage() {
       animate="show"
       className="mx-auto flex w-full max-w-[1360px] flex-col gap-6 px-4 pb-16 sm:px-6 lg:px-8"
     >
-      {celebrate && (
-        <ConfettiBurst
-          customerName={lead.name}
-          crName={enquiry?.assignedCr?.name ?? undefined}
-          carModel={enquiry?.carModel}
-          onDone={() => setCelebrate(false)}
-        />
-      )}
-
       <LeadHeroHeader
         lead={lead}
         enquiry={enquiry}
@@ -256,7 +230,7 @@ export function LeadDetailPage() {
         isUpdatingDetails={updateDetails.isPending}
       />
 
-      {enquiry && enquiry.status !== "CLOSED" && (
+      {enquiry && enquiry.status !== "CLOSED_TEMP" && enquiry.status !== "LOST" && (
         <LeadInsightsSection enquiry={enquiry} leadScore={leadScore} insights={insights} />
       )}
 
@@ -336,7 +310,6 @@ export function LeadDetailPage() {
             showStatusModal={showStatusModal}
             setShowStatusModal={setShowStatusModal}
             statusModalTarget={statusModalTarget}
-            statusModalOutcome={statusModalOutcome}
             setShowFollowUpsModal={setShowFollowUpsModal}
             setShowTimelineModal={setShowTimelineModal}
             setShowContactHistoryModal={setShowContactHistoryModal}

@@ -7,7 +7,7 @@ const PIPELINE_ORDER = [
   "TEST_DRIVE",
   "BOOKED",
   "RETAIL_DONE",
-  "CLOSED",
+  "LOST",
 ];
 
 export function computeLeadScore(lead: LeadWithHistory, enquiry: Enquiry): number {

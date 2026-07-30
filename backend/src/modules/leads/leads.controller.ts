@@ -6,14 +6,16 @@ import * as importService from "./import.service";
 import { LeadListQuery, CustomerListQuery } from "./leads.schema";
 
 /**
- * Overriding the duplicate-customer block is a supervisor decision, so `forceNew` is
- * honoured only for SUPER_ADMIN or a STAFF user whose role has "leads" write access
- * and isn't restricted to only their own leads — a plain CR can't bypass it by posting
- * the flag directly.
+ * `forceNew` is honoured for any user with "leads" write access — including a CR whose
+ * role restricts them to their own leads. That restriction only ever gates who can EDIT
+ * an enquiry (see requireEnquiryOwnership); it's not a reason to stop a CR from logging a
+ * new enquiry for a returning customer, since the new enquiry auto-assigns to that
+ * customer's existing owning CR regardless of who creates it (see leads.service.ts
+ * createOrAttachEnquiry's Lead.primaryCrId inheritance) — never to the creator.
  */
 function withCheckedForceNew(body: Record<string, unknown>, user: Express.Request["user"]) {
   if (!body.forceNew || !user) return body;
-  const canForceNew = user.role === "SUPER_ADMIN" || (user.permissions.leads === "write" && !user.restrictLeadsToOwn);
+  const canForceNew = user.role === "SUPER_ADMIN" || user.permissions.leads === "write";
   return { ...body, forceNew: canForceNew };
 }
 
