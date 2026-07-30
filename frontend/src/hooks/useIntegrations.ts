@@ -18,7 +18,10 @@ export function useSaveIntegration() {
   return useMutation({
     mutationFn: ({ key, credentials }: { key: IntegrationKey; credentials: Record<string, unknown> }) =>
       integrationsApi.saveIntegrationCredentials(key, credentials),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["integrations"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["integrations"] });
+      queryClient.invalidateQueries({ queryKey: ["meta-app-config"] });
+    },
     meta: { successMessage: "Integration saved" },
   });
 }
@@ -56,6 +59,13 @@ export function useSyncGoogleSheet() {
     mutationFn: ({ sheetUrl, sheetName, branchId }: { sheetUrl: string; sheetName?: string; branchId: string }) =>
       integrationsApi.syncGoogleSheet(sheetUrl, sheetName, branchId),
     meta: { successMessage: "Google Sheet synced" },
+  });
+}
+
+export function useMetaAppConfig() {
+  return useQuery({
+    queryKey: ["meta-app-config"],
+    queryFn: integrationsApi.fetchMetaAppConfig,
   });
 }
 

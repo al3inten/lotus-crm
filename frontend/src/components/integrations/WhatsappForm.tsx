@@ -2,6 +2,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "../common/Input";
 import { Button } from "../common/Button";
+import { CopyableField } from "../common/CopyableField";
 import { whatsappCredentialsFormSchema } from "../../schemas/integration.schema";
 import type { WhatsappCredentialsFormValues } from "../../schemas/integration.schema";
 import { useSaveIntegration } from "../../hooks/useIntegrations";
@@ -22,9 +23,10 @@ export function WhatsappForm({ onSaved }: { onSaved: () => void }) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
       <p className="rounded-md bg-gray-50 p-2 text-xs text-gray-600">
-        In WhatsApp Business Platform settings, subscribe to <strong>messages</strong> and set the callback URL to{" "}
-        <code className="break-all">{getMetaWebhookUrl()}</code>, using the same Verify Token you enter below.
+        In WhatsApp Business Platform settings, subscribe to <strong>messages</strong> and set the callback URL below,
+        using the same Verify Token you enter below.
       </p>
+      <CopyableField label="Callback URL" value={getMetaWebhookUrl()} />
       <Input label="Phone Number ID" error={errors.phoneNumberId?.message} {...register("phoneNumberId")} />
       <Input label="Access Token" type="password" error={errors.accessToken?.message} {...register("accessToken")} />
       <Input label="App Secret" type="password" error={errors.appSecret?.message} {...register("appSecret")} />

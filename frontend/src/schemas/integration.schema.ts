@@ -1,7 +1,14 @@
 import { z } from "zod";
 
-// Meta Ads no longer uses a manual credentials form — see MetaAdsForm.tsx, which now
-// drives the "Login with Facebook" OAuth flow instead.
+// Meta Ads itself no longer uses a manual credentials form — see MetaAdsForm.tsx, which
+// drives the "Login with Facebook" OAuth flow. The Meta Developer App's own App ID/Secret
+// (needed to build that OAuth flow) is still entered manually, once, below.
+
+export const metaAppCredentialsFormSchema = z.object({
+  appId: z.string().min(1, "App ID is required"),
+  appSecret: z.string().min(1, "App secret is required"),
+});
+export type MetaAppCredentialsFormValues = z.infer<typeof metaAppCredentialsFormSchema>;
 
 export const whatsappCredentialsFormSchema = z.object({
   phoneNumberId: z.string().min(1, "Phone number ID is required"),

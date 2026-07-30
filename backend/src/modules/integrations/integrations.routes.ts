@@ -14,6 +14,7 @@ import {
 } from "./integrations.controller";
 import {
   startMetaOAuthHandler,
+  metaAppConfigHandler,
   metaAdsStatusHandler,
   disconnectMetaHandler,
   syncMetaPageHandler,
@@ -27,6 +28,7 @@ router.use(verifyJwt);
 router.get("/", requirePermission("integrations", "read"), asyncHandler(listIntegrationsHandler));
 router.post("/google-sheets/sync", requirePermission("integrations", "write"), validateBody(syncGoogleSheetSchema), asyncHandler(syncGoogleSheetHandler));
 
+router.get("/meta/app-config", requirePermission("integrations", "read"), asyncHandler(metaAppConfigHandler));
 router.get("/meta/oauth/start", requirePermission("integrations", "write"), asyncHandler(startMetaOAuthHandler));
 router.get("/meta/pages", requirePermission("integrations", "read"), asyncHandler(metaAdsStatusHandler));
 router.post("/meta/pages/:pageId/sync", requirePermission("integrations", "write"), asyncHandler(syncMetaPageHandler));

@@ -134,6 +134,7 @@ enum FuelType {
 }
 
 enum IntegrationKey {
+  META_APP
   META_ADS
   WHATSAPP
   INSTAGRAM
