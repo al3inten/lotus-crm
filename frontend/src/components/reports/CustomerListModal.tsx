@@ -100,6 +100,7 @@ export function CustomerListModal({
                   <th className="px-3 py-2.5">Name</th>
                   <th className="px-3 py-2.5">Phone</th>
                   <th className="px-3 py-2.5">Vehicle</th>
+                  <th className="px-3 py-2.5">Source</th>
                   <th className="px-3 py-2.5">Status</th>
                   <th className="px-3 py-2.5">Branch</th>
                   <th className="px-3 py-2.5">Assigned CR</th>
@@ -111,6 +112,7 @@ export function CustomerListModal({
                     <td className="px-3 py-2.5 font-medium text-gray-900 dark:text-slate-100">{row.name}</td>
                     <td className="px-3 py-2.5 text-gray-700 dark:text-slate-300">{row.phone}</td>
                     <td className="px-3 py-2.5 text-gray-700 dark:text-slate-300">{row.carModel}</td>
+                    <td className="px-3 py-2.5 text-gray-700 dark:text-slate-300">{row.source.replaceAll("_", " ")}</td>
                     <td className="px-3 py-2.5 text-gray-700 dark:text-slate-300">
                       {STATUS_LABELS[row.status as keyof typeof STATUS_LABELS] ?? row.status}
                     </td>

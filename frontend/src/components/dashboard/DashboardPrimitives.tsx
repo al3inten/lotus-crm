@@ -71,7 +71,17 @@ export function SectionHeader({ title, to, cta }: { title: string; to?: string; 
 }
 
 /* Stripe-style delta: no chip, no border — a small signed figure. */
-export function Delta({ delta, upIsGood = true }: { delta?: number | null; upIsGood?: boolean }) {
+export function Delta({
+  delta,
+  upIsGood = true,
+  unit = "%",
+}: {
+  delta?: number | null;
+  upIsGood?: boolean;
+  /** "%" for a relative percentage change (default), "pp" for a percentage-point difference,
+   * "" for a plain signed diff (no suffix). */
+  unit?: "%" | "pp" | "";
+}) {
   if (delta == null || Number.isNaN(delta)) return null;
   const positive = delta >= 0;
   const good = upIsGood ? positive : !positive;
@@ -83,7 +93,8 @@ export function Delta({ delta, upIsGood = true }: { delta?: number | null; upIsG
       )}
     >
       {positive ? <ArrowUpRight size={12} strokeWidth={2.25} /> : <ArrowDownRight size={12} strokeWidth={2.25} />}
-      {Math.abs(delta)}%
+      {Math.abs(delta)}
+      {unit}
     </span>
   );
 }

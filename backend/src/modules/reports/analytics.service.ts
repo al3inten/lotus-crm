@@ -854,10 +854,25 @@ export async function previewCustomers(
   return { rows, total, page, pageSize };
 }
 
-async function fetchExportRows(query: ReportQuery, branchFilter?: { branchId: string }) {
+// Pipeline order for the summary pivot's status columns — mirrors ALLOWED_TRANSITIONS'
+// key order in config/constants.ts (NEW → ... → DELIVERED, then the off-ramps).
+const EXPORT_STATUS_ORDER: EnquiryStatus[] = [
+  "NEW",
+  "UNDER_FOLLOW_UP",
+  "APPOINTMENT_FIXED",
+  "TEST_DRIVE",
+  "BOOKED",
+  "RETAIL_DONE",
+  "RTO_DONE",
+  "DELIVERED",
+  "CLOSED_TEMP",
+  "LOST",
+];
+
+async function fetchExportRecords(query: ReportQuery, branchFilter?: { branchId: string }) {
   const where = buildExportWhere(query, branchFilter);
 
-  const enquiries = await prisma.enquiry.findMany({
+  return prisma.enquiry.findMany({
     where,
     include: {
       lead: { select: { name: true, phoneRaw: true, email: true } },
@@ -865,11 +880,14 @@ async function fetchExportRows(query: ReportQuery, branchFilter?: { branchId: st
       assignedCr: { select: { name: true } },
       consultant: { select: { name: true } },
     },
-    orderBy: { createdAt: "desc" },
+    // Grouped by source for the detail sheet — newest first within each source.
+    orderBy: [{ source: "asc" }, { createdAt: "desc" }],
     take: 10_000, // hard cap — exports beyond this should be narrowed by date range
   });
+}
 
-  return enquiries.map((e) => [
+function toExportRow(e: Awaited<ReturnType<typeof fetchExportRecords>>[number]) {
+  return [
     e.createdAt.toISOString(),
     e.lead.name,
     e.lead.phoneRaw,
@@ -883,11 +901,12 @@ async function fetchExportRows(query: ReportQuery, branchFilter?: { branchId: st
     e.assignedCr?.name ?? "",
     e.consultant?.name ?? "",
     e.location ?? "",
-  ]);
+  ];
 }
 
 export async function exportEnquiriesCsv(query: ReportQuery, branchFilter?: { branchId: string }): Promise<string> {
-  const rows = await fetchExportRows(query, branchFilter);
+  const records = await fetchExportRecords(query, branchFilter);
+  const rows = records.map(toExportRow);
 
   const escape = (value: unknown): string => {
     const str = value == null ? "" : String(value);
@@ -899,13 +918,55 @@ export async function exportEnquiriesCsv(query: ReportQuery, branchFilter?: { br
 }
 
 export async function exportEnquiriesXlsx(query: ReportQuery, branchFilter?: { branchId: string }): Promise<Buffer> {
-  const rows = await fetchExportRows(query, branchFilter);
+  const records = await fetchExportRecords(query, branchFilter);
+
+  // Source × Status pivot — every source that appears gets a row, in first-seen order
+  // (which is alphabetical, since records are already ordered by source).
+  const sourceOrder: string[] = [];
+  const pivot = new Map<string, Record<string, number>>();
+  for (const e of records) {
+    if (!pivot.has(e.source)) {
+      sourceOrder.push(e.source);
+      pivot.set(e.source, {});
+    }
+    const counts = pivot.get(e.source)!;
+    counts[e.status] = (counts[e.status] ?? 0) + 1;
+  }
 
   const workbook = new ExcelJS.Workbook();
-  const sheet = workbook.addWorksheet("Customer Details");
-  sheet.columns = EXPORT_COLUMNS.map((header) => ({ header, key: header, width: 20 }));
-  sheet.getRow(1).font = { bold: true };
-  for (const row of rows) sheet.addRow(row);
+
+  const summarySheet = workbook.addWorksheet("Summary");
+  const summaryHeader = ["Source", ...EXPORT_STATUS_ORDER, "Total"];
+  summarySheet.columns = summaryHeader.map((header) => ({ header, key: header, width: 16 }));
+  summarySheet.getRow(1).font = { bold: true };
+  for (const source of sourceOrder) {
+    const counts = pivot.get(source)!;
+    const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
+    summarySheet.addRow([source, ...EXPORT_STATUS_ORDER.map((s) => counts[s] ?? 0), total]);
+  }
+  // Grand total row across every source.
+  const grandTotals = EXPORT_STATUS_ORDER.map((s) =>
+    sourceOrder.reduce((sum, source) => sum + (pivot.get(source)![s] ?? 0), 0)
+  );
+  const grandTotalRow = summarySheet.addRow(["All sources", ...grandTotals, grandTotals.reduce((a, b) => a + b, 0)]);
+  grandTotalRow.font = { bold: true };
+
+  const detailSheet = workbook.addWorksheet("Customer Details");
+  detailSheet.columns = EXPORT_COLUMNS.map((header) => ({ header, key: header, width: 20 }));
+  detailSheet.getRow(1).font = { bold: true };
+  // Sub-header row above each source's block of customers, so the grouping is visible
+  // without relying on Excel's outline/group feature (which some viewers hide by default).
+  let currentSource: string | null = null;
+  for (const e of records) {
+    if (e.source !== currentSource) {
+      currentSource = e.source;
+      const sourceTotal = Object.values(pivot.get(currentSource)!).reduce((a, b) => a + b, 0);
+      const groupRow = detailSheet.addRow([`— ${currentSource} (${sourceTotal} customers) —`]);
+      groupRow.font = { bold: true, italic: true };
+      groupRow.getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFEEF2FF" } };
+    }
+    detailSheet.addRow(toExportRow(e));
+  }
 
   const buffer = await workbook.xlsx.writeBuffer();
   return Buffer.from(buffer);

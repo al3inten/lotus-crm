@@ -16,10 +16,11 @@ export function useCrPerformanceReport(filters: reportsApi.ReportFilters) {
   });
 }
 
-export function useBranchRollupReport(filters: reportsApi.ReportFilters) {
+export function useBranchRollupReport(filters: reportsApi.ReportFilters, enabled = true) {
   return useQuery({
     queryKey: ["reports", "branch-rollup", filters],
     queryFn: () => reportsApi.fetchBranchRollup(filters),
+    enabled,
   });
 }
 

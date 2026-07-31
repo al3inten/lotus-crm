@@ -18,6 +18,7 @@ import {
   useSourcePerformanceReport,
 } from "../hooks/useReports";
 import { useLeads, useReminders } from "../hooks/useLeads";
+import { useBranches } from "../hooks/useBranches";
 import { Card } from "../components/common/Card";
 import { TrendChart } from "../components/reports/TrendChart";
 import { HBarList } from "../components/reports/HBarList";
@@ -36,6 +37,7 @@ import {
 import { StatCell } from "../components/dashboard/StatCell";
 import { ConversionRing } from "../components/dashboard/ConversionRing";
 import { PipelineRows } from "../components/dashboard/PipelineRows";
+import { SalesPerformancePanel } from "../components/dashboard/SalesPerformancePanel";
 
 const QUICK_ACTIONS = [
   { to: "/leads", icon: <UserPlus size={15} strokeWidth={1.75} />, title: "New lead", module: undefined },
@@ -73,6 +75,7 @@ export function DashboardPage() {
   const effectiveScope = hasReportsAccess ? statsScope : "mine";
   const scopeFilters = effectiveScope === "mine" && user ? { assignedCrId: user.id } : {};
 
+  const { data: branches } = useBranches();
   const { data: reminders } = useReminders();
   const actionItems =
     reminders?.filter((r) => {
@@ -219,6 +222,14 @@ export function DashboardPage() {
               </div>
             )}
           </motion.div>
+
+          {/* ── Sales performance: monthly branch-wise sales/conversion/closed/pending,
+                with custom-timeline comparison — admin/reports-access only ── */}
+          {hasReportsAccess && (
+            <motion.div variants={variants.item}>
+              <SalesPerformancePanel branches={branches} />
+            </motion.div>
+          )}
 
           {/* ── Bento: canvas + rail ── */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
