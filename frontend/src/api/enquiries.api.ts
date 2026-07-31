@@ -226,6 +226,15 @@ export async function closeFollowUp(enquiryId: string, payload: CloseFollowUpPay
   return data;
 }
 
+export interface ReopenPayload {
+  note?: string;
+}
+
+export async function reopenEnquiry(enquiryId: string, payload: ReopenPayload = {}) {
+  const { data } = await axiosClient.post(`/enquiries/${enquiryId}/reopen`, payload);
+  return data;
+}
+
 export interface CommentPayload {
   body: string;
   mentionedUserIds?: string[];

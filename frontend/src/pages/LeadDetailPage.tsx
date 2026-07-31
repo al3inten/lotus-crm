@@ -5,7 +5,7 @@ import clsx from "clsx";
 import { AlertCircle, Car, Plus } from "lucide-react";
 
 import { useLeadHistory } from "../hooks/useLeads";
-import { useEnquiry, useReassign, useUpdateEnquiryDetails, useCloseFollowUp } from "../hooks/useEnquiry";
+import { useEnquiry, useReassign, useUpdateEnquiryDetails, useCloseFollowUp, useReopenEnquiry } from "../hooks/useEnquiry";
 import { useBranchStaff } from "../hooks/useUsers";
 import { useConsultants } from "../hooks/useConsultants";
 import { useCallLogsForLead } from "../hooks/useVoice";
@@ -102,6 +102,7 @@ export function LeadDetailPage() {
   const reassign = useReassign(activeEnquiryId ?? "");
   const updateDetails = useUpdateEnquiryDetails(activeEnquiryId ?? "");
   const closeFollowUp = useCloseFollowUp(activeEnquiryId ?? "");
+  const reopenEnquiry = useReopenEnquiry(activeEnquiryId ?? "");
 
   // Open straight to the forms tab (Test Drive / Quotation) when the enquiry is at the
   // appointment/test-drive stage — that's where the CR needs to act, so it shouldn't be
@@ -305,6 +306,8 @@ export function LeadDetailPage() {
             openFollowUp={openFollowUp}
             onCloseFollowUp={() => closeFollowUp.mutate({})}
             isClosingFollowUp={closeFollowUp.isPending}
+            onReopen={() => reopenEnquiry.mutate({})}
+            isReopening={reopenEnquiry.isPending}
             handleQuickActionStatus={handleQuickActionStatus}
             handleCloseLost={handleCloseLost}
             showStatusModal={showStatusModal}

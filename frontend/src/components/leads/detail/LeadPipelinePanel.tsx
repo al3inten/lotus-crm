@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import clsx from "clsx";
-import { XCircle, Zap, ArrowRightLeft } from "lucide-react";
+import { XCircle, Zap, ArrowRightLeft, RotateCcw } from "lucide-react";
 
 import { Card } from "../../common/Card";
 import { Button } from "../../common/Button";
@@ -43,6 +43,8 @@ export function LeadPipelinePanel({
   openFollowUp,
   onCloseFollowUp,
   isClosingFollowUp,
+  onReopen,
+  isReopening,
   handleQuickActionStatus,
   handleCloseLost,
   showStatusModal,
@@ -71,6 +73,8 @@ export function LeadPipelinePanel({
   openFollowUp: () => void;
   onCloseFollowUp: () => void;
   isClosingFollowUp: boolean;
+  onReopen: () => void;
+  isReopening: boolean;
   handleQuickActionStatus: (target?: EnquiryStatus) => void;
   handleCloseLost: () => void;
   showStatusModal: boolean;
@@ -149,21 +153,28 @@ export function LeadPipelinePanel({
       {enquiry.status === "CLOSED_TEMP" && enquiry.closeReason && (
         <motion.div
           variants={fadeUp}
-          className={clsx(SURFACE, "flex items-start gap-3 p-4")}
+          className={clsx(SURFACE, "flex items-start justify-between gap-3 p-4")}
         >
-          <XCircle size={16} strokeWidth={1.75} className="mt-0.5 shrink-0 text-slate-400 dark:text-slate-500" />
-          <div className="min-w-0">
-            <p className="text-[13px] font-medium text-slate-900 dark:text-slate-100">
-              Closed temporarily
-              <span className="mx-2 text-slate-300 dark:text-slate-600">·</span>
-              <span className="text-slate-600 dark:text-slate-300">{CLOSE_REASON_LABELS[enquiry.closeReason]}</span>
-            </p>
-            {enquiry.closeNote && (
-              <p className="mt-0.5 text-[13px] leading-relaxed text-slate-500 dark:text-slate-400">
-                {enquiry.closeNote}
+          <div className="flex min-w-0 items-start gap-3">
+            <XCircle size={16} strokeWidth={1.75} className="mt-0.5 shrink-0 text-slate-400 dark:text-slate-500" />
+            <div className="min-w-0">
+              <p className="text-[13px] font-medium text-slate-900 dark:text-slate-100">
+                Closed temporarily
+                <span className="mx-2 text-slate-300 dark:text-slate-600">·</span>
+                <span className="text-slate-600 dark:text-slate-300">{CLOSE_REASON_LABELS[enquiry.closeReason]}</span>
               </p>
-            )}
+              {enquiry.closeNote && (
+                <p className="mt-0.5 text-[13px] leading-relaxed text-slate-500 dark:text-slate-400">
+                  {enquiry.closeNote}
+                </p>
+              )}
+            </div>
           </div>
+          {canAct && (
+            <Button size="sm" variant="secondary" icon={<RotateCcw size={13} />} onClick={onReopen} disabled={isReopening} className="shrink-0">
+              {isReopening ? "Reopening…" : "Reopen"}
+            </Button>
+          )}
         </motion.div>
       )}
 

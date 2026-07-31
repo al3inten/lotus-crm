@@ -21,6 +21,7 @@ import {
   enquiryDetailsSchema,
   createFollowUpSchema,
   closeFollowUpSchema,
+  reopenSchema,
   createCommentSchema,
   createNoteSchema,
 } from "./enquiries.schema";
@@ -42,6 +43,7 @@ import {
   updateDetailsHandler,
   addFollowUpHandler,
   closeFollowUpHandler,
+  reopenHandler,
   getCommentsHandler,
   addCommentHandler,
   getNotesHandler,
@@ -85,6 +87,7 @@ router.post("/:enquiryId/finance", ownership, validateBody(financeApplicationSch
 router.post("/:enquiryId/delivery", ownership, validateBody(deliveryDetailsSchema), asyncHandler(deliveryHandler));
 router.post("/:enquiryId/follow-ups", ownership, validateBody(createFollowUpSchema), asyncHandler(addFollowUpHandler));
 router.post("/:enquiryId/follow-ups/close", ownership, validateBody(closeFollowUpSchema), asyncHandler(closeFollowUpHandler));
+router.post("/:enquiryId/reopen", ownership, validateBody(reopenSchema), asyncHandler(reopenHandler));
 router.get("/:enquiryId/comments", asyncHandler(getCommentsHandler));
 router.post("/:enquiryId/comments", ownership, validateBody(createCommentSchema), asyncHandler(addCommentHandler));
 

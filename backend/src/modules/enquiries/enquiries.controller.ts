@@ -99,6 +99,12 @@ export async function closeFollowUpHandler(req: Request, res: Response) {
   res.json(result);
 }
 
+export async function reopenHandler(req: Request, res: Response) {
+  if (!req.user) throw new UnauthorizedError();
+  const result = await enquiriesService.reopenEnquiry(req.params.enquiryId, req.body, req.user.id);
+  res.json(result);
+}
+
 export async function getNotesHandler(req: Request, res: Response) {
   if (!req.user) throw new UnauthorizedError();
   const notes = await notesService.getNotes(req.params.enquiryId, req.user.id);

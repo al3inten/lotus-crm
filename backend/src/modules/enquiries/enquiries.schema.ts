@@ -184,6 +184,10 @@ export const closeFollowUpSchema = z.object({
   note: z.string().trim().min(1).optional(),
 });
 
+export const reopenSchema = z.object({
+  note: z.string().trim().min(1).optional(),
+});
+
 // Private note — body only; the author and enquiry come from the request context.
 export const createNoteSchema = z.object({
   body: z.string().trim().min(1, "Note cannot be empty"),
@@ -210,5 +214,6 @@ export type DeliveryDetailsInput = z.infer<typeof deliveryDetailsSchema>;
 export type UpdateKeyDateInput = z.infer<typeof updateKeyDateSchema>;
 export type CreateFollowUpInput = z.infer<typeof createFollowUpSchema>;
 export type CloseFollowUpInput = z.infer<typeof closeFollowUpSchema>;
+export type ReopenInput = z.infer<typeof reopenSchema>;
 export type CreateNoteInput = z.infer<typeof createNoteSchema>;
 export type CreateCommentInput = z.infer<typeof createCommentSchema>;

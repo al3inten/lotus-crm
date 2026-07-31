@@ -196,6 +196,19 @@ export function useCloseFollowUp(enquiryId: string) {
   });
 }
 
+export function useReopenEnquiry(enquiryId: string) {
+  const invalidate = useInvalidateEnquiry(enquiryId);
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: enquiriesApi.ReopenPayload = {}) => enquiriesApi.reopenEnquiry(enquiryId, payload),
+    onSuccess: () => {
+      invalidate();
+      queryClient.invalidateQueries({ queryKey: enquiryKeys.comments(enquiryId) });
+    },
+    meta: { successMessage: "Lead reopened" },
+  });
+}
+
 export function useComments(enquiryId: string | undefined) {
   return useQuery({
     queryKey: enquiryKeys.comments(enquiryId ?? ""),

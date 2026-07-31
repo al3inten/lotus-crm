@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import { prisma } from "../../lib/prisma";
 import { NotFoundError, ValidationError } from "../../lib/errors";
 import { ALLOWED_TRANSITIONS, CONSULTANT_REQUIRED_AT_STATUS, STAGE_RANK, TERMINAL_STATUSES, TRANSACTION_OPTIONS } from "../../config/constants";
-import { ChangeStatusInput, ReassignInput, EnquiryDetailsInput, BookingDetailsInput, RetailDetailsInput, RtoDetailsInput, DeliveryDateInput, UpdateKeyDateInput } from "./enquiries.schema";
+import { ChangeStatusInput, ReassignInput, EnquiryDetailsInput, BookingDetailsInput, RetailDetailsInput, RtoDetailsInput, DeliveryDateInput, UpdateKeyDateInput, ReopenInput } from "./enquiries.schema";
 import { LossReason, CloseReason } from "@prisma/client";
 
 const LOSS_REASON_LABELS: Record<LossReason, string> = {
@@ -219,6 +219,48 @@ export async function changeStatus(enquiryId: string, input: ChangeStatusInput, 
         },
       });
     }
+
+    return updated;
+  }, TRANSACTION_OPTIONS);
+}
+
+/**
+ * Reopens an enquiry sitting in CLOSED_TEMP, restoring it to whichever stage it was in
+ * right before it was closed (found from its own status history) rather than dumping it
+ * back to NEW, so the CR doesn't lose the pipeline progress it already made.
+ */
+export async function reopenEnquiry(enquiryId: string, input: ReopenInput, changedById: string) {
+  return prisma.$transaction(async (tx) => {
+    const enquiry = await tx.enquiry.findUnique({ where: { id: enquiryId } });
+    if (!enquiry) throw new NotFoundError("Enquiry not found");
+    if (enquiry.status !== "CLOSED_TEMP") {
+      throw new ValidationError("Only an enquiry that is Closed Temporarily can be reopened.");
+    }
+
+    const lastClose = await tx.enquiryStatusHistory.findFirst({
+      where: { enquiryId, toStatus: "CLOSED_TEMP" },
+      orderBy: { createdAt: "desc" },
+    });
+    const restoredStatus = lastClose?.fromStatus ?? "NEW";
+
+    const updated = await tx.enquiry.update({
+      where: { id: enquiryId },
+      data: {
+        status: restoredStatus,
+        closeReason: null,
+        closeNote: null,
+      },
+    });
+
+    await tx.enquiryStatusHistory.create({
+      data: {
+        enquiryId,
+        fromStatus: "CLOSED_TEMP",
+        toStatus: restoredStatus,
+        changedById,
+        note: ["Reopened", input.note].filter(Boolean).join(" | "),
+      },
+    });
 
     return updated;
   }, TRANSACTION_OPTIONS);
