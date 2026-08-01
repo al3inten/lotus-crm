@@ -21,6 +21,11 @@ export async function fetchEnquiry(enquiryId: string): Promise<Enquiry> {
   return data;
 }
 
+/** Permanently deletes an enquiry and its history. Gated server-side by requireDeleteLeadRights. */
+export async function deleteEnquiry(enquiryId: string): Promise<void> {
+  await axiosClient.delete(`/enquiries/${enquiryId}`);
+}
+
 export interface ChangeStatusPayload {
   toStatus: EnquiryStatus;
   note?: string;

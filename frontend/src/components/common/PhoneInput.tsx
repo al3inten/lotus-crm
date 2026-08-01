@@ -169,7 +169,7 @@ export function PhoneInput({
               setCountry(next);
               emit(next, national);
             }}
-            className="h-full max-w-[10rem] appearance-none truncate rounded-l-lg border-r border-slate-200 bg-slate-50 py-2.5 pl-3 pr-7 text-sm font-medium text-slate-700 focus:outline-none disabled:cursor-not-allowed dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+            className="h-full max-w-[10rem] appearance-none truncate rounded-l-lg border-r border-slate-200 bg-slate-50 py-2.5 pl-3 pr-5 text-sm font-medium text-slate-700 focus:outline-none disabled:cursor-not-allowed dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
           >
             {options.map((o) => (
               <option key={o.country} value={o.country}>
@@ -179,7 +179,7 @@ export function PhoneInput({
           </select>
           <ChevronDown
             size={14}
-            className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400"
+            className="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 text-slate-400"
           />
         </div>
         <input

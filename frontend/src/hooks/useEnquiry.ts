@@ -110,6 +110,20 @@ export function useReassign(enquiryId: string) {
   });
 }
 
+/** Permanently deletes an enquiry — no invalidate-in-place, the caller navigates away
+ * on success since the enquiry no longer exists to refetch. */
+export function useDeleteEnquiry(enquiryId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => enquiriesApi.deleteEnquiry(enquiryId),
+    onSuccess: () => {
+      queryClient.removeQueries({ queryKey: enquiryKeys.detail(enquiryId) });
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+    },
+    meta: { successMessage: "Lead deleted" },
+  });
+}
+
 export function useSaveTestDrive(enquiryId: string) {
   const invalidate = useInvalidateEnquiry(enquiryId);
   return useMutation({

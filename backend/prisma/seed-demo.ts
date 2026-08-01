@@ -15,7 +15,7 @@ const SOURCES: LeadSource[] = ["WALK_IN", "META_ADS", "WHATSAPP", "GOOGLE_SHEETS
 const LOCATIONS = ["Anna Nagar", "Adyar", "Velachery", "T Nagar", "OMR", "Porur"];
 const FIRST_NAMES = ["Arjun", "Priya", "Karthik", "Divya", "Suresh", "Meena", "Rahul", "Anita", "Vijay", "Lakshmi", "Ravi", "Sneha"];
 const LAST_NAMES = ["Kumar", "Sharma", "Iyer", "Reddy", "Nair", "Patel", "Rao", "Menon"];
-const LOSS_REASONS: LossReason[] = ["OTHER_REASON", "LOST_TO_DEALER", "OUT_OF_TERRITORY"];
+const LOSS_REASONS: LossReason[] = ["LOST_TO_COMPETITOR", "LOST_TO_CO_DEALER", "OUT_OF_TERRITORY"];
 
 // The happy path an enquiry walks through, with typical hours spent in each stage.
 // NEW goes straight to APPOINTMENT_FIXED — UNDER_FOLLOW_UP is kept in the schema only so

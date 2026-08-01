@@ -82,7 +82,7 @@ const TABS = [
 type TabKey = (typeof TABS)[number]["key"];
 
 const LOSS_REASON_LABELS: Record<string, string> = {
-  OTHER_REASON: "Other reason",
+  LOST_TO_COMPETITOR: "Lost to Competitor",
   CO_DEALER: "Co dealer",
   OUT_OF_TERRITORY: "Out of territory (not contactable)",
 };

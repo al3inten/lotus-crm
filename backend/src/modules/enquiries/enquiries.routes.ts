@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { asyncHandler } from "../../lib/asyncHandler";
 import { verifyJwt } from "../../middleware/auth";
-import { requirePermission, requireCustomerReassignRights } from "../../middleware/rbac";
+import { requirePermission, requireCustomerReassignRights, requireDeleteLeadRights } from "../../middleware/rbac";
 import { requireEnquiryOwnership, requireEnquiryBranchScope } from "../../middleware/enquiryOwnership";
 import { validateBody } from "../../middleware/validate";
 import {
@@ -48,6 +48,7 @@ import {
   addCommentHandler,
   getNotesHandler,
   addNoteHandler,
+  deleteEnquiryHandler,
 } from "./enquiries.controller";
 
 const router = Router();
@@ -62,6 +63,8 @@ const branchScope = asyncHandler(requireEnquiryBranchScope);
 // still applies, so `branchScope` (no ownership check) is used here to keep cross-branch
 // enquiries out of reach without blocking view access to a teammate's assigned lead.
 router.get("/:enquiryId", branchScope, asyncHandler(getEnquiryHandler));
+
+router.delete("/:enquiryId", ownership, requireDeleteLeadRights, asyncHandler(deleteEnquiryHandler));
 
 router.patch("/:enquiryId/status", ownership, validateBody(changeStatusSchema), asyncHandler(changeStatusHandler));
 router.patch("/:enquiryId/details", ownership, validateBody(enquiryDetailsSchema), asyncHandler(updateDetailsHandler));

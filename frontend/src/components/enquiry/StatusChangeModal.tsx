@@ -278,7 +278,7 @@ export function StatusChangeModal({
         setError("lossReason", { message: "Select a reason" });
         return;
       }
-      if (values.lossReason === "OTHER_REASON" && !values.lossNote?.trim()) {
+      if (values.lossReason === "LOST_TO_COMPETITOR" && !values.lossNote?.trim()) {
         setError("lossNote", { message: "Enter the reason" });
         return;
       }
@@ -745,7 +745,7 @@ export function StatusChangeModal({
                 </option>
               ))}
             </Select>
-            {watch("lossReason") === "OTHER_REASON" && (
+            {watch("lossReason") === "LOST_TO_COMPETITOR" && (
               <Textarea label="Reason" error={errors.lossNote?.message} {...register("lossNote")} required />
             )}
           </div>

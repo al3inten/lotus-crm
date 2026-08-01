@@ -5,12 +5,6 @@ import {
   MessagesSquare,
   Pencil,
   Eye,
-  Car,
-  Star,
-  User2,
-  Plus,
-  X,
-  ChevronDown,
   Send,
   CalendarClock,
   History,
@@ -23,20 +17,17 @@ import { Card } from "../../../components/common/Card";
 import { Button } from "../../common/Button";
 import { FollowUpTable } from "../../../components/enquiry/FollowUpTable";
 import { UnifiedTimeline } from "../../../components/enquiry/UnifiedTimeline";
-import { TestDriveForm } from "../../../components/enquiry/TestDriveForm";
-import { TestDriveEditForm } from "../../../components/enquiry/TestDriveEditForm";
 import { KeyDatesEditCard } from "./KeyDatesEditCard";
 import { useComments, useNotes, useAddNote } from "../../../hooks/useEnquiry";
 
 import { fadeUp } from "../../../lib/motion";
 import type { Enquiry } from "../../../types";
 
-const SUB_TABS = ["timeline", "dates", "testdrive", "followups", "notes"] as const;
+const SUB_TABS = ["timeline", "dates", "followups", "notes"] as const;
 type SubTab = (typeof SUB_TABS)[number];
 
 const SUB_TAB_ICONS: Record<SubTab, typeof CalendarClock> = {
   dates: CalendarClock,
-  testdrive: Car,
   followups: History,
   timeline: MessagesSquare,
   notes: Pencil,
@@ -96,12 +87,6 @@ export function LeadActivityTab({
   );
 
   const [localNote, setLocalNote] = useState("");
-  const [showAddTestDrive, setShowAddTestDrive] = useState(false);
-  const [editingDriveId, setEditingDriveId] = useState<string | null>(null);
-  const testDrives = enquiry.testDriveFeedbacks ?? [];
-  const sortedDrives = [...testDrives].sort(
-    (a, b) => new Date(b.completedAt ?? b.createdAt ?? 0).getTime() - new Date(a.completedAt ?? a.createdAt ?? 0).getTime()
-  );
   const followUps = enquiry.followUps ?? [];
 
   // Private per-author scratchpad — the server only ever returns the caller's own notes.
@@ -137,7 +122,6 @@ export function LeadActivityTab({
 
   const tabLabels: Record<SubTab, string> = {
     dates: "Key Dates",
-    testdrive: `Test Drive${testDrives.length ? ` (${testDrives.length})` : ""}`,
     followups: `Follow-ups${followUps.length ? ` (${followUps.length})` : ""}`,
     timeline: "Timeline",
     notes: `Notes${notes.length ? ` (${notes.length})` : ""}`,
@@ -199,134 +183,6 @@ export function LeadActivityTab({
                     onUpdateConsultant={onUpdateConsultant}
                     isUpdatingConsultant={isUpdatingConsultant}
                   />
-                </div>
-              )}
-
-              {/* ---------- TEST DRIVE ---------- */}
-              {activeSubTab === "testdrive" && (
-                <div className={clsx(PANEL_HEIGHT, "flex flex-col")}>
-                  <div className="mb-3 flex items-center justify-between">
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {testDrives.length} drive{testDrives.length === 1 ? "" : "s"} recorded
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowAddTestDrive((v) => !v);
-                        setEditingDriveId(null);
-                      }}
-                      aria-label={showAddTestDrive ? "Close add test drive form" : "Add another test drive"}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-violet-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-violet-400"
-                    >
-                      {showAddTestDrive ? <X size={16} /> : <Plus size={16} />}
-                    </button>
-                  </div>
-
-                  <div className="flex-1 overflow-y-auto [scrollbar-width:thin]">
-                    {showAddTestDrive && (
-                      <div className="mb-3 rounded-xl border border-slate-100 bg-slate-50/60 p-4 dark:border-slate-800/60 dark:bg-slate-900/20">
-                        <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">
-                          Customer wants to test drive another vehicle? Record it here.
-                        </p>
-                        <TestDriveForm
-                          enquiryId={enquiry.id}
-                          branchId={enquiry.branchId}
-                          existing={testDrives}
-                          defaultCarModel={enquiry.carModel}
-                          defaultVariant={enquiry.variant}
-                          hideHistory
-                          onSaved={() => setShowAddTestDrive(false)}
-                        />
-                      </div>
-                    )}
-
-                    {testDrives.length > 0 ? (
-                      <ul className="flex flex-col divide-y divide-slate-100 dark:divide-slate-800/60">
-                        {sortedDrives.map((drive, index) => {
-                          const isEditing = editingDriveId === drive.id;
-                          return (
-                            <li key={drive.id} className="text-xs">
-                              <button
-                                type="button"
-                                onClick={() => setEditingDriveId(isEditing ? null : drive.id)}
-                                className="flex w-full items-center justify-between gap-2 py-3 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/30"
-                              >
-                                <span className="flex items-center gap-1.5 font-semibold text-slate-800 dark:text-slate-100">
-                                  <ChevronDown
-                                    size={13}
-                                    className={clsx("shrink-0 text-slate-400 transition-transform", isEditing && "rotate-180")}
-                                  />
-                                  Drive #{testDrives.length - index}
-                                </span>
-                                {drive.rating != null ? (
-                                  <span className="flex items-center gap-0.5 rounded-full bg-amber-50 px-2 py-0.5 font-medium text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
-                                    <Star size={11} className="fill-current" /> {drive.rating}/5
-                                  </span>
-                                ) : (
-                                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-400 dark:bg-slate-800 dark:text-slate-500">Not rated</span>
-                                )}
-                              </button>
-
-                              {/* Details are collapsed by default — reveal on expand. */}
-                              {isEditing && (
-                                <div className="pb-3">
-                                  <div className="flex items-start justify-between gap-3">
-                                    <div className="flex flex-col gap-1 text-slate-500 dark:text-slate-400">
-                                      {drive.carModel && (
-                                        <span className="flex items-center gap-1.5">
-                                          <Car size={12} className="shrink-0 text-slate-400" />
-                                          {drive.carModel}
-                                          {drive.variant && ` · ${drive.variant}`}
-                                        </span>
-                                      )}
-                                      {drive.conductedBy && (
-                                        <span className="flex items-center gap-1.5">
-                                          <User2 size={12} className="shrink-0 text-slate-400" />
-                                          {drive.conductedBy.name}
-                                        </span>
-                                      )}
-                                    </div>
-                                    {/* Rating + completed date, aligned right. */}
-                                    <div className="flex shrink-0 flex-col items-end gap-1 text-right">
-                                      {drive.rating != null && (
-                                        <span className="flex items-center gap-0.5 font-medium text-amber-600 dark:text-amber-400">
-                                          <Star size={11} className="fill-current" /> {drive.rating}/5
-                                        </span>
-                                      )}
-                                      {(drive.completedAt || drive.scheduledAt) && (
-                                        <span className="text-[11px] text-slate-400 dark:text-slate-500">
-                                          {drive.completedAt
-                                            ? `Completed ${new Date(drive.completedAt).toLocaleDateString()}`
-                                            : `Scheduled ${new Date(drive.scheduledAt!).toLocaleDateString()}`}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                  {drive.comments && (
-                                    <p className="mt-1.5 line-clamp-2 text-slate-500 dark:text-slate-400">{drive.comments}</p>
-                                  )}
-                                </div>
-                              )}
-
-                              {isEditing && (
-                                <div className="rounded-xl border-t border-slate-100 bg-slate-50/60 p-4 dark:border-slate-800/60 dark:bg-slate-900/20">
-                                  <TestDriveEditForm enquiryId={enquiry.id} drive={drive} onSaved={() => setEditingDriveId(null)} />
-                                </div>
-                              )}
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    ) : (
-                      !showAddTestDrive && (
-                        <div className="flex flex-col items-center py-10 text-center text-slate-400">
-                          <Car size={24} className="mb-2 opacity-20" />
-                          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">No test drives yet</p>
-                          <p className="mt-1 text-xs text-slate-400/80">Use the + button to record one.</p>
-                        </div>
-                      )
-                    )}
-                  </div>
                 </div>
               )}
 

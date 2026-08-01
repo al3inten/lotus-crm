@@ -12,6 +12,8 @@ export interface AuthUser {
   /** Only meaningful when restrictLeadsToOwn is true: lets this user view (not edit) leads
    * assigned to other CRs in their own branch, instead of only their own. */
   canViewBranchLeads: boolean;
+  /** Lets this user permanently delete an enquiry. See requireDeleteLeadRights. */
+  canDeleteLeads: boolean;
   isCr: boolean;
 }
 

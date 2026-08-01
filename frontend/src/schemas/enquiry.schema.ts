@@ -5,7 +5,7 @@ export const statusChangeFormSchema = z.object({
   toStatus: z.enum(ENQUIRY_STATUSES),
   note: z.string().optional(),
   lossReason: z.enum(LOSS_REASONS).optional().or(z.literal("")),
-  // Free-text detail, required when lossReason is OTHER_REASON.
+  // Free-text detail, required when lossReason is LOST_TO_COMPETITOR.
   lossNote: z.string().optional(),
   closeReason: z.enum(CLOSE_REASONS).optional().or(z.literal("")),
   // Free-text detail, required when closeReason is OTHER.

@@ -13,6 +13,7 @@ export const createRoleSchema = z.object({
   restrictLeadsToOwn: z.boolean().optional().default(false),
   canReassignCustomerCr: z.boolean().optional().default(false),
   canViewBranchLeads: z.boolean().optional().default(false),
+  canDeleteLeads: z.boolean().optional().default(false),
 });
 
 export const updateRoleSchema = z.object({
@@ -22,6 +23,7 @@ export const updateRoleSchema = z.object({
   restrictLeadsToOwn: z.boolean().optional(),
   canReassignCustomerCr: z.boolean().optional(),
   canViewBranchLeads: z.boolean().optional(),
+  canDeleteLeads: z.boolean().optional(),
   isActive: z.boolean().optional(),
 });
 

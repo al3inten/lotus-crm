@@ -6,14 +6,14 @@ import { ChangeStatusInput, ReassignInput, EnquiryDetailsInput, BookingDetailsIn
 import { LossReason, CloseReason } from "@prisma/client";
 
 const LOSS_REASON_LABELS: Record<LossReason, string> = {
-  LOST_TO_DEALER: "Enquiry - Lost to Dealer",
+  LOST_TO_CO_DEALER: "Lost to Co-Dealer",
   BOOKING_CANCEL: "Booking Cancelled",
   RETAIL_CANCEL: "Retail Cancelled",
   OUT_OF_TERRITORY: "Out of Territory",
   NOT_CONTACTABLE: "Not Contactable",
   PRICE_ISSUE: "Price Issue",
   PURCHASED_ANOTHER_BRAND: "Purchased Another Brand",
-  OTHER_REASON: "Enquiry - Lost Other Reason",
+  LOST_TO_COMPETITOR: "Lost to Competitor",
 };
 
 const CLOSE_REASON_LABELS: Record<CloseReason, string> = {
@@ -46,6 +46,34 @@ export async function getEnquiry(enquiryId: string) {
   return enquiry;
 }
 
+/**
+ * Permanently deletes an enquiry and everything hanging off it. None of the child tables
+ * cascade at the DB level, so every one has to go first inside the same transaction or the
+ * final delete hits a foreign-key violation. Irreversible — gated by requireDeleteLeadRights.
+ */
+export async function deleteEnquiry(enquiryId: string) {
+  await prisma.$transaction(async (tx) => {
+    const enquiry = await tx.enquiry.findUnique({ where: { id: enquiryId }, select: { id: true } });
+    if (!enquiry) throw new NotFoundError("Enquiry not found");
+
+    await tx.comment.deleteMany({ where: { enquiryId } });
+    await tx.enquiryNote.deleteMany({ where: { enquiryId } });
+    await tx.dateChangeHistory.deleteMany({ where: { enquiryId } });
+    await tx.followUp.deleteMany({ where: { enquiryId } });
+    await tx.reassignmentLog.deleteMany({ where: { enquiryId } });
+    await tx.testDriveFeedback.deleteMany({ where: { enquiryId } });
+    await tx.outboundCallTask.deleteMany({ where: { enquiryId } });
+    await tx.quotation.deleteMany({ where: { enquiryId } });
+    await tx.exchangeEvaluation.deleteMany({ where: { enquiryId } });
+    await tx.financeApplication.deleteMany({ where: { enquiryId } });
+    await tx.deliveryDetails.deleteMany({ where: { enquiryId } });
+    // Must be last — every table above has an enquiryId FK into this row.
+    await tx.enquiryStatusHistory.deleteMany({ where: { enquiryId } });
+
+    await tx.enquiry.delete({ where: { id: enquiryId } });
+  }, TRANSACTION_OPTIONS);
+}
+
 export async function changeStatus(enquiryId: string, input: ChangeStatusInput, changedById: string) {
   return prisma.$transaction(async (tx) => {
     const enquiry = await tx.enquiry.findUnique({ where: { id: enquiryId } });
@@ -62,7 +90,7 @@ export async function changeStatus(enquiryId: string, input: ChangeStatusInput, 
       if (!input.lossReason) {
         throw new ValidationError("A reason is required to mark this enquiry as Lost.");
       }
-      if (input.lossReason === "OTHER_REASON" && !input.lossNote?.trim()) {
+      if (input.lossReason === "LOST_TO_COMPETITOR" && !input.lossNote?.trim()) {
         throw new ValidationError("Enter the reason when Other is selected.");
       }
     }

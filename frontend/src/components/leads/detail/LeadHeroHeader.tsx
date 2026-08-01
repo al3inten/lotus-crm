@@ -27,6 +27,8 @@ import {
   CalendarClock,
   ChevronDown,
   RefreshCw,
+  Trash2,
+  AlertTriangle,
 } from "lucide-react";
 
 import { Avatar } from "../../../components/common/Avatar";
@@ -34,6 +36,7 @@ import { StatusBadge } from "../../../components/common/StatusBadge";
 import { CopyButton } from "../../../components/common/CopyButton";
 import { Button } from "../../../components/common/Button";
 import { Select } from "../../../components/common/Input";
+import { Modal } from "../../../components/common/Modal";
 
 import { InfoField } from "./InfoField";
 import { ActionButton } from "./ActionButton";
@@ -94,6 +97,10 @@ interface LeadHeroHeaderProps {
   onReassign: (crId: string) => void;
   onUpdateConsultant: (consultantId: string) => void;
   isUpdatingDetails: boolean;
+  /** Only present when the caller has canDeleteLeads — hides the delete action entirely
+   * rather than showing it disabled. */
+  onDelete?: () => void;
+  isDeleting?: boolean;
 }
 
 export function LeadHeroHeader({
@@ -110,8 +117,11 @@ export function LeadHeroHeader({
   onReassign,
   onUpdateConsultant,
   isUpdatingDetails,
+  onDelete,
+  isDeleting,
 }: LeadHeroHeaderProps) {
   const [assignOpen, setAssignOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [reassignTo, setReassignTo] = useState("");
   const [consultantEdit, setConsultantEdit] = useState(false);
   const [consultantValue, setConsultantValue] = useState("");
@@ -272,6 +282,17 @@ export function LeadHeroHeader({
                   </div>
                 )}
               </div>
+            )}
+            {onDelete && enquiry && (
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(true)}
+                title="Delete lead"
+                aria-label="Delete lead"
+                className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition-all hover:-translate-y-0.5 hover:bg-white hover:text-red-600 hover:shadow-md active:scale-95 active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-red-400"
+              >
+                <Trash2 size={16} />
+              </button>
             )}
           </div>
         </div>
@@ -447,6 +468,41 @@ export function LeadHeroHeader({
           </div>
         )}
       </div>
+
+      {onDelete && (
+        <Modal isOpen={confirmDelete} onClose={() => setConfirmDelete(false)} title="">
+          <div className="flex flex-col gap-4 py-2 sm:p-2">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+              <AlertTriangle className="h-6 w-6 text-red-600" aria-hidden="true" />
+            </div>
+            <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
+              <h3 className="text-lg font-semibold leading-6 text-slate-900">Delete this lead?</h3>
+              <div className="mt-2">
+                <p className="text-sm text-slate-500">
+                  This permanently deletes {lead.name}'s enquiry — status history, follow-ups, notes, test drives,
+                  and any quotation/finance/delivery details. This can't be undone.
+                </p>
+              </div>
+            </div>
+            <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse sm:gap-3">
+              <Button
+                variant="danger"
+                isLoading={isDeleting}
+                onClick={() => {
+                  onDelete();
+                  setConfirmDelete(false);
+                }}
+                className="w-full sm:w-auto"
+              >
+                Delete
+              </Button>
+              <Button variant="secondary" onClick={() => setConfirmDelete(false)} className="mt-3 w-full sm:mt-0 sm:w-auto">
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </motion.div>
   );
 }

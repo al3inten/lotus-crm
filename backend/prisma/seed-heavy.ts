@@ -127,11 +127,11 @@ const LOSS_REASON_WEIGHTS: { value: LossReason; weight: number }[] = [
   { value: "PRICE_ISSUE", weight: 28 },
   { value: "PURCHASED_ANOTHER_BRAND", weight: 22 },
   { value: "NOT_CONTACTABLE", weight: 18 },
-  { value: "LOST_TO_DEALER", weight: 12 },
+  { value: "LOST_TO_CO_DEALER", weight: 12 },
   { value: "OUT_OF_TERRITORY", weight: 8 },
   { value: "BOOKING_CANCEL", weight: 6 },
   { value: "RETAIL_CANCEL", weight: 4 },
-  { value: "OTHER_REASON", weight: 2 },
+  { value: "LOST_TO_COMPETITOR", weight: 2 },
 ];
 
 const CALL_OUTCOME_WEIGHTS: { value: CallOutcome; weight: number }[] = [

@@ -5,7 +5,7 @@ import clsx from "clsx";
 import { AlertCircle, Car, Plus } from "lucide-react";
 
 import { useLeadHistory } from "../hooks/useLeads";
-import { useEnquiry, useReassign, useUpdateEnquiryDetails, useCloseFollowUp, useReopenEnquiry } from "../hooks/useEnquiry";
+import { useEnquiry, useReassign, useUpdateEnquiryDetails, useCloseFollowUp, useReopenEnquiry, useDeleteEnquiry } from "../hooks/useEnquiry";
 import { useBranchStaff } from "../hooks/useUsers";
 import { useConsultants } from "../hooks/useConsultants";
 import { useCallLogsForLead } from "../hooks/useVoice";
@@ -27,6 +27,7 @@ import { LeadPipelinePanel } from "../components/leads/detail/LeadPipelinePanel"
 
 import {
   canReassignLeads,
+  canDeleteLead,
   type DetailTab,
   buildInsights,
   computeLeadScore,
@@ -103,6 +104,7 @@ export function LeadDetailPage() {
   const updateDetails = useUpdateEnquiryDetails(activeEnquiryId ?? "");
   const closeFollowUp = useCloseFollowUp(activeEnquiryId ?? "");
   const reopenEnquiry = useReopenEnquiry(activeEnquiryId ?? "");
+  const deleteEnquiry = useDeleteEnquiry(activeEnquiryId ?? "");
 
   // Open straight to the forms tab (Test Drive / Quotation) when the enquiry is at the
   // appointment/test-drive stage — that's where the CR needs to act, so it shouldn't be
@@ -168,6 +170,12 @@ export function LeadDetailPage() {
   const openFollowUp = () => setShowFollowUpForm(true);
 
   const canReassign = !!(canReassignLeads(user) && crTeam);
+  const canDelete = canDeleteLead(user);
+
+  const handleDelete = () => {
+    if (!activeEnquiryId) return;
+    deleteEnquiry.mutate(undefined, { onSuccess: () => navigate("/leads") });
+  };
 
   // Users with restrictLeadsToOwn can view any lead, but may only act on ones assigned to
   // them (mirrors the backend's requireEnquiryOwnership middleware on every enquiry
@@ -229,6 +237,8 @@ export function LeadDetailPage() {
         onReassign={(toUserId) => reassign.mutate({ toUserId })}
         onUpdateConsultant={(consultantId) => updateDetails.mutate({ consultantId })}
         isUpdatingDetails={updateDetails.isPending}
+        onDelete={canDelete ? handleDelete : undefined}
+        isDeleting={deleteEnquiry.isPending}
       />
 
       {enquiry && enquiry.status !== "CLOSED_TEMP" && enquiry.status !== "LOST" && (

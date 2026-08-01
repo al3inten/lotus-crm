@@ -122,24 +122,24 @@ export const STATUS_LABELS: Record<LegacyEnquiryStatus, string> = {
 };
 
 // Full reason enum (mirrors backend LossReason) — the "Lost" status UI only offers
-// LOST_TO_DEALER and OTHER_REASON now; the rest exist for historical rows.
+// LOST_TO_CO_DEALER and LOST_TO_COMPETITOR now; the rest exist for historical rows.
 export const LOSS_REASONS = [
-  "LOST_TO_DEALER",
+  "LOST_TO_CO_DEALER",
   "BOOKING_CANCEL",
   "RETAIL_CANCEL",
   "OUT_OF_TERRITORY",
   "NOT_CONTACTABLE",
   "PRICE_ISSUE",
   "PURCHASED_ANOTHER_BRAND",
-  "OTHER_REASON",
+  "LOST_TO_COMPETITOR",
 ] as const;
 export type LossReason = (typeof LOSS_REASONS)[number];
 
 /** Reasons offered when marking a lead "Lost". */
-export const LOST_REASONS = ["OTHER_REASON", "LOST_TO_DEALER"] as const;
+export const LOST_REASONS = ["LOST_TO_COMPETITOR", "LOST_TO_CO_DEALER"] as const;
 export const LOST_REASON_LABELS: Record<(typeof LOST_REASONS)[number], string> = {
-  OTHER_REASON: "Enquiry - Lost Other Reason",
-  LOST_TO_DEALER: "Enquiry - Lost to Dealer",
+  LOST_TO_COMPETITOR: "Lost to Competitor",
+  LOST_TO_CO_DEALER: "Lost to Co-Dealer",
 };
 
 /** Reasons offered when marking a lead "Closed Temporarily". */
@@ -213,6 +213,9 @@ export interface RoleDefinition {
   /** Only meaningful when restrictLeadsToOwn is true: lets this role view (not edit) leads
    * assigned to other CRs in their own branch, instead of only their own. */
   canViewBranchLeads: boolean;
+  /** Lets this role permanently delete an enquiry. SUPER_ADMIN always can, regardless
+   *  of this. Independent of the Leads write permission. */
+  canDeleteLeads: boolean;
   isActive: boolean;
   /** True only for the built-in seeded "CR" role — name locked, can't be deleted. */
   isSystemDefault: boolean;
@@ -236,6 +239,8 @@ export interface User {
   /** Only meaningful when restrictLeadsToOwn is true: lets this user view (not edit) leads
    * assigned to other CRs in their own branch, instead of only their own. */
   canViewBranchLeads: boolean;
+  /** Lets this user permanently delete an enquiry — SUPER_ADMIN always has this. */
+  canDeleteLeads: boolean;
   /** Independent per-user toggle letting this user additionally act as a CR. */
   isCr: boolean;
   /** isCr OR their role is itself a CR role (restrictLeadsToOwn) — only present on

@@ -25,6 +25,13 @@ export function canReassignLeads(user: { role: string; canReassignCustomerCr: bo
   return user.role === "SUPER_ADMIN" || user.canReassignCustomerCr;
 }
 
+/** Same condition the API uses to gate deletion (requireDeleteLeadRights) — SUPER_ADMIN
+ * always can; everyone else needs their role's canDeleteLeads toggle. */
+export function canDeleteLead(user: { role: string; canDeleteLeads: boolean } | null | undefined) {
+  if (!user) return false;
+  return user.role === "SUPER_ADMIN" || user.canDeleteLeads;
+}
+
 export const PIPELINE_ORDER: EnquiryStatus[] = [
   "NEW",
   "UNDER_FOLLOW_UP",

@@ -49,19 +49,19 @@ enum EnquiryStatus {
   CLOSED
   // "Close Temporarily" — parked, not a permanent loss. See CloseReason for why.
   CLOSED_TEMP
-  // Permanently lost. See LossReason for why (UI now only offers LOST_TO_DEALER / OTHER_REASON).
+  // Permanently lost. See LossReason for why (UI now only offers LOST_TO_CO_DEALER / LOST_TO_COMPETITOR).
   LOST
 }
 
 enum LossReason {
-  LOST_TO_DEALER
+  LOST_TO_CO_DEALER
   BOOKING_CANCEL
   RETAIL_CANCEL
   OUT_OF_TERRITORY
   NOT_CONTACTABLE
   PRICE_ISSUE
   PURCHASED_ANOTHER_BRAND
-  OTHER_REASON
+  LOST_TO_COMPETITOR
 }
 
 // Reasons for parking an enquiry as "Closed Temporarily" (CLOSED_TEMP) — not a permanent loss.
@@ -352,6 +352,10 @@ model RoleDefinition {
   // Only meaningful when restrictLeadsToOwn is true: lets the CR view (not edit/change-status
   // on) leads assigned to other CRs in their own branch, instead of only their own.
   canViewBranchLeads    Boolean  @default(false)
+  // Lets this role permanently delete an enquiry. SUPER_ADMIN can always do this regardless
+  // of this toggle; other roles need it explicitly enabled — see requireDeleteLeadRights.
+  // Independent of the Leads write permission so edit access doesn't imply delete access.
+  canDeleteLeads        Boolean  @default(false)
   isActive              Boolean  @default(true)
   // True only for the built-in seeded "CR" role — its name can't be renamed and the
   // role can't be deleted, but its permissions/toggles stay fully editable like any

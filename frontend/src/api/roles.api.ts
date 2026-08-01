@@ -9,6 +9,7 @@ export interface CreateRolePayload {
   restrictLeadsToOwn: boolean;
   canReassignCustomerCr: boolean;
   canViewBranchLeads: boolean;
+  canDeleteLeads: boolean;
 }
 
 export interface UpdateRolePayload {
@@ -18,6 +19,7 @@ export interface UpdateRolePayload {
   restrictLeadsToOwn?: boolean;
   canReassignCustomerCr?: boolean;
   canViewBranchLeads?: boolean;
+  canDeleteLeads?: boolean;
   isActive?: boolean;
 }
 

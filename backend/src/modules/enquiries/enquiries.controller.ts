@@ -14,6 +14,11 @@ export async function getEnquiryHandler(req: Request, res: Response) {
   res.json(enquiry);
 }
 
+export async function deleteEnquiryHandler(req: Request, res: Response) {
+  await enquiriesService.deleteEnquiry(req.params.enquiryId);
+  res.status(204).send();
+}
+
 export async function changeStatusHandler(req: Request, res: Response) {
   if (!req.user) throw new UnauthorizedError();
   const enquiry = await enquiriesService.changeStatus(req.params.enquiryId, req.body, req.user.id);

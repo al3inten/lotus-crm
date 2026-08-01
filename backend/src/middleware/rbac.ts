@@ -44,3 +44,16 @@ export function requireCustomerReassignRights(req: Request, _res: Response, next
   }
   next();
 }
+
+/**
+ * Gates permanently deleting an enquiry. SUPER_ADMIN always passes; every other role
+ * needs canDeleteLeads explicitly enabled — independent of the Leads read/write grid,
+ * so a role can edit leads without being able to delete them.
+ */
+export function requireDeleteLeadRights(req: Request, _res: Response, next: NextFunction) {
+  if (!req.user) throw new UnauthorizedError();
+  if (!req.user.canDeleteLeads) {
+    throw new ForbiddenError("Only an admin (or a role with delete rights) can delete a lead.");
+  }
+  next();
+}

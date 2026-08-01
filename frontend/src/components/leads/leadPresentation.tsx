@@ -64,11 +64,11 @@ export function contactsBadge(enquiry: Enquiry) {
   if (count > 1) {
     return (
       <span className="inline-block rounded-full bg-primary-100 px-2 py-0.5 text-xs font-medium text-primary-700 dark:bg-primary-500/20 dark:text-primary-300">
-        ×{count} contacts
+        Existing Customer
       </span>
     );
   }
-  return <span className="text-xs text-slate-400 dark:text-slate-500">1st</span>;
+  return <span className="text-xs text-slate-400 dark:text-slate-500">New Enquiry</span>;
 }
 
 export type FollowUpUrgency = "overdue" | "today" | "future" | null;

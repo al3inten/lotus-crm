@@ -75,6 +75,7 @@ export function RoleModal({ isOpen, onClose, branches, editing, defaultBranchId 
   const [restrictLeadsToOwn, setRestrictLeadsToOwn] = useState(false);
   const [canReassignCustomerCr, setCanReassignCustomerCr] = useState(false);
   const [canViewBranchLeads, setCanViewBranchLeads] = useState(false);
+  const [canDeleteLeads, setCanDeleteLeads] = useState(false);
 
   useEffect(() => {
     if (editing) {
@@ -86,6 +87,7 @@ export function RoleModal({ isOpen, onClose, branches, editing, defaultBranchId 
       setRestrictLeadsToOwn(editing.restrictLeadsToOwn);
       setCanReassignCustomerCr(editing.canReassignCustomerCr);
       setCanViewBranchLeads(editing.canViewBranchLeads);
+      setCanDeleteLeads(editing.canDeleteLeads);
     } else {
       setName("");
       setBranchId(defaultBranchId ?? "");
@@ -95,6 +97,7 @@ export function RoleModal({ isOpen, onClose, branches, editing, defaultBranchId 
       setRestrictLeadsToOwn(false);
       setCanReassignCustomerCr(false);
       setCanViewBranchLeads(false);
+      setCanDeleteLeads(false);
     }
   }, [editing, defaultBranchId, isOpen]);
 
@@ -112,13 +115,30 @@ export function RoleModal({ isOpen, onClose, branches, editing, defaultBranchId 
       updateRole.mutate(
         {
           roleId: editing.id,
-          payload: { name, permissions, canViewAllBranches, restrictLeadsToOwn, canReassignCustomerCr, canViewBranchLeads },
+          payload: {
+            name,
+            permissions,
+            canViewAllBranches,
+            restrictLeadsToOwn,
+            canReassignCustomerCr,
+            canViewBranchLeads,
+            canDeleteLeads,
+          },
         },
         { onSuccess: onClose }
       );
     } else {
       createRole.mutate(
-        { name, branchId: branchId || null, permissions, canViewAllBranches, restrictLeadsToOwn, canReassignCustomerCr, canViewBranchLeads },
+        {
+          name,
+          branchId: branchId || null,
+          permissions,
+          canViewAllBranches,
+          restrictLeadsToOwn,
+          canReassignCustomerCr,
+          canViewBranchLeads,
+          canDeleteLeads,
+        },
         { onSuccess: onClose }
       );
     }
@@ -216,6 +236,12 @@ export function RoleModal({ isOpen, onClose, branches, editing, defaultBranchId 
                       description="Every enquiry a customer has is owned by one CR at a time — this lets the role move that ownership to a different CR. Super Admin can always do this regardless of this toggle."
                       checked={canReassignCustomerCr}
                       onChange={setCanReassignCustomerCr}
+                    />
+                    <Toggle
+                      label="Can delete leads"
+                      description="Lets the role permanently delete an enquiry and its history. Independent of Write access above — a role can edit leads without being able to delete them. Super Admin can always do this regardless of this toggle."
+                      checked={canDeleteLeads}
+                      onChange={setCanDeleteLeads}
                     />
                   </div>
                 )}
