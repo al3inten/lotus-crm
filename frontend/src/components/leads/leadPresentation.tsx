@@ -12,6 +12,17 @@ export const CATEGORY_STYLES: Record<EnquiryCategory, string> = {
   COLD: "bg-primary-50 text-primary-500 dark:bg-primary-500/10 dark:text-primary-400",
 };
 
+/** `source` (LeadSource) is a system/automation field — it's WALK_IN for every enquiry
+ * entered manually through the CRM, regardless of what the CR actually picked, because it
+ * only distinguishes manual entry from integration channels (Meta Ads, WhatsApp, ...) for
+ * webhook/auto-dial logic. The client-facing source the CR selected lives in
+ * subsource/sourceCategory, so prefer those for display and only fall back to `source` for
+ * leads that came in through an integration (which don't have a sourceCategory). */
+export function leadSourceLabel(enquiry: Enquiry): string {
+  const label = enquiry.subsource || enquiry.sourceCategory || enquiry.source;
+  return label.replaceAll("_", " ");
+}
+
 /** A colored ring around the avatar so temperature reads at a glance while scanning the list. */
 export const CATEGORY_RING: Record<EnquiryCategory, string> = {
   HOT: "ring-primary-500 dark:ring-primary-400/60",

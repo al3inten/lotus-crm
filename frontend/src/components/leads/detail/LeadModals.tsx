@@ -1,4 +1,5 @@
 import { Modal } from "../../../components/common/Modal";
+import { AudioPlayer } from "../../../components/common/AudioPlayer";
 import { FollowUpForm } from "../../../components/enquiry/FollowUpForm";
 import { FollowUpTable } from "../../../components/enquiry/FollowUpTable";
 import { UnifiedTimeline } from "../../../components/enquiry/UnifiedTimeline";
@@ -152,7 +153,7 @@ export function LeadModals({
                 <span className="font-medium text-slate-800 dark:text-slate-200">{call.status.replaceAll("_", " ")}</span>
                 <span className="text-slate-400 dark:text-slate-500">{new Date(call.createdAt).toLocaleString()}</span>
               </div>
-              {call.recordingUrl && <audio controls src={call.recordingUrl} className="mt-1.5 h-8 w-full" />}
+              {call.recordingUrl && <AudioPlayer src={call.recordingUrl} />}
             </li>
           ))}
         </ul>

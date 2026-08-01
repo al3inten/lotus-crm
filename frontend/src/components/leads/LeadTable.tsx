@@ -4,11 +4,13 @@ import type { Enquiry } from "../../types";
 import { StatusBadge } from "../common/StatusBadge";
 import { Button } from "../common/Button";
 import { LeadCard } from "./LeadCard";
+import { ClickablePhone } from "./ClickablePhone";
 import {
   AvatarWithTemperature,
   CategoryPill,
   contactsBadge,
   getFollowUpUrgency,
+  leadSourceLabel,
   onOpenKeyDown,
   useLeadOpener,
 } from "./leadPresentation";
@@ -100,7 +102,9 @@ export function LeadTable({ enquiries, onAddLead }: { enquiries: Enquiry[]; onAd
                 <td className="border-b border-slate-100 px-4 py-3 text-slate-600 transition-colors group-hover:bg-primary-50/60 dark:border-slate-800/80 dark:text-slate-300 dark:group-hover:bg-primary-500/[0.06]">
                   <span className="flex items-center gap-1.5">
                     <Phone size={12} className="shrink-0 text-slate-400 dark:text-slate-500" />
-                    {enquiry.lead.phoneRaw}
+                    <ClickablePhone phone={enquiry.lead.phoneRaw} leadId={enquiry.leadId} enquiryId={enquiry.id}>
+                      {enquiry.lead.phoneRaw}
+                    </ClickablePhone>
                   </span>
                 </td>
                 <td className="border-b border-slate-100 px-4 py-3 text-slate-900 transition-colors group-hover:bg-primary-50/60 dark:border-slate-800/80 dark:text-slate-200 dark:group-hover:bg-primary-500/[0.06]">
@@ -108,7 +112,7 @@ export function LeadTable({ enquiries, onAddLead }: { enquiries: Enquiry[]; onAd
                   {enquiry.variant && <p className="truncate text-xs font-normal text-slate-400 dark:text-slate-500">{enquiry.variant}</p>}
                 </td>
                 <td className="hidden border-b border-slate-100 px-4 py-3 text-slate-600 transition-colors group-hover:bg-primary-50/60 xl:table-cell dark:border-slate-800/80 dark:text-slate-300 dark:group-hover:bg-primary-500/[0.06]">
-                  {enquiry.source.replaceAll("_", " ")}
+                  {leadSourceLabel(enquiry)}
                 </td>
                 <td className="hidden border-b border-slate-100 px-4 py-3 text-slate-600 transition-colors group-hover:bg-primary-50/60 xl:table-cell dark:border-slate-800/80 dark:text-slate-300 dark:group-hover:bg-primary-500/[0.06]">
                   {enquiry.enquiryType.replaceAll("_", " ")}

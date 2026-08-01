@@ -2,7 +2,8 @@ import { Phone, Car, MapPin, UserCircle2 } from "lucide-react";
 import clsx from "clsx";
 import type { Enquiry } from "../../types";
 import { StatusBadge } from "../common/StatusBadge";
-import { AvatarWithTemperature, CategoryPill, CATEGORY_ACCENT, onOpenKeyDown } from "./leadPresentation";
+import { AvatarWithTemperature, CategoryPill, CATEGORY_ACCENT, leadSourceLabel, onOpenKeyDown } from "./leadPresentation";
+import { ClickablePhone } from "./ClickablePhone";
 
 /**
  * One enquiry as a card — used both as the card-grid view and as the automatic
@@ -28,7 +29,10 @@ export function LeadCard({ enquiry, onOpen }: { enquiry: Enquiry; onOpen: (leadI
           <div className="min-w-0">
             <p className="truncate font-semibold text-slate-900 dark:text-white">{enquiry.lead.name}</p>
             <p className="flex items-center gap-1 truncate text-xs text-slate-500 dark:text-slate-400">
-              <Phone size={11} /> {enquiry.lead.phoneRaw}
+              <Phone size={11} />
+              <ClickablePhone phone={enquiry.lead.phoneRaw} leadId={enquiry.leadId} enquiryId={enquiry.id}>
+                {enquiry.lead.phoneRaw}
+              </ClickablePhone>
             </p>
           </div>
         </div>
@@ -52,7 +56,7 @@ export function LeadCard({ enquiry, onOpen }: { enquiry: Enquiry; onOpen: (leadI
           <span className="truncate">{enquiry.assignedCr?.name ?? "Unassigned"}</span>
         </p>
         <p className="flex items-center justify-end gap-1.5 truncate text-slate-500 dark:text-slate-400">
-          {enquiry.source.replaceAll("_", " ")}
+          {leadSourceLabel(enquiry)}
         </p>
       </div>
     </div>

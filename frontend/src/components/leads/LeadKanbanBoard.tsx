@@ -18,7 +18,7 @@ import {
 import type { DragStartEvent, DragEndEvent } from "@dnd-kit/core";
 import { Avatar } from "../common/Avatar";
 import { StatusChangeModal } from "../enquiry/StatusChangeModal";
-import { getFollowUpUrgency } from "./leadPresentation";
+import { getFollowUpUrgency, leadSourceLabel } from "./leadPresentation";
 import type { Enquiry, EnquiryStatus, EnquiryCategory } from "../../types";
 
 const CATEGORY_STYLES: Record<EnquiryCategory, string> = {
@@ -132,7 +132,7 @@ function CardBody({ enquiry, dragging, onMove }: { enquiry: Enquiry; dragging?: 
         <div className="min-w-0">
           <p className="truncate text-xs font-semibold text-slate-700 dark:text-slate-300">{enquiry.carModel}</p>
           <p className="truncate text-[10px] font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
-            {enquiry.source.replaceAll("_", " ")}
+            {leadSourceLabel(enquiry)}
           </p>
         </div>
       </div>

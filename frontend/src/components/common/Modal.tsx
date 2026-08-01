@@ -20,7 +20,13 @@ export function Modal({ isOpen, onClose, title, maxWidth = "max-w-lg", children,
   // hovered interactive Card) can't turn into a containing block that clips or traps
   // this fixed-position overlay inside the ancestor's box.
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-[fadeIn_0.2s_ease-out]">
+    // Portals only escape the DOM tree — React still bubbles events up the component
+    // tree, so without this a click anywhere in the modal (e.g. a tab) would also fire
+    // any onClick on whatever row/card the modal's trigger happens to be nested inside.
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-[fadeIn_0.2s_ease-out]"
+      onClick={(e) => e.stopPropagation()}
+    >
       <div className={clsx("relative flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl shadow-2xl bg-white border border-slate-100 dark:bg-slate-900 dark:border-slate-800 animate-[slideUp_0.3s_cubic-bezier(0.16,1,0.3,1)]", maxWidth)}>
         <div className="modal-scroll flex-1 overflow-y-auto p-7">
           {title && (
