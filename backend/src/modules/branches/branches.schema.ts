@@ -4,6 +4,7 @@ export const createBranchSchema = z.object({
   name: z.string().min(1),
   code: z.string().min(1),
   city: z.string().min(1),
+  locationId: z.string().min(1),
   address: z.string().optional(),
   autoAssignEnabled: z.boolean().default(true),
 });
@@ -11,6 +12,7 @@ export const createBranchSchema = z.object({
 export const updateBranchSchema = z.object({
   name: z.string().min(1).optional(),
   city: z.string().min(1).optional(),
+  locationId: z.string().min(1).optional(),
   address: z.string().optional(),
   isActive: z.boolean().optional(),
 });

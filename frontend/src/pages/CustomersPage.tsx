@@ -5,12 +5,11 @@ import { motion } from "framer-motion";
 import clsx from "clsx";
 import { Contact, Search, Car, ChevronLeft, ChevronRight, Loader2, Users, Gem, Crown, Sprout, ShoppingBag, MessageSquareText } from "lucide-react";
 import { useCustomers } from "../hooks/useCustomers";
-import { useBranches } from "../hooks/useBranches";
+import { LocationBranchSelect } from "../components/common/LocationBranchSelect";
 import type { CustomerFilters } from "../api/customers.api";
 import type { Customer, CustomerTier } from "../types";
 import { Card } from "../components/common/Card";
 import { Avatar } from "../components/common/Avatar";
-import { Select } from "../components/common/Input";
 import { TierBadge } from "../components/common/TierBadge";
 import { fadeUp, staggerContainer } from "../lib/motion";
 
@@ -78,7 +77,7 @@ export function CustomersPage() {
   const [filters, setFilters] = useState<CustomerFilters>({ page: 1, pageSize: PAGE_SIZE });
   const [searchInput, setSearchInput] = useState("");
 
-  const { data: branches } = useBranches();
+  const [locationId, setLocationId] = useState<string | undefined>(undefined);
   const { data, isLoading, isFetching } = useCustomers(filters);
 
   useEffect(() => {
@@ -173,7 +172,7 @@ export function CustomersPage() {
       {/* ---------- TOOLBAR ---------- */}
       <motion.div variants={fadeUp}>
         <Card>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
             <div className="sm:col-span-2">
               <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">Search</label>
               <div className="relative">
@@ -186,18 +185,14 @@ export function CustomersPage() {
                 />
               </div>
             </div>
-            <Select
-              label="Branch"
-              value={filters.branchId ?? ""}
-              onChange={(e) => setFilters((f) => ({ ...f, branchId: e.target.value || undefined, page: 1 }))}
-            >
-              <option value="">All branches</option>
-              {branches?.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </Select>
+            <LocationBranchSelect
+              locationId={locationId}
+              branchId={filters.branchId}
+              onChange={({ locationId: nextLocationId, branchId }) => {
+                setLocationId(nextLocationId);
+                setFilters((f) => ({ ...f, branchId, page: 1 }));
+              }}
+            />
           </div>
         </Card>
       </motion.div>

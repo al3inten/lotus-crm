@@ -3,7 +3,6 @@ import clsx from "clsx";
 import { Car, Star, Percent, ClipboardList, LayoutGrid, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { isAxiosError } from "axios";
 import { toast } from "sonner";
-import { useBranches } from "../hooks/useBranches";
 import { useVehiclePerformanceReport } from "../hooks/useReports";
 import { downloadEnquiriesXlsx } from "../api/reports.api";
 import { StatTile } from "../components/reports/StatTile";
@@ -11,6 +10,7 @@ import { DonutChart } from "../components/reports/DonutChart";
 import type { DonutSlice } from "../components/reports/DonutChart";
 import { ChartTableToggle } from "../components/reports/ChartTableToggle";
 import { Select } from "../components/common/Input";
+import { LocationBranchSelect } from "../components/common/LocationBranchSelect";
 import { Button } from "../components/common/Button";
 import { Card, CardHeader } from "../components/common/Card";
 import type { VehiclePerformanceRow } from "../api/reports.api";
@@ -89,6 +89,7 @@ function ConversionBar({ percent }: { percent: number }) {
  * "high interest, low conversion" per model. */
 export function VehiclePerformancePage() {
   const [preset, setPreset] = useState<PresetKey>("ytd");
+  const [locationId, setLocationId] = useState<string | undefined>(undefined);
   const [branchId, setBranchId] = useState<string>("");
   const [page, setPage] = useState(1);
 
@@ -104,7 +105,6 @@ export function VehiclePerformancePage() {
     return base;
   }, [preset, branchId]);
 
-  const { data: branches } = useBranches();
   const { data: rows, isLoading } = useVehiclePerformanceReport(filters);
 
   const [downloadingModel, setDownloadingModel] = useState<string | null>(null);
@@ -191,14 +191,14 @@ export function VehiclePerformancePage() {
               </option>
             ))}
           </Select>
-          <Select label="Branch" value={branchId} onChange={(e) => setBranchId(e.target.value)} className="min-w-[180px]">
-            <option value="">All Branches</option>
-            {branches?.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-          </Select>
+          <LocationBranchSelect
+            locationId={locationId}
+            branchId={branchId || undefined}
+            onChange={({ locationId: nextLocationId, branchId: nextBranchId }) => {
+              setLocationId(nextLocationId);
+              setBranchId(nextBranchId ?? "");
+            }}
+          />
         </div>
       </Card>
 

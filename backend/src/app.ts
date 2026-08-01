@@ -33,6 +33,7 @@ import quotesRoutes from "./modules/quotes/quotes.routes";
 import settingsRoutes from "./modules/settings/settings.routes";
 import searchRoutes from "./modules/search/search.routes";
 import locationsRoutes from "./modules/locations/locations.routes";
+import branchLocationsRoutes from "./modules/branchLocations/branchLocations.routes";
 
 export const app = express();
 
@@ -123,6 +124,7 @@ app.use("/api/notifications", notificationsRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/search", searchRoutes);
 app.use("/api/locations", locationsRoutes);
+app.use("/api/branch-locations", branchLocationsRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

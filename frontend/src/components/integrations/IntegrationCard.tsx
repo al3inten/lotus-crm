@@ -18,7 +18,8 @@ import { GeminiForm } from "./GeminiForm";
 import { OpenAiForm } from "./OpenAiForm";
 import { CloudinaryForm } from "./CloudinaryForm";
 import { CallmaticForm } from "./CallmaticForm";
-import { Blocks, Sparkles, Mic, PhoneCall, Image as ImageIcon, AlertTriangle, Activity, Trash2, Settings2, Clock } from "lucide-react";
+import { FasterQForm } from "./FasterQForm";
+import { Blocks, Sparkles, Mic, PhoneCall, Image as ImageIcon, AlertTriangle, Activity, Trash2, Settings2, Clock, Phone } from "lucide-react";
 
 // --- Visual & Metadata Configurations ---
 
@@ -121,6 +122,11 @@ const INTEGRATION_UI: Record<IntegrationKey, { title: string; desc: string; icon
     title: "D-voice",
     desc: "Programmatic AI voice calling platform.",
     icon: <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#0F172A]"><PhoneCall className="h-6 w-6 text-white" /></div>,
+  },
+  FASTERQ: {
+    title: "FasterQ",
+    desc: "Call recordings + transcripts, matched to leads by phone number.",
+    icon: <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-600"><Phone className="h-6 w-6 text-white" /></div>,
   },
 };
 
@@ -276,6 +282,7 @@ export function IntegrationCard({ config }: { config: IntegrationConfigSummary }
         {config.key === "OPENAI" && <OpenAiForm onSaved={() => setShowForm(false)} />}
         {config.key === "CLOUDINARY" && <CloudinaryForm onSaved={() => setShowForm(false)} />}
         {config.key === "CALLMATIC" && <CallmaticForm onSaved={() => setShowForm(false)} />}
+        {config.key === "FASTERQ" && <FasterQForm onSaved={() => setShowForm(false)} />}
       </Modal>
 
       {/* Danger Confirmation Modal */}

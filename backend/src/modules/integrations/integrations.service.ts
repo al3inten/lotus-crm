@@ -22,6 +22,7 @@ import {
   OpenAiCredentials,
   CloudinaryCredentials,
   CallmaticCredentials,
+  FasterqCredentials,
 } from "./integrations.schema";
 
 const GRAPH_API_BASE = "https://graph.facebook.com/v19.0";
@@ -37,6 +38,7 @@ const ALL_KEYS: IntegrationKey[] = [
   "OPENAI",
   "CLOUDINARY",
   "CALLMATIC",
+  "FASTERQ",
 ];
 
 export async function listConfigs() {
@@ -158,6 +160,7 @@ export const getGeminiCredentials = () => getCredentials<GeminiCredentials>("GEM
 export const getOpenAiCredentials = () => getCredentials<OpenAiCredentials>("OPENAI");
 export const getCloudinaryCredentials = () => getCredentials<CloudinaryCredentials>("CLOUDINARY");
 export const getCallmaticCredentials = () => getCredentials<CallmaticCredentials>("CALLMATIC");
+export const getFasterqCredentials = () => getCredentials<FasterqCredentials>("FASTERQ");
 
 /** Configures the shared cloudinary SDK instance from stored credentials; call before any upload/delete. */
 export async function configureCloudinary() {
@@ -263,6 +266,19 @@ export async function testConnection(key: IntegrationKey): Promise<{ ok: boolean
         // We'll mark it as true for now if credentials exist.
         await markResult(key, true);
         return { ok: true, message: `Callmatic credentials saved.` };
+      }
+      case "FASTERQ": {
+        const creds = await getFasterqCredentials();
+        const now = new Date();
+        const from = new Date(now.getTime() - 60_000).toISOString();
+        const to = now.toISOString();
+        const { data } = await axios.get("https://api.fasterq.in/api/integrations/calls", {
+          headers: { Authorization: `Bearer ${creds.apiKey}` },
+          params: { from, to, limit: 1 },
+        });
+        await markResult(key, true);
+        const count = Array.isArray(data?.calls ?? data) ? (data.calls ?? data).length : 0;
+        return { ok: true, message: `Connected — ${count} call(s) in the last minute` };
       }
       default:
         throw new ValidationError(`Unsupported integration key: ${key}`);

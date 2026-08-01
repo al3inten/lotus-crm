@@ -1,7 +1,8 @@
 import { Request, Response } from "express";
 import * as reportsService from "./reports.service";
 import * as analyticsService from "./analytics.service";
-import { ReportQuery, TrendQuery, BreakdownQuery, customerPreviewQuerySchema } from "./reports.schema";
+import * as misReportsService from "./misReports.service";
+import { ReportQuery, TrendQuery, BreakdownQuery, MisReportQuery, customerPreviewQuerySchema } from "./reports.schema";
 import { z } from "zod";
 
 export async function summaryHandler(req: Request, res: Response) {
@@ -71,6 +72,16 @@ export async function consultantPerformanceHandler(req: Request, res: Response) 
 
 export async function vehiclePerformanceHandler(req: Request, res: Response) {
   const result = await analyticsService.getVehiclePerformance(req.query as unknown as ReportQuery, req.branchFilter);
+  res.json(result);
+}
+
+export async function modelWiseReportHandler(req: Request, res: Response) {
+  const result = await misReportsService.getModelWiseReport(req.query as unknown as MisReportQuery, req.branchFilter);
+  res.json(result);
+}
+
+export async function sourceWiseReportHandler(req: Request, res: Response) {
+  const result = await misReportsService.getSourceWiseReport(req.query as unknown as MisReportQuery, req.branchFilter);
   res.json(result);
 }
 

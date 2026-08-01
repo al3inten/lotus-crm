@@ -23,6 +23,8 @@ const TestDrivesPage = lazy(() => import("../pages/TestDrivesPage").then(named("
 const BranchesPage = lazy(() => import("../pages/BranchesPage").then(named("BranchesPage")));
 const ReportsPage = lazy(() => import("../pages/ReportsPage").then(named("ReportsPage")));
 const VehiclePerformancePage = lazy(() => import("../pages/VehiclePerformancePage").then(named("VehiclePerformancePage")));
+const ModelWiseReportPage = lazy(() => import("../pages/ModelWiseReportPage").then(named("ModelWiseReportPage")));
+const SourceWiseReportPage = lazy(() => import("../pages/SourceWiseReportPage").then(named("SourceWiseReportPage")));
 const IntegrationsPage = lazy(() => import("../pages/IntegrationsPage").then(named("IntegrationsPage")));
 const SocialInboxPage = lazy(() => import("../pages/SocialInboxPage").then(named("SocialInboxPage")));
 const AiAgentsPage = lazy(() => import("../pages/AiAgentsPage").then(named("AiAgentsPage")));
@@ -86,6 +88,8 @@ export const router = createBrowserRouter([
             children: [
               { path: "/reports", element: suspense(<ReportsPage />) },
               { path: "/reports/vehicle-performance", element: suspense(<VehiclePerformancePage />) },
+              { path: "/reports/model-wise", element: suspense(<ModelWiseReportPage />) },
+              { path: "/reports/source-wise", element: suspense(<SourceWiseReportPage />) },
             ],
           },
           {

@@ -160,6 +160,7 @@ enum IntegrationKey {
   OPENAI
   CLOUDINARY
   CALLMATIC
+  FASTERQ
 }
 
 enum IntegrationStatus {
@@ -246,8 +247,29 @@ model VehicleModel {
   updatedAt DateTime @updatedAt
 
   variants VehicleVariant[]
+  targets  VehicleModelTarget[]
 
   @@map("vehicle_models")
+}
+
+// Admin-maintained booking target + stock-in-hand for a model at a branch for a given
+// month — nothing upstream tracks either of these (no DMS/inventory integration), so this
+// is the only source of truth for the Model-wise MIS report's "Bkg Tgt"/"Stock" columns.
+model VehicleModelTarget {
+  id            String       @id @default(cuid())
+  modelId       String
+  model         VehicleModel @relation(fields: [modelId], references: [id])
+  branchId      String
+  branch        Branch       @relation(fields: [branchId], references: [id])
+  month         String // "YYYY-MM"
+  bookingTarget Int          @default(0)
+  stock         Int          @default(0)
+  updatedAt     DateTime     @updatedAt
+  updatedById   String?
+  updatedBy     User?        @relation("VehicleModelTargetUpdatedBy", fields: [updatedById], references: [id])
+
+  @@unique([modelId, branchId, month])
+  @@map("vehicle_model_targets")
 }
 
 model VehicleVariant {
@@ -267,6 +289,23 @@ model VehicleVariant {
 
 // ---------- CORE ----------
 
+// A city/state grouping above Branch — purely organizational (drives the
+// Location -> Branch cascading selectors across the UI); it carries no
+// access-control semantics of its own, unlike Branch's branchId scoping.
+model Location {
+  id        String   @id @default(cuid())
+  name      String
+  state     String?
+  code      String?  @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  branches Branch[]
+
+  @@map("locations")
+}
+
 model Branch {
   id                String   @id @default(cuid())
   name              String
@@ -282,33 +321,38 @@ model Branch {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
+  locationId String
+  location   Location @relation(fields: [locationId], references: [id])
+
   users               User[]
   enquiries           Enquiry[]
   roleDefinitions     RoleDefinition[]
   leadDrafts          LeadDraft[]
   consultantDirectory ConsultantDirectory[]
+  vehicleTargets      VehicleModelTarget[]
 
+  @@index([locationId])
   @@map("branches")
 }
 
 // A branch-scoped custom role ("Assistant Manager - OMR") with explicit per-section
 // None/Read/Write permissions, enforced by backend middleware (requirePermission).
 model RoleDefinition {
-  id                 String   @id @default(cuid())
-  name               String
-  branchId           String? // null = available to every branch
-  branch             Branch?  @relation(fields: [branchId], references: [id])
-  permissions        Json // { [section: ModuleKey]: "none" | "read" | "write" }
-  canViewAllBranches Boolean  @default(false)
-  restrictLeadsToOwn Boolean  @default(false)
+  id                    String   @id @default(cuid())
+  name                  String
+  branchId              String? // null = available to every branch
+  branch                Branch?  @relation(fields: [branchId], references: [id])
+  permissions           Json // { [section: ModuleKey]: "none" | "read" | "write" }
+  canViewAllBranches    Boolean  @default(false)
+  restrictLeadsToOwn    Boolean  @default(false)
   // Lets this role reassign a customer's owning CR (Lead.primaryCrId, which cascades to
   // every one of that customer's enquiries). SUPER_ADMIN can always do this regardless of
   // this toggle; other roles need it explicitly enabled — see requireCustomerReassignRights.
   canReassignCustomerCr Boolean  @default(false)
   // Only meaningful when restrictLeadsToOwn is true: lets the CR view (not edit/change-status
   // on) leads assigned to other CRs in their own branch, instead of only their own.
-  canViewBranchLeads Boolean  @default(false)
-  isActive           Boolean  @default(true)
+  canViewBranchLeads    Boolean  @default(false)
+  isActive              Boolean  @default(true)
   // True only for the built-in seeded "CR" role — its name can't be renamed and the
   // role can't be deleted, but its permissions/toggles stay fully editable like any
   // other role.
@@ -377,6 +421,7 @@ model User {
   quotationsCreated       Quotation[]            @relation("QuotedBy")
   evaluationsDone         ExchangeEvaluation[]   @relation("EvaluatedBy")
   integrationUpdates      IntegrationConfig[]    @relation("IntegrationUpdatedBy")
+  vehicleTargetUpdates    VehicleModelTarget[]   @relation("VehicleModelTargetUpdatedBy")
   convertedInboxItems     Conversation[]         @relation("ConvertedBy")
   agentConfigUpdates      AgentConfig[]          @relation("AgentConfigUpdatedBy")
   uploadedMedia           MediaAsset[]           @relation("MediaUploadedBy")
@@ -906,26 +951,37 @@ model MessageTemplate {
 }
 
 model CallLog {
-  id              String       @id @default(cuid())
-  conversationId  String
-  conversation    Conversation @relation(fields: [conversationId], references: [id])
-  fromNumber      String
-  toNumber        String
-  status          CallStatus   @default(QUEUED)
-  startedAt       DateTime?
-  endedAt         DateTime?
-  durationSeconds Int?
-  recordingUrl    String?
-  summary         String?      @db.Text
-  transcript      String?      @db.Text
-  insights        Json?
-  externalCallId  String?      @unique
-  createdAt       DateTime     @default(now())
+  id                 String               @id @default(cuid())
+  conversationId     String
+  conversation       Conversation         @relation(fields: [conversationId], references: [id])
+  fromNumber         String
+  toNumber           String
+  status             CallStatus           @default(QUEUED)
+  startedAt          DateTime?
+  endedAt            DateTime?
+  durationSeconds    Int?
+  recordingUrl       String?
+  // Recordings pulled from FasterQ expire 30 days after the call — past this point the
+  // player is hidden even if recordingUrl is still set, and only the transcript remains.
+  recordingExpiresAt DateTime?
+  transcriptStatus   CallTranscriptStatus @default(NONE)
+  summary            String?              @db.Text
+  transcript         String?              @db.Text
+  insights           Json?
+  externalCallId     String?              @unique
+  createdAt          DateTime             @default(now())
 
   outboundTask OutboundCallTask?
 
   @@index([conversationId, createdAt])
   @@map("call_logs")
+}
+
+enum CallTranscriptStatus {
+  NONE
+  PENDING
+  DONE
+  FAILED
 }
 
 model OutboundCallCampaign {

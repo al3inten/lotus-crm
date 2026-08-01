@@ -5,6 +5,8 @@ import {
   UpdateVehicleModelInput,
   CreateVehicleVariantInput,
   UpdateVehicleVariantInput,
+  UpsertVehicleModelTargetInput,
+  ListVehicleModelTargetsQuery,
 } from "./vehicles.schema";
 
 export async function createVehicleModel(input: CreateVehicleModelInput) {
@@ -65,4 +67,44 @@ export async function deleteVehicleVariant(variantId: string) {
   const variant = await prisma.vehicleVariant.findUnique({ where: { id: variantId } });
   if (!variant) throw new NotFoundError("Variant not found");
   await prisma.vehicleVariant.delete({ where: { id: variantId } });
+}
+
+/** Booking target + stock-in-hand for every active model at a branch for one month — the
+ * Model-wise MIS report's only source for those two columns (see VehicleModelTarget). */
+export async function listVehicleModelTargets(query: ListVehicleModelTargetsQuery) {
+  const [models, targets] = await Promise.all([
+    prisma.vehicleModel.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
+    prisma.vehicleModelTarget.findMany({ where: { branchId: query.branchId, month: query.month } }),
+  ]);
+
+  const targetByModelId = new Map(targets.map((t) => [t.modelId, t]));
+  return models.map((model) => {
+    const target = targetByModelId.get(model.id);
+    return {
+      modelId: model.id,
+      modelName: model.name,
+      bookingTarget: target?.bookingTarget ?? 0,
+      stock: target?.stock ?? 0,
+    };
+  });
+}
+
+export async function upsertVehicleModelTarget(
+  modelId: string,
+  input: UpsertVehicleModelTargetInput,
+  updatedById: string
+) {
+  await getVehicleModel(modelId);
+  return prisma.vehicleModelTarget.upsert({
+    where: { modelId_branchId_month: { modelId, branchId: input.branchId, month: input.month } },
+    create: {
+      modelId,
+      branchId: input.branchId,
+      month: input.month,
+      bookingTarget: input.bookingTarget,
+      stock: input.stock,
+      updatedById,
+    },
+    update: { bookingTarget: input.bookingTarget, stock: input.stock, updatedById },
+  });
 }

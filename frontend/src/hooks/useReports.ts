@@ -109,6 +109,20 @@ export function useVehiclePerformanceReport(filters: reportsApi.ReportFilters) {
   });
 }
 
+export function useModelWiseReport(filters: reportsApi.MisReportFilters) {
+  return useQuery({
+    queryKey: ["reports", "model-wise", filters],
+    queryFn: () => reportsApi.fetchModelWiseReport(filters),
+  });
+}
+
+export function useSourceWiseReport(filters: reportsApi.MisReportFilters) {
+  return useQuery({
+    queryKey: ["reports", "source-wise", filters],
+    queryFn: () => reportsApi.fetchSourceWiseReport(filters),
+  });
+}
+
 export function useBreakdownReport(
   filters: reportsApi.ReportFilters & { dimension: reportsApi.BreakdownDimension },
   enabled = true

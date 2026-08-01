@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import { Car, AlertTriangle, CalendarClock, CheckCircle2, Layers, Loader2 } from "lucide-react";
 import clsx from "clsx";
 import { useTestDrives } from "../hooks/useTestDrives";
-import { useBranches } from "../hooks/useBranches";
 import type { TestDriveFilters, TestDriveItem, TestDriveStatus } from "../api/testDrives.api";
 import { fadeUp, staggerContainer } from "../lib/motion";
 import { TestDriveToolbar } from "../components/testDrives/TestDriveToolbar";
@@ -70,7 +69,6 @@ export function TestDrivesPage() {
   const [filters, setFilters] = useState<TestDriveFilters>({ status: "ALL", sortBy: "scheduledAt", order: "asc", page: 1, pageSize: PAGE_SIZE });
   const [searchInput, setSearchInput] = useState("");
 
-  const { data: branches } = useBranches();
   const { data, isLoading, isFetching } = useTestDrives(filters);
 
   useEffect(() => {
@@ -163,7 +161,6 @@ export function TestDrivesPage() {
           filters={filters}
           patch={patch}
           crossBranch={crossBranch}
-          branches={branches}
           crs={data?.crs}
           consultants={data?.consultants}
         />

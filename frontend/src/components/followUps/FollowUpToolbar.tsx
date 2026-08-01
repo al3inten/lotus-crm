@@ -1,9 +1,10 @@
+import { useState } from "react";
 import { Search } from "lucide-react";
 import type { FollowUpFilters, FollowUpSortBy } from "../../api/followUps.api";
 import { ENQUIRY_STATUSES, ENQUIRY_CATEGORIES } from "../../types";
-import type { Branch } from "../../types";
 import { Card } from "../common/Card";
 import { Select } from "../common/Input";
+import { LocationBranchSelect } from "../common/LocationBranchSelect";
 import { DatePickerField } from "../common/DateTimePicker";
 
 const SORT_OPTIONS: { value: FollowUpSortBy; label: string }[] = [
@@ -20,7 +21,6 @@ export function FollowUpToolbar({
   patch,
   canSeeOthers,
   crossBranch,
-  branches,
   crs,
 }: {
   searchInput: string;
@@ -29,9 +29,9 @@ export function FollowUpToolbar({
   patch: (p: Partial<FollowUpFilters>) => void;
   canSeeOthers: boolean;
   crossBranch: boolean;
-  branches: Branch[] | undefined;
   crs: { id: string; name: string; count: number }[] | undefined;
 }) {
+  const [locationId, setLocationId] = useState<string | undefined>(undefined);
   return (
     <Card>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -137,18 +137,14 @@ export function FollowUpToolbar({
             ))}
           </Select>
           {crossBranch && (
-            <Select
-              label="Branch"
-              value={filters.branchId ?? ""}
-              onChange={(e) => patch({ branchId: e.target.value || undefined })}
-            >
-              <option value="">All branches</option>
-              {branches?.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </Select>
+            <LocationBranchSelect
+              locationId={locationId}
+              branchId={filters.branchId}
+              onChange={({ locationId: nextLocationId, branchId }) => {
+                setLocationId(nextLocationId);
+                patch({ branchId });
+              }}
+            />
           )}
         </div>
       )}

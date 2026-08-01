@@ -2,6 +2,7 @@ import { app } from "./app";
 import { env } from "./config/env";
 import { logger } from "./lib/logger";
 import { pollPendingCalls } from "./modules/voice/voice.service";
+import { pollFasterqCalls } from "./modules/integrations/fasterq.service";
 
 app.listen(env.PORT, () => {
   logger.info(`Lotus D-CRM backend listening on port ${env.PORT}`);
@@ -15,3 +16,11 @@ setInterval(() => {
     logger.error("Callmatic call poll tick failed", { error: err instanceof Error ? err.message : String(err) })
   );
 }, CALLMATIC_POLL_INTERVAL_MS);
+
+// Backfill/reconciliation for FasterQ call recordings + transcripts — see fasterq.service.ts.
+const FASTERQ_POLL_INTERVAL_MS = 5 * 60_000;
+setInterval(() => {
+  pollFasterqCalls().catch((err) =>
+    logger.error("FasterQ call poll tick failed", { error: err instanceof Error ? err.message : String(err) })
+  );
+}, FASTERQ_POLL_INTERVAL_MS);

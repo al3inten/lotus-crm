@@ -11,7 +11,8 @@ export type IntegrationKey =
   | "GEMINI"
   | "OPENAI"
   | "CLOUDINARY"
-  | "CALLMATIC";
+  | "CALLMATIC"
+  | "FASTERQ";
 export type IntegrationStatus = "NOT_CONFIGURED" | "CONNECTED" | "ERROR";
 
 export interface IntegrationConfigSummary {

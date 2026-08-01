@@ -7,7 +7,8 @@ export async function createBranchHandler(req: Request, res: Response) {
 }
 
 export async function listBranchesHandler(req: Request, res: Response) {
-  const branches = await branchesService.listBranches(req.branchFilter);
+  const locationId = typeof req.query.locationId === "string" ? req.query.locationId : undefined;
+  const branches = await branchesService.listBranches(req.branchFilter, locationId);
   res.json(branches);
 }
 

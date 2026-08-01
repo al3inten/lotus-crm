@@ -2,6 +2,7 @@ import { axiosClient } from "./axiosClient";
 
 export type CallStatus = "QUEUED" | "DIALING" | "IN_PROGRESS" | "COMPLETED" | "NO_ANSWER" | "FAILED";
 export type CampaignStatus = "DRAFT" | "RUNNING" | "PAUSED" | "COMPLETED";
+export type CallTranscriptStatus = "NONE" | "PENDING" | "DONE" | "FAILED";
 
 export interface CallLog {
   id: string;
@@ -12,6 +13,8 @@ export interface CallLog {
   endedAt?: string | null;
   durationSeconds?: number | null;
   recordingUrl?: string | null;
+  recordingExpiresAt?: string | null;
+  transcriptStatus?: CallTranscriptStatus;
   summary?: string | null;
   transcript?: string | null;
   insights?: unknown;

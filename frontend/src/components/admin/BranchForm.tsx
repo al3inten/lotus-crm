@@ -2,12 +2,14 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { branchFormSchema } from "../../schemas/branch.schema";
 import type { BranchFormValues, BranchFormInput } from "../../schemas/branch.schema";
-import { Input } from "../common/Input";
+import { Input, Select } from "../common/Input";
 import { Button } from "../common/Button";
 import { useCreateBranch } from "../../hooks/useBranches";
+import { useBranchLocations } from "../../hooks/useBranchLocations";
 
 export function BranchForm({ onSuccess }: { onSuccess: () => void }) {
   const createBranch = useCreateBranch();
+  const { data: locations } = useBranchLocations();
   const {
     register,
     handleSubmit,
@@ -29,6 +31,14 @@ export function BranchForm({ onSuccess }: { onSuccess: () => void }) {
       <Input label="Branch Name" error={errors.name?.message} {...register("name")} />
       <Input label="Branch Code" placeholder="HYU-CHN-01" error={errors.code?.message} {...register("code")} />
       <Input label="City" error={errors.city?.message} {...register("city")} />
+      <Select label="Location" error={errors.locationId?.message} {...register("locationId")}>
+        <option value="">Select location</option>
+        {locations?.map((l) => (
+          <option key={l.id} value={l.id}>
+            {l.name}
+          </option>
+        ))}
+      </Select>
       <Input label="Address (optional)" error={errors.address?.message} {...register("address")} />
       <label className="flex items-center gap-2 text-sm text-gray-700">
         <input type="checkbox" defaultChecked {...register("autoAssignEnabled")} />

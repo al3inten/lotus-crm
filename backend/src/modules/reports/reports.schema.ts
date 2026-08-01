@@ -69,7 +69,16 @@ export const breakdownQuerySchema = reportQuerySchema
     path: ["splitBy"],
   });
 
+// "Model wise" / "Source wise" MIS reports — a single month, defaulting to the current one.
+export const misReportQuerySchema = reportQuerySchema.extend({
+  month: z
+    .string()
+    .regex(/^\d{4}-\d{2}$/, "month must be YYYY-MM")
+    .optional(),
+});
+
 export type ReportQuery = z.infer<typeof reportQuerySchema>;
+export type MisReportQuery = z.infer<typeof misReportQuerySchema>;
 export type TrendQuery = z.infer<typeof trendQuerySchema>;
 export type BreakdownQuery = z.infer<typeof breakdownQuerySchema>;
 export type BreakdownDimension = (typeof BREAKDOWN_DIMENSIONS)[number];

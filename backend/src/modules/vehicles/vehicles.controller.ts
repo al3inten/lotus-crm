@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { UnauthorizedError } from "../../lib/errors";
 import * as vehiclesService from "./vehicles.service";
 
 export async function createVehicleModelHandler(req: Request, res: Response) {
@@ -34,4 +35,18 @@ export async function updateVehicleVariantHandler(req: Request, res: Response) {
 export async function deleteVehicleVariantHandler(req: Request, res: Response) {
   await vehiclesService.deleteVehicleVariant(req.params.variantId);
   res.status(204).send();
+}
+
+export async function listVehicleModelTargetsHandler(req: Request, res: Response) {
+  const targets = await vehiclesService.listVehicleModelTargets({
+    branchId: req.query.branchId as string,
+    month: req.query.month as string,
+  });
+  res.json(targets);
+}
+
+export async function upsertVehicleModelTargetHandler(req: Request, res: Response) {
+  if (!req.user) throw new UnauthorizedError();
+  const target = await vehiclesService.upsertVehicleModelTarget(req.params.modelId, req.body, req.user.id);
+  res.json(target);
 }

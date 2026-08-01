@@ -15,6 +15,7 @@ import type { TypeaheadOption } from "../common/TypeaheadInput";
 import { usePushRepeatEnquiryAlert } from "../../hooks/useNotifications";
 import { useUpdateEnquiryDetails } from "../../hooks/useEnquiry";
 import { useBranches } from "../../hooks/useBranches";
+import { useBranchLocations } from "../../hooks/useBranchLocations";
 import { useBranchStaff } from "../../hooks/useUsers";
 import { useConsultants } from "../../hooks/useConsultants";
 import { useVehicleModels } from "../../hooks/useVehicles";
@@ -121,7 +122,10 @@ export function AddLeadWizard({
   // Only fetch the wizard's option lists once it's actually opened. This component sits
   // permanently mounted (closed) on pages like LeadDetail — fetching on mount fired
   // branches/vehicle-models/staff requests before the user ever opened it.
-  const { data: branches } = useBranches(isOpen);
+  const { data: locations } = useBranchLocations(isOpen);
+  const { data: branches } = useBranches(undefined, isOpen);
+  const [locationId, setLocationId] = useState<string | undefined>(undefined);
+  const filteredBranches = locationId ? branches?.filter((b) => b.locationId === locationId) : branches;
   const createWalkIn = useCreateWalkInLead();
   const updateDetails = useUpdateEnquiryDetails(enquiryId ?? "");
   const saveDraft = useSaveDraft();
@@ -178,6 +182,21 @@ export function AddLeadWizard({
   // auto-assigns to that customer's existing owning CR, never to the creator (enforced by
   // the API too, see leads.controller.ts withCheckedForceNew).
   const canForceNew = !!user && (user.role === "SUPER_ADMIN" || user.permissions.leads === "write");
+
+  // Once branches load, sync the location dropdown to whatever branch is already
+  // selected (e.g. the user's default branch) so it doesn't start out on "Pick location".
+  useEffect(() => {
+    if (locationId || !branches) return;
+    const current = branches.find((b) => b.id === getValues("branchId"));
+    if (current) setLocationId(current.locationId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [branches]);
+
+  const handleLocationChange = (nextLocationId: string | undefined) => {
+    setLocationId(nextLocationId);
+    setValue("branchId", "");
+    setValue("assignedCrId", "");
+  };
 
   const { data: branchStaff } = useBranchStaff(watch("branchId"), undefined, isOpen);
   const crStaff = (branchStaff ?? []).filter((u) => u.isCrEligible);
@@ -662,7 +681,10 @@ export function AddLeadWizard({
                   fieldError={fieldError}
                   setValue={setValue}
                   isComplete={isComplete}
-                  branches={branches}
+                  locations={locations}
+                  locationId={locationId}
+                  onLocationChange={handleLocationChange}
+                  branches={filteredBranches}
                   crStaff={crStaff}
                   subsourceOptions={subsourceOptions}
                   selectedSourceCategory={selectedSourceCategory}

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Modal } from "../common/Modal";
@@ -5,6 +6,7 @@ import { Input, Select } from "../common/Input";
 import { Button } from "../common/Button";
 import { useConvertConversation } from "../../hooks/useSocialInbox";
 import { useBranches } from "../../hooks/useBranches";
+import { useBranchLocations } from "../../hooks/useBranchLocations";
 import { ENQUIRY_TYPES } from "../../types";
 import { walkInLeadFormSchema } from "../../schemas/lead.schema";
 import type { WalkInLeadFormValues, WalkInLeadFormInput } from "../../schemas/lead.schema";
@@ -20,12 +22,15 @@ export function ConvertToLeadModal({
   isOpen: boolean;
   onClose: () => void;
 }) {
-  const { data: branches } = useBranches();
+  const { data: locations } = useBranchLocations();
+  const [locationId, setLocationId] = useState<string | undefined>(undefined);
+  const { data: branches } = useBranches(locationId);
   const convertConversation = useConvertConversation(conversationId);
 
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<WalkInLeadFormInput, unknown, WalkInLeadFormValues>({
     resolver: zodResolver(walkInLeadFormSchema),
@@ -55,7 +60,22 @@ export function ConvertToLeadModal({
             </option>
           ))}
         </Select>
-        <Select label="Branch" error={errors.branchId?.message} {...register("branchId")}>
+        <Select
+          label="Location"
+          value={locationId ?? ""}
+          onChange={(e) => {
+            setLocationId(e.target.value || undefined);
+            setValue("branchId", "");
+          }}
+        >
+          <option value="">Select location</option>
+          {locations?.map((l) => (
+            <option key={l.id} value={l.id}>
+              {l.name}
+            </option>
+          ))}
+        </Select>
+        <Select label="Branch" disabled={!locationId} error={errors.branchId?.message} {...register("branchId")}>
           <option value="">Select branch</option>
           {branches?.map((b) => (
             <option key={b.id} value={b.id}>

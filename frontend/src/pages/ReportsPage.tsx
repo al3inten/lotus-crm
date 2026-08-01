@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import clsx from "clsx";
-import { useBranches } from "../hooks/useBranches";
+import { LocationBranchSelect } from "../components/common/LocationBranchSelect";
 import {
   useSummaryReport,
   useCrPerformanceReport,
@@ -159,6 +159,7 @@ export function ReportsPage() {
   const [preset, setPreset] = useState<PresetKey>("ytd");
   const [customFrom, setCustomFrom] = useState<string>("");
   const [customTo, setCustomTo] = useState<string>("");
+  const [locationId, setLocationId] = useState<string | undefined>(undefined);
   const [branchId, setBranchId] = useState<string>("");
   const [granularity, setGranularity] = useState<Granularity>("month");
   const [tab, setTab] = useState<TabKey>("overview");
@@ -190,7 +191,6 @@ export function ReportsPage() {
     return base;
   }, [preset, branchId, customFrom, customTo]);
 
-  const { data: branches } = useBranches();
   const { data: summary } = useSummaryReport(filters);
   const { data: yoy } = useYoyReport(filters);
   const { data: trend } = useTrendReport({ ...filters, granularity });
@@ -341,14 +341,14 @@ export function ReportsPage() {
             <DatePickerField label="To" value={customTo} onChange={(v) => setCustomTo(v ?? "")} />
           </>
         )}
-        <Select label="Branch" value={branchId} onChange={(e) => setBranchId(e.target.value)} className="min-w-[180px]">
-          <option value="">All Branches</option>
-          {branches?.map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.name}
-            </option>
-          ))}
-        </Select>
+        <LocationBranchSelect
+          locationId={locationId}
+          branchId={branchId || undefined}
+          onChange={({ locationId: nextLocationId, branchId: nextBranchId }) => {
+            setLocationId(nextLocationId);
+            setBranchId(nextBranchId ?? "");
+          }}
+        />
         <Select label="Trend granularity" value={granularity} onChange={(e) => setGranularity(e.target.value as Granularity)} className="min-w-[150px]">
           <option value="week">Weekly</option>
           <option value="month">Monthly</option>

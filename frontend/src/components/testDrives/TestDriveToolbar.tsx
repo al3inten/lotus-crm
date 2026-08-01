@@ -1,8 +1,9 @@
+import { useState } from "react";
 import { Search } from "lucide-react";
 import type { TestDriveFilters } from "../../api/testDrives.api";
-import type { Branch } from "../../types";
 import { Card } from "../common/Card";
 import { Select } from "../common/Input";
+import { LocationBranchSelect } from "../common/LocationBranchSelect";
 import { DatePickerField } from "../common/DateTimePicker";
 
 export function TestDriveToolbar({
@@ -11,7 +12,6 @@ export function TestDriveToolbar({
   filters,
   patch,
   crossBranch,
-  branches,
   crs,
   consultants,
 }: {
@@ -20,10 +20,10 @@ export function TestDriveToolbar({
   filters: TestDriveFilters;
   patch: (p: Partial<TestDriveFilters>) => void;
   crossBranch: boolean;
-  branches: Branch[] | undefined;
   crs: { id: string; name: string; count: number }[] | undefined;
   consultants: { id: string; name: string; count: number }[] | undefined;
 }) {
+  const [locationId, setLocationId] = useState<string | undefined>(undefined);
   return (
     <Card>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -99,18 +99,14 @@ export function TestDriveToolbar({
           ))}
         </Select>
         {crossBranch && (
-          <Select
-            label="Branch"
-            value={filters.branchId ?? ""}
-            onChange={(e) => patch({ branchId: e.target.value || undefined })}
-          >
-            <option value="">All branches</option>
-            {branches?.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-          </Select>
+          <LocationBranchSelect
+            locationId={locationId}
+            branchId={filters.branchId}
+            onChange={({ locationId: nextLocationId, branchId }) => {
+              setLocationId(nextLocationId);
+              patch({ branchId });
+            }}
+          />
         )}
       </div>
     </Card>

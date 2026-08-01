@@ -5,7 +5,7 @@ import { requirePermission } from "../../middleware/rbac";
 import { applyBranchScope } from "../../middleware/branchScope";
 import { validateQuery } from "../../middleware/validate";
 import { UnauthorizedError } from "../../lib/errors";
-import { reportQuerySchema, trendQuerySchema, breakdownQuerySchema, customerPreviewQuerySchema } from "./reports.schema";
+import { reportQuerySchema, trendQuerySchema, breakdownQuerySchema, customerPreviewQuerySchema, misReportQuerySchema } from "./reports.schema";
 import {
   summaryHandler,
   crPerformanceHandler,
@@ -21,6 +21,8 @@ import {
   lostReasonsHandler,
   consultantPerformanceHandler,
   vehiclePerformanceHandler,
+  modelWiseReportHandler,
+  sourceWiseReportHandler,
   breakdownHandler,
   exportCsvHandler,
   exportXlsxHandler,
@@ -61,6 +63,8 @@ router.get("/referral-leads", requirePermission("reports", "read"), validateQuer
 router.get("/referral-performance", requirePermission("reports", "read"), validateQuery(reportQuerySchema), asyncHandler(referralPerformanceHandler));
 router.get("/lost-reasons", requirePermission("reports", "read"), validateQuery(reportQuerySchema), asyncHandler(lostReasonsHandler));
 router.get("/vehicle-performance", requirePermission("reports", "read"), validateQuery(reportQuerySchema), asyncHandler(vehiclePerformanceHandler));
+router.get("/model-wise", requirePermission("reports", "read"), validateQuery(misReportQuerySchema), asyncHandler(modelWiseReportHandler));
+router.get("/source-wise", requirePermission("reports", "read"), validateQuery(misReportQuerySchema), asyncHandler(sourceWiseReportHandler));
 router.get("/consultant-performance", requirePermission("reports", "read"), validateQuery(reportQuerySchema), asyncHandler(consultantPerformanceHandler));
 router.get("/breakdown", requirePermission("reports", "read"), validateQuery(breakdownQuerySchema), asyncHandler(breakdownHandler));
 router.get("/export", requirePermission("reports", "read"), validateQuery(reportQuerySchema), asyncHandler(exportCsvHandler));

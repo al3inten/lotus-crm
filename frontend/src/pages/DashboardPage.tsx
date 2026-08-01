@@ -18,7 +18,6 @@ import {
   useSourcePerformanceReport,
 } from "../hooks/useReports";
 import { useLeads, useReminders } from "../hooks/useLeads";
-import { useBranches } from "../hooks/useBranches";
 import { Card } from "../components/common/Card";
 import { TrendChart } from "../components/reports/TrendChart";
 import { HBarList } from "../components/reports/HBarList";
@@ -75,7 +74,6 @@ export function DashboardPage() {
   const effectiveScope = hasReportsAccess ? statsScope : "mine";
   const scopeFilters = effectiveScope === "mine" && user ? { assignedCrId: user.id } : {};
 
-  const { data: branches } = useBranches();
   const { data: reminders } = useReminders();
   const actionItems =
     reminders?.filter((r) => {
@@ -227,7 +225,7 @@ export function DashboardPage() {
                 with custom-timeline comparison — admin/reports-access only ── */}
           {hasReportsAccess && (
             <motion.div variants={variants.item}>
-              <SalesPerformancePanel branches={branches} />
+              <SalesPerformancePanel />
             </motion.div>
           )}
 

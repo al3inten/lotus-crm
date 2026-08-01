@@ -1,10 +1,11 @@
 import { useState, useMemo } from "react";
-import { CarFront, Search, Plus, X } from "lucide-react";
+import { CarFront, Search, Plus, X, Target } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useVehicleModels } from "../hooks/useVehicles";
 import { useAuth } from "../context/AuthContext";
 import { VehicleCard } from "../components/vehicles/VehicleCard";
 import { VehicleEditorModal } from "../components/vehicles/VehicleEditorModal";
+import { VehicleTargetsModal } from "../components/vehicles/VehicleTargetsModal";
 import { Button } from "../components/common/Button";
 import { Badge } from "../components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
@@ -49,6 +50,7 @@ export function VehiclesPage() {
   const [sortBy, setSortBy] = useState("NAME_ASC");
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<VehicleModel | undefined>();
+  const [isTargetsOpen, setIsTargetsOpen] = useState(false);
 
   const isSuperAdmin = user?.role === "SUPER_ADMIN";
   const hasFilters = search !== "" || filterFuel !== "ALL" || filterTrans !== "ALL" || filterStatus !== "ALL";
@@ -126,9 +128,14 @@ export function VehiclesPage() {
             </div>
           </div>
           {isSuperAdmin && (
-            <Button icon={<Plus size={16} />} onClick={handleCreate}>
-              Add Vehicle
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="secondary" icon={<Target size={16} />} onClick={() => setIsTargetsOpen(true)}>
+                Booking Targets & Stock
+              </Button>
+              <Button icon={<Plus size={16} />} onClick={handleCreate}>
+                Add Vehicle
+              </Button>
+            </div>
           )}
         </div>
       </motion.div>
@@ -227,6 +234,7 @@ export function VehiclesPage() {
       )}
 
       {isEditorOpen && <VehicleEditorModal vehicle={editingVehicle} onClose={() => setIsEditorOpen(false)} />}
+      {isTargetsOpen && <VehicleTargetsModal onClose={() => setIsTargetsOpen(false)} />}
     </motion.div>
   );
 }

@@ -26,3 +26,20 @@ export type CreateVehicleModelInput = z.infer<typeof createVehicleModelSchema>;
 export type UpdateVehicleModelInput = z.infer<typeof updateVehicleModelSchema>;
 export type CreateVehicleVariantInput = z.infer<typeof createVehicleVariantSchema>;
 export type UpdateVehicleVariantInput = z.infer<typeof updateVehicleVariantSchema>;
+
+const monthPattern = /^\d{4}-\d{2}$/;
+
+export const upsertVehicleModelTargetSchema = z.object({
+  branchId: z.string().min(1),
+  month: z.string().regex(monthPattern, "month must be YYYY-MM"),
+  bookingTarget: z.number().int().min(0),
+  stock: z.number().int().min(0),
+});
+
+export const listVehicleModelTargetsQuerySchema = z.object({
+  branchId: z.string().min(1),
+  month: z.string().regex(monthPattern, "month must be YYYY-MM"),
+});
+
+export type UpsertVehicleModelTargetInput = z.infer<typeof upsertVehicleModelTargetSchema>;
+export type ListVehicleModelTargetsQuery = z.infer<typeof listVehicleModelTargetsQuerySchema>;

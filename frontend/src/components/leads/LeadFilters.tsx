@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { SlidersHorizontal, X } from "lucide-react";
 import type { LeadFilters as LeadFiltersType } from "../../api/leads.api";
 import { Input, Select } from "../common/Input";
+import { LocationBranchSelect } from "../common/LocationBranchSelect";
 import { DatePickerField } from "../common/DateTimePicker";
 import { ENQUIRY_STATUSES, LEAD_SOURCES } from "../../types";
-import { useBranches } from "../../hooks/useBranches";
 import { useBranchStaff } from "../../hooks/useUsers";
 
 const CATEGORIES = ["HOT", "WARM", "COLD"] as const;
@@ -46,7 +46,7 @@ interface LeadFiltersProps {
 }
 
 export function LeadFilters({ filters, onChange }: LeadFiltersProps) {
-  const { data: branches } = useBranches();
+  const [locationId, setLocationId] = useState<string | undefined>(undefined);
   const { data: branchStaff } = useBranchStaff(filters.branchId);
   const crTeam = branchStaff?.filter((u) => u.isCrEligible);
 
@@ -78,6 +78,7 @@ export function LeadFilters({ filters, onChange }: LeadFiltersProps) {
 
   const clearAll = () => {
     setSearchInput("");
+    setLocationId(undefined);
     onChange({ page: 1, pageSize: filters.pageSize });
   };
 
@@ -105,7 +106,7 @@ export function LeadFilters({ filters, onChange }: LeadFiltersProps) {
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-8">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-9">
         <div className="col-span-2 sm:col-span-3 lg:col-span-1">
           <Input
             label="Search"
@@ -138,18 +139,14 @@ export function LeadFilters({ filters, onChange }: LeadFiltersProps) {
             </option>
           ))}
         </Select>
-        <Select
-          label="Branch"
-          value={filters.branchId ?? ""}
-          onChange={(e) => update({ branchId: e.target.value || undefined, assignedCrId: undefined })}
-        >
-          <option value="">All</option>
-          {branches?.map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.name}
-            </option>
-          ))}
-        </Select>
+        <LocationBranchSelect
+          locationId={locationId}
+          branchId={filters.branchId}
+          onChange={({ locationId: nextLocationId, branchId }) => {
+            setLocationId(nextLocationId);
+            update({ branchId, assignedCrId: undefined });
+          }}
+        />
         <Select
           label="Assigned CR"
           value={filters.assignedCrId ?? ""}

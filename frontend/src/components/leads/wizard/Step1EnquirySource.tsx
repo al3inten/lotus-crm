@@ -7,6 +7,7 @@ import { Card, CardHeader } from "../../common/Card";
 import type { AddLeadFormInput } from "../../../schemas/lead.schema";
 import { DEPARTMENTS, SOURCE_CATEGORIES } from "../../../types";
 import type { useBranches } from "../../../hooks/useBranches";
+import type { useBranchLocations } from "../../../hooks/useBranchLocations";
 import type { useBranchStaff } from "../../../hooks/useUsers";
 
 interface Step1EnquirySourceProps {
@@ -15,6 +16,9 @@ interface Step1EnquirySourceProps {
   fieldError: (name: keyof AddLeadFormInput) => string | undefined;
   setValue: (name: keyof AddLeadFormInput, value: unknown) => void;
   isComplete: boolean;
+  locations: ReturnType<typeof useBranchLocations>["data"];
+  locationId: string | undefined;
+  onLocationChange: (locationId: string | undefined) => void;
   branches: ReturnType<typeof useBranches>["data"];
   crStaff: ReturnType<typeof useBranchStaff>["data"];
   subsourceOptions: readonly string[];
@@ -29,6 +33,9 @@ export function Step1EnquirySource({
   fieldError,
   setValue,
   isComplete,
+  locations,
+  locationId,
+  onLocationChange,
   branches,
   crStaff,
   subsourceOptions,
@@ -52,6 +59,19 @@ export function Step1EnquirySource({
           </p>
         ) : (
           <>
+            <Select
+              label="Location"
+              required
+              value={locationId ?? ""}
+              onChange={(e) => onLocationChange(e.target.value || undefined)}
+            >
+              <option value="">Select location</option>
+              {locations?.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name}
+                </option>
+              ))}
+            </Select>
             <Controller
               control={control}
               name="branchId"
@@ -60,6 +80,7 @@ export function Step1EnquirySource({
                   ref={field.ref}
                   label="Dealer / Branch"
                   required
+                  disabled={!locationId}
                   placeholder="Search branches…"
                   value={field.value}
                   onChange={field.onChange}

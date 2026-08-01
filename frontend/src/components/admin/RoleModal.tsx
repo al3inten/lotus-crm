@@ -7,6 +7,7 @@ import { Toggle } from "../common/Toggle";
 import { MODULES } from "../../types";
 import type { ModuleKey, ModulePermissions, PermissionLevel, RoleDefinition, Branch } from "../../types";
 import { useCreateRole, useUpdateRole } from "../../hooks/useRoles";
+import { useBranchLocations } from "../../hooks/useBranchLocations";
 import { VISIBLE_MODULE_KEYS } from "../layout/navConfig";
 
 // Only offer sections that are actually reachable in the sidebar right now — a module
@@ -63,9 +64,12 @@ function LevelPicker({ value, onChange }: { value: PermissionLevel; onChange: (v
 export function RoleModal({ isOpen, onClose, branches, editing, defaultBranchId }: RoleModalProps) {
   const createRole = useCreateRole();
   const updateRole = useUpdateRole();
+  const { data: locations } = useBranchLocations();
 
   const [name, setName] = useState("");
+  const [locationId, setLocationId] = useState<string | undefined>(undefined);
   const [branchId, setBranchId] = useState<string>("");
+  const branchesInLocation = locationId ? branches.filter((b) => b.locationId === locationId) : branches;
   const [permissions, setPermissions] = useState<ModulePermissions>(DEFAULT_PERMISSIONS);
   const [canViewAllBranches, setCanViewAllBranches] = useState(false);
   const [restrictLeadsToOwn, setRestrictLeadsToOwn] = useState(false);
@@ -76,6 +80,7 @@ export function RoleModal({ isOpen, onClose, branches, editing, defaultBranchId 
     if (editing) {
       setName(editing.name);
       setBranchId(editing.branchId ?? "");
+      setLocationId(branches.find((b) => b.id === editing.branchId)?.locationId);
       setPermissions({ ...emptyPermissions(), ...editing.permissions });
       setCanViewAllBranches(editing.canViewAllBranches);
       setRestrictLeadsToOwn(editing.restrictLeadsToOwn);
@@ -84,6 +89,7 @@ export function RoleModal({ isOpen, onClose, branches, editing, defaultBranchId 
     } else {
       setName("");
       setBranchId(defaultBranchId ?? "");
+      setLocationId(branches.find((b) => b.id === defaultBranchId)?.locationId);
       setPermissions(DEFAULT_PERMISSIONS);
       setCanViewAllBranches(false);
       setRestrictLeadsToOwn(false);
@@ -135,14 +141,31 @@ export function RoleModal({ isOpen, onClose, branches, editing, defaultBranchId 
         )}
 
         {!editing && (
-          <Select label="Branch" value={branchId} onChange={(e) => setBranchId(e.target.value)}>
-            <option value="">All branches (global role)</option>
-            {branches.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-          </Select>
+          <>
+            <Select
+              label="Location"
+              value={locationId ?? ""}
+              onChange={(e) => {
+                setLocationId(e.target.value || undefined);
+                setBranchId("");
+              }}
+            >
+              <option value="">All locations</option>
+              {locations?.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name}
+                </option>
+              ))}
+            </Select>
+            <Select label="Branch" value={branchId} onChange={(e) => setBranchId(e.target.value)}>
+              <option value="">All branches (global role)</option>
+              {branchesInLocation.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </Select>
+          </>
         )}
 
         <div className="rounded-lg border border-gray-200 p-3">

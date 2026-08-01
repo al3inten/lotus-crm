@@ -8,9 +8,12 @@ export async function createBranch(input: CreateBranchInput) {
   return prisma.branch.create({ data: input });
 }
 
-export async function listBranches(branchFilter?: { branchId: string }) {
+export async function listBranches(branchFilter?: { branchId: string }, locationId?: string) {
   return prisma.branch.findMany({
-    where: branchFilter ? { id: branchFilter.branchId } : {},
+    where: {
+      ...(branchFilter ? { id: branchFilter.branchId } : {}),
+      ...(locationId ? { locationId } : {}),
+    },
     orderBy: { name: "asc" },
   });
 }

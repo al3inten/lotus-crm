@@ -1,15 +1,14 @@
 import { useState } from "react";
 import { Modal } from "../common/Modal";
-import { Select } from "../common/Input";
+import { LocationBranchSelect } from "../common/LocationBranchSelect";
 import { Button } from "../common/Button";
-import { useBranches } from "../../hooks/useBranches";
 import { useImportLeads } from "../../hooks/useLeads";
 import { downloadLeadImportTemplate } from "../../api/leads.api";
 import type { ImportSummary } from "../../api/leads.api";
 
 export function ImportLeadsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
-  const { data: branches } = useBranches();
   const importLeads = useImportLeads();
+  const [locationId, setLocationId] = useState<string | undefined>(undefined);
   const [branchId, setBranchId] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [summary, setSummary] = useState<ImportSummary | null>(null);
@@ -63,14 +62,17 @@ export function ImportLeadsModal({ isOpen, onClose }: { isOpen: boolean; onClose
             Download Template
           </Button>
         </div>
-        <Select label="Import into Branch" value={branchId} onChange={(e) => setBranchId(e.target.value)}>
-          <option value="">Select branch</option>
-          {branches?.map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.name}
-            </option>
-          ))}
-        </Select>
+        <LocationBranchSelect
+          locationLabel="Import into Location"
+          branchLabel="Import into Branch"
+          locationId={locationId}
+          branchId={branchId || undefined}
+          allowAll={false}
+          onChange={({ locationId: nextLocationId, branchId: nextBranchId }) => {
+            setLocationId(nextLocationId);
+            setBranchId(nextBranchId ?? "");
+          }}
+        />
         <input
           type="file"
           accept=".csv,.xlsx,.xls"

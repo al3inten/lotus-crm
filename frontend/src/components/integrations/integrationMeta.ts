@@ -14,6 +14,7 @@ export const CATEGORY_BY_KEY: Record<IntegrationKey, string> = {
   OPENAI: "AI Model",
   CLOUDINARY: "Media",
   CALLMATIC: "Voice",
+  FASTERQ: "Voice",
 };
 
 export const INTEGRATION_TITLES: Record<IntegrationKey, string> = {
@@ -28,4 +29,5 @@ export const INTEGRATION_TITLES: Record<IntegrationKey, string> = {
   OPENAI: "OpenAI",
   CLOUDINARY: "Cloudinary",
   CALLMATIC: "Callmatic",
+  FASTERQ: "FasterQ",
 };

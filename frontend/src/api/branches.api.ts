@@ -5,13 +5,14 @@ export interface CreateBranchPayload {
   name: string;
   code: string;
   city: string;
+  locationId: string;
   address?: string;
   autoAssignEnabled?: boolean;
   autoCallEnabled?: boolean;
 }
 
-export async function fetchBranches(): Promise<Branch[]> {
-  const { data } = await axiosClient.get<Branch[]>("/branches");
+export async function fetchBranches(locationId?: string): Promise<Branch[]> {
+  const { data } = await axiosClient.get<Branch[]>("/branches", { params: locationId ? { locationId } : undefined });
   return data;
 }
 

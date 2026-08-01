@@ -85,3 +85,9 @@ export const callmaticCredentialsFormSchema = z.object({
   campaignId: z.string().min(1, "Campaign ID is required"),
 });
 export type CallmaticCredentialsFormValues = z.infer<typeof callmaticCredentialsFormSchema>;
+
+export const fasterqCredentialsFormSchema = z.object({
+  apiKey: z.string().min(1, "API key is required"),
+  verifyToken: z.string().min(1, "Verify token is required"),
+});
+export type FasterqCredentialsFormValues = z.infer<typeof fasterqCredentialsFormSchema>;

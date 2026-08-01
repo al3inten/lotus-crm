@@ -5,10 +5,10 @@ export const branchKeys = {
   all: ["branches"] as const,
 };
 
-export function useBranches(enabled = true) {
+export function useBranches(locationId?: string, enabled = true) {
   return useQuery({
-    queryKey: branchKeys.all,
-    queryFn: branchesApi.fetchBranches,
+    queryKey: [...branchKeys.all, locationId ?? null],
+    queryFn: () => branchesApi.fetchBranches(locationId),
     enabled,
   });
 }

@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useMessageCampaigns, useCreateMessageCampaign, useSegmentPreview, useRunMessageCampaign } from "../hooks/useCampaigns";
 import { useTemplates } from "../hooks/useTemplates";
-import { useBranches } from "../hooks/useBranches";
 import { Button } from "../components/common/Button";
 import { Input, Select } from "../components/common/Input";
+import { LocationBranchSelect } from "../components/common/LocationBranchSelect";
 import { Modal } from "../components/common/Modal";
 import { ENQUIRY_STATUSES, LEAD_SOURCES } from "../types";
 import type { SegmentFilters } from "../api/campaigns.api";
@@ -14,7 +14,7 @@ function CreateCampaignModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
   const [templateId, setTemplateId] = useState("");
   const [filters, setFilters] = useState<SegmentFilters>({});
   const { data: templates } = useTemplates();
-  const { data: branches } = useBranches();
+  const [locationId, setLocationId] = useState<string | undefined>(undefined);
   const { data: count } = useSegmentPreview(filters, Object.values(filters).some(Boolean));
   const createCampaign = useCreateMessageCampaign();
 
@@ -36,14 +36,14 @@ function CreateCampaignModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
             </option>
           ))}
         </Select>
-        <Select label="Branch" value={filters.branchId ?? ""} onChange={(e) => setFilters((f) => ({ ...f, branchId: e.target.value || undefined }))}>
-          <option value="">All branches</option>
-          {branches?.map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.name}
-            </option>
-          ))}
-        </Select>
+        <LocationBranchSelect
+          locationId={locationId}
+          branchId={filters.branchId}
+          onChange={({ locationId: nextLocationId, branchId }) => {
+            setLocationId(nextLocationId);
+            setFilters((f) => ({ ...f, branchId }));
+          }}
+        />
         <Select label="Status" value={filters.status ?? ""} onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value || undefined }))}>
           <option value="">Any status</option>
           {ENQUIRY_STATUSES.map((s) => (

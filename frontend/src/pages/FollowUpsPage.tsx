@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import { CalendarClock, AlertTriangle, CalendarDays, CalendarRange, Clock, Layers, Loader2 } from "lucide-react";
 import clsx from "clsx";
 import { useUpcomingFollowUps, useFollowUpCalendar } from "../hooks/useFollowUps";
-import { useBranches } from "../hooks/useBranches";
 import type { FollowUpFilters, FollowUpTimeframe, UpcomingFollowUp } from "../api/followUps.api";
 import { fadeUp, staggerContainer } from "../lib/motion";
 import { FollowUpToolbar } from "../components/followUps/FollowUpToolbar";
@@ -66,7 +65,6 @@ export function FollowUpsPage() {
   const [filters, setFilters] = useState<FollowUpFilters>({ timeframe: "all", sortBy: "dueDate", order: "asc", page: 1, pageSize: PAGE_SIZE });
   const [searchInput, setSearchInput] = useState("");
 
-  const { data: branches } = useBranches();
   const { data, isLoading, isFetching } = useUpcomingFollowUps(filters);
 
   // Calendar heat view. The range is driven by the calendar's own week/month nav;
@@ -209,7 +207,6 @@ export function FollowUpsPage() {
           patch={patch}
           canSeeOthers={canSeeOthers}
           crossBranch={crossBranch}
-          branches={branches}
           crs={data?.crs}
         />
       </motion.div>

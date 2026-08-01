@@ -168,6 +168,72 @@ export interface VehiclePerformanceRow {
   avgDiscountPercent: number | null;
 }
 
+export interface MisPeriodCounts {
+  cy: number;
+  ly: number;
+  lm: number;
+  growthLY: number | null;
+  growthLM: number | null;
+}
+
+export interface ModelWiseRow {
+  carModel: string;
+  enquiries: MisPeriodCounts;
+  bookingTarget: number;
+  bookingTargetLY: number;
+  booking: MisPeriodCounts;
+  achievementPercent: number;
+  achievementPercentLY: number;
+  retail: MisPeriodCounts;
+  enquiryToBooking: number;
+  enquiryToRetail: number;
+  bookingToRetail: number;
+  stock: number;
+  bookingBalance: number;
+  activeEnquiries: number;
+}
+
+export interface ModelWiseReport {
+  month: string;
+  rows: ModelWiseRow[];
+  total: ModelWiseRow;
+}
+
+export interface SourceWiseRow {
+  source: string;
+  enquiries: MisPeriodCounts;
+  booking: MisPeriodCounts;
+  retail: MisPeriodCounts;
+  testDrives: number;
+  testDriveRate: number;
+  enquiryToBooking: number;
+  enquiryToRetail: number;
+  bookingToRetail: number;
+  enquiryToBookingChange: number;
+  enquiryToRetailChange: number;
+  bookingToRetailChange: number;
+}
+
+export interface SourceWiseReport {
+  month: string;
+  rows: SourceWiseRow[];
+  total: SourceWiseRow;
+}
+
+export interface MisReportFilters extends ReportFilters {
+  month?: string; // "YYYY-MM"
+}
+
+export async function fetchModelWiseReport(filters: MisReportFilters): Promise<ModelWiseReport> {
+  const { data } = await axiosClient.get<ModelWiseReport>("/reports/model-wise", { params: filters });
+  return data;
+}
+
+export async function fetchSourceWiseReport(filters: MisReportFilters): Promise<SourceWiseReport> {
+  const { data } = await axiosClient.get<SourceWiseReport>("/reports/source-wise", { params: filters });
+  return data;
+}
+
 export async function fetchYoy(filters: ReportFilters): Promise<YoyReport> {
   const { data } = await axiosClient.get<YoyReport>("/reports/yoy", { params: filters });
   return data;

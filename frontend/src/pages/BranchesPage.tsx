@@ -11,8 +11,13 @@ import {
   UserCircle2,
   Landmark,
   IdCard,
+  MapPin,
 } from "lucide-react";
 import { useBranches } from "../hooks/useBranches";
+import { useBranchLocations } from "../hooks/useBranchLocations";
+import { LocationBranchSelect } from "../components/common/LocationBranchSelect";
+import { LocationList } from "../components/admin/LocationList";
+import { LocationForm } from "../components/admin/LocationForm";
 import { useBranchStaff, useDeleteUser } from "../hooks/useUsers";
 import { useRoles, useDeleteRole, useUpdateRole, useDirectory } from "../hooks/useRoles";
 import { useConsultants, useCreateConsultant, useUpdateConsultant, useDeleteConsultant } from "../hooks/useConsultants";
@@ -25,17 +30,18 @@ import { Button } from "../components/common/Button";
 import { Modal } from "../components/common/Modal";
 import { Card, CardHeader } from "../components/common/Card";
 import { Toggle } from "../components/common/Toggle";
-import { Input, Select } from "../components/common/Input";
+import { Input } from "../components/common/Input";
 import { MODULES } from "../types";
 import { VISIBLE_MODULE_KEYS } from "../components/layout/navConfig";
 import type { RoleDefinition } from "../types";
 
 // Vehicle models intentionally live only on the dedicated /vehicles page (sidebar),
 // not as a tab here — they were previously duplicated across both.
-type Tab = "overview" | "branches" | "roles" | "staff" | "consultants";
+type Tab = "overview" | "locations" | "branches" | "roles" | "staff" | "consultants";
 
 const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
   { key: "overview", label: "Overview", icon: <LayoutGrid size={15} /> },
+  { key: "locations", label: "Locations", icon: <MapPin size={15} /> },
   { key: "branches", label: "Branches", icon: <Building2 size={15} /> },
   { key: "roles", label: "Roles & Permissions", icon: <ShieldCheck size={15} /> },
   { key: "staff", label: "Employees", icon: <Users size={15} /> },
@@ -136,6 +142,7 @@ function OverviewTab() {
 
 function RolesTab() {
   const { data: branches } = useBranches();
+  const [roleLocationId, setRoleLocationId] = useState<string | undefined>(undefined);
   const [branchFilter, setBranchFilter] = useState("");
   const { data: roles, isLoading } = useRoles(branchFilter || undefined);
   const deleteRole = useDeleteRole();
@@ -148,14 +155,16 @@ function RolesTab() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-end justify-between gap-3">
-        <Select label="Filter by branch" value={branchFilter} onChange={(e) => setBranchFilter(e.target.value)}>
-          <option value="">All roles</option>
-          {branches?.map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.name}
-            </option>
-          ))}
-        </Select>
+        <LocationBranchSelect
+          locationLabel="Filter by location"
+          branchLabel="Filter by branch"
+          locationId={roleLocationId}
+          branchId={branchFilter || undefined}
+          onChange={({ locationId, branchId }) => {
+            setRoleLocationId(locationId);
+            setBranchFilter(branchId ?? "");
+          }}
+        />
         <Button icon={<Plus size={15} />} onClick={() => { setEditing(null); setShowModal(true); }}>
           Create Role
         </Button>
@@ -255,6 +264,31 @@ function RolesTab() {
   );
 }
 
+/* ---------- Locations ---------- */
+
+function LocationsTab() {
+  const { data: locations, isLoading } = useBranchLocations();
+  const [showLocationForm, setShowLocationForm] = useState(false);
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex justify-end">
+        <Button icon={<Plus size={15} />} onClick={() => setShowLocationForm(true)}>
+          Add Location
+        </Button>
+      </div>
+      {isLoading ? (
+        <p className="text-sm text-gray-500">Loading…</p>
+      ) : (
+        <LocationList locations={locations ?? []} />
+      )}
+      <Modal isOpen={showLocationForm} onClose={() => setShowLocationForm(false)} title="Create Location">
+        <LocationForm onSuccess={() => setShowLocationForm(false)} />
+      </Modal>
+    </div>
+  );
+}
+
 /* ---------- Branches ---------- */
 
 function BranchesTab() {
@@ -284,7 +318,8 @@ function BranchesTab() {
 /* ---------- Staff ---------- */
 
 function StaffTab() {
-  const { data: branches } = useBranches();
+  const [locationId, setLocationId] = useState<string | undefined>(undefined);
+  const { data: branches } = useBranches(locationId);
   const [branchId, setBranchId] = useState<string>("");
   const activeBranchId = branchId || branches?.[0]?.id || "";
   const { data: staff, isLoading } = useBranchStaff(activeBranchId || undefined);
@@ -308,13 +343,15 @@ function StaffTab() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-end justify-between gap-3">
-        <Select label="Branch" value={activeBranchId} onChange={(e) => setBranchId(e.target.value)}>
-          {branches?.map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.name}
-            </option>
-          ))}
-        </Select>
+        <LocationBranchSelect
+          allowAll={false}
+          locationId={locationId}
+          branchId={activeBranchId || undefined}
+          onChange={({ locationId: nextLocationId, branchId: nextBranchId }) => {
+            setLocationId(nextLocationId);
+            setBranchId(nextBranchId ?? "");
+          }}
+        />
         <Button icon={<Plus size={15} />} disabled={!activeBranchId} onClick={() => setShowAdd(true)}>
           Add Team Member
         </Button>
@@ -403,7 +440,8 @@ function StaffTab() {
 /* ---------- Consultants ---------- */
 
 function ConsultantsTab() {
-  const { data: branches } = useBranches();
+  const [locationId, setLocationId] = useState<string | undefined>(undefined);
+  const { data: branches } = useBranches(locationId);
   const [branchId, setBranchId] = useState<string>("");
   const activeBranchId = branchId || branches?.[0]?.id || "";
   const { data: consultants, isLoading } = useConsultants(activeBranchId || undefined, !!activeBranchId);
@@ -425,13 +463,15 @@ function ConsultantsTab() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-end justify-between gap-3">
-        <Select label="Branch" value={activeBranchId} onChange={(e) => setBranchId(e.target.value)}>
-          {branches?.map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.name}
-            </option>
-          ))}
-        </Select>
+        <LocationBranchSelect
+          allowAll={false}
+          locationId={locationId}
+          branchId={activeBranchId || undefined}
+          onChange={({ locationId: nextLocationId, branchId: nextBranchId }) => {
+            setLocationId(nextLocationId);
+            setBranchId(nextBranchId ?? "");
+          }}
+        />
       </div>
 
       <Card>
@@ -554,6 +594,7 @@ export function BranchesPage() {
 
         <main>
           {tab === "overview" && <OverviewTab />}
+          {tab === "locations" && <LocationsTab />}
           {tab === "branches" && <BranchesTab />}
           {tab === "roles" && <RolesTab />}
           {tab === "staff" && <StaffTab />}

@@ -28,6 +28,7 @@ import {
 
 import { Card } from "../../../components/common/Card";
 import { CopyButton } from "../../../components/common/CopyButton";
+import { ClickablePhone } from "../ClickablePhone";
 import { Button } from "../../../components/common/Button";
 import { Input } from "../../../components/common/Input";
 import { DatePickerField } from "../../../components/common/DateTimePicker";
@@ -241,7 +242,9 @@ export function LeadDetailsTab({
                           label="Mobile Number"
                           value={
                             <span className="inline-flex items-center gap-1.5">
-                              {lead.phoneRaw}
+                              <ClickablePhone phone={lead.phoneRaw} leadId={lead.id} enquiryId={enquiry.id}>
+                                {lead.phoneRaw}
+                              </ClickablePhone>
                               <CopyButton value={lead.phoneRaw} label="Copy phone number" />
                             </span>
                           }

@@ -19,6 +19,7 @@ import { googleSheetSyncFormSchema } from "../../schemas/integration.schema";
 import type { GoogleSheetSyncFormValues } from "../../schemas/integration.schema";
 import { useSyncGoogleSheet } from "../../hooks/useIntegrations";
 import { useBranches } from "../../hooks/useBranches";
+import { useBranchLocations } from "../../hooks/useBranchLocations";
 import type { ImportSummary } from "../../api/integrations.api";
 
 interface SyncResult {
@@ -54,7 +55,9 @@ function StatTile({
 }
 
 export function GoogleSheetsSyncForm() {
-  const { data: branches } = useBranches();
+  const { data: locations } = useBranchLocations();
+  const [locationId, setLocationId] = useState<string | undefined>(undefined);
+  const { data: branches } = useBranches(locationId);
   const syncSheet = useSyncGoogleSheet();
   const [result, setResult] = useState<SyncResult | null>(null);
   const [errorModalMsg, setErrorModalMsg] = useState<string | null>(null);
@@ -62,6 +65,7 @@ export function GoogleSheetsSyncForm() {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<GoogleSheetSyncFormValues>({ resolver: zodResolver(googleSheetSyncFormSchema) });
 
@@ -102,7 +106,22 @@ export function GoogleSheetsSyncForm() {
           {...register("sheetUrl")}
         />
         <Input label="Tab / Range (optional)" placeholder="Sheet1" error={errors.sheetName?.message} {...register("sheetName")} />
-        <Select label="Import into Branch" error={errors.branchId?.message} {...register("branchId")}>
+        <Select
+          label="Location"
+          value={locationId ?? ""}
+          onChange={(e) => {
+            setLocationId(e.target.value || undefined);
+            setValue("branchId", "");
+          }}
+        >
+          <option value="">Select location</option>
+          {locations?.map((l) => (
+            <option key={l.id} value={l.id}>
+              {l.name}
+            </option>
+          ))}
+        </Select>
+        <Select label="Import into Branch" disabled={!locationId} error={errors.branchId?.message} {...register("branchId")}>
           <option value="">Select branch</option>
           {branches?.map((b) => (
             <option key={b.id} value={b.id}>

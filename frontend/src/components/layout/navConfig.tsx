@@ -15,6 +15,7 @@ import {
   Plug,
   CarFront,
   CalendarCheck2,
+  Radio,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import type { ModuleKey } from "../../types";
@@ -64,6 +65,8 @@ export const NAV_ITEMS: NavItem[] = [
 
   { to: "/reports", label: "Reports", icon: BarChart3, module: "reports", group: "INSIGHTS" },
   { to: "/reports/vehicle-performance", label: "Vehicle Performance", short: "Vehicles", icon: CarFront, module: "reports", group: "INSIGHTS" },
+  { to: "/reports/model-wise", label: "Model Wise", short: "Models", icon: Car, module: "reports", group: "INSIGHTS" },
+  { to: "/reports/source-wise", label: "Source Wise", short: "Sources", icon: Radio, module: "reports", group: "INSIGHTS" },
 
   { to: "/ai-agents", label: "AI Agents", short: "Agents", icon: Bot, module: "ai-agents", group: "AUTOMATION" },
 

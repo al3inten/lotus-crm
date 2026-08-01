@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import clsx from "clsx";
+import { ClickablePhone } from "../ClickablePhone";
 import {
   ArrowLeft,
   Eye,
@@ -312,7 +313,9 @@ export function LeadHeroHeader({
                   label="Mobile"
                   value={
                     <span className="group flex items-center gap-2">
-                      <span className="tabular-nums">{lead.phoneRaw}</span>
+                      <ClickablePhone phone={lead.phoneRaw} leadId={lead.id} enquiryId={enquiry?.id} className="tabular-nums underline decoration-dotted underline-offset-2 hover:text-primary-600 dark:hover:text-primary-400">
+                      {lead.phoneRaw}
+                    </ClickablePhone>
                       <span className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
                         <a
                           href={`tel:${lead.phoneRaw}`}

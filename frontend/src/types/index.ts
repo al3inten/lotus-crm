@@ -277,11 +277,20 @@ export interface TeamActivityMember {
   branch?: { id: string; name: string } | null;
 }
 
+export interface BranchLocation {
+  id: string;
+  name: string;
+  state?: string | null;
+  code?: string | null;
+  isActive: boolean;
+}
+
 export interface Branch {
   id: string;
   name: string;
   code: string;
   city: string;
+  locationId: string;
   address?: string | null;
   autoAssignEnabled: boolean;
   autoCallEnabled: boolean;

@@ -3,6 +3,7 @@ import clsx from "clsx";
 import { TrendingUp, Building2 } from "lucide-react";
 import { Card, CardHeader } from "../common/Card";
 import { Select } from "../common/Input";
+import { LocationBranchSelect } from "../common/LocationBranchSelect";
 import { DatePickerField } from "../common/DateTimePicker";
 import { useBranchRollupReport } from "../../hooks/useReports";
 import { HAIRLINE, Delta } from "./DashboardPrimitives";
@@ -122,7 +123,8 @@ function PeriodPicker({
   );
 }
 
-export function SalesPerformancePanel({ branches }: { branches?: { id: string; name: string }[] }) {
+export function SalesPerformancePanel() {
+  const [locationId, setLocationId] = useState<string | undefined>(undefined);
   const [branchId, setBranchId] = useState("");
 
   // Off by default cost nothing here — comparison is opt-in, so a plain "how did this
@@ -249,19 +251,19 @@ export function SalesPerformancePanel({ branches }: { branches?: { id: string; n
       />
 
       <div className={clsx("flex flex-wrap items-end gap-4 border-b pb-4", HAIRLINE)}>
-        {branches && branches.length > 1 && (
-          <div className="flex flex-col gap-2">
-            <span className="text-[11px] font-medium uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">Branch</span>
-            <Select value={branchId} onChange={(e) => setBranchId(e.target.value)} className="min-w-[160px]">
-              <option value="">All branches</option>
-              {branches.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </Select>
+        <div className="flex flex-col gap-2">
+          <span className="text-[11px] font-medium uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">Location / Branch</span>
+          <div className="flex gap-2">
+            <LocationBranchSelect
+              locationId={locationId}
+              branchId={branchId || undefined}
+              onChange={({ locationId: nextLocationId, branchId: nextBranchId }) => {
+                setLocationId(nextLocationId);
+                setBranchId(nextBranchId ?? "");
+              }}
+            />
           </div>
-        )}
+        </div>
         <PeriodPicker
           label={compare ? "Period A" : "Month / range"}
           preset={presetA}

@@ -66,6 +66,13 @@ export const callmaticCredentialsSchema = z.object({
   campaignId: z.string().min(1, "Callmatic Campaign ID is required"),
 });
 
+export const fasterqCredentialsSchema = z.object({
+  apiKey: z.string().min(1, "FasterQ API Key is required"),
+  // Sent by FasterQ in a custom header on webhook deliveries; also used for the GET /calls
+  // polling auth check performed by testConnection.
+  verifyToken: z.string().min(1),
+});
+
 export const CREDENTIAL_SCHEMAS = {
   META_APP: metaAppCredentialsSchema,
   META_ADS: metaAdsCredentialsSchema,
@@ -78,6 +85,7 @@ export const CREDENTIAL_SCHEMAS = {
   OPENAI: openaiCredentialsSchema,
   CLOUDINARY: cloudinaryCredentialsSchema,
   CALLMATIC: callmaticCredentialsSchema,
+  FASTERQ: fasterqCredentialsSchema,
 } as const;
 
 export type IntegrationKey = keyof typeof CREDENTIAL_SCHEMAS;
@@ -93,6 +101,7 @@ export type GeminiCredentials = z.infer<typeof geminiCredentialsSchema>;
 export type OpenAiCredentials = z.infer<typeof openaiCredentialsSchema>;
 export type CloudinaryCredentials = z.infer<typeof cloudinaryCredentialsSchema>;
 export type CallmaticCredentials = z.infer<typeof callmaticCredentialsSchema>;
+export type FasterqCredentials = z.infer<typeof fasterqCredentialsSchema>;
 
 export const saveIntegrationSchema = z.object({
   credentials: z.record(z.string(), z.unknown()),
