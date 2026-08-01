@@ -7,7 +7,11 @@ export async function createLocation(input: CreateLocationInput) {
 }
 
 export async function listLocations() {
-  return prisma.location.findMany({ orderBy: { name: "asc" } });
+  const locations = await prisma.location.findMany({
+    orderBy: { name: "asc" },
+    include: { _count: { select: { branches: true } } },
+  });
+  return locations.map(({ _count, ...location }) => ({ ...location, branchCount: _count.branches }));
 }
 
 export async function getLocation(locationId: string) {

@@ -79,7 +79,7 @@ export const SearchableSelect = forwardRef<HTMLInputElement, SearchableSelectPro
       <div className={clsx("relative", open && "z-40")} ref={rootRef}>
         <div
           className={clsx(
-            "flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm shadow-sm transition-all bg-white dark:bg-slate-950",
+            "flex h-11 items-center gap-2 rounded-lg border px-3 text-sm shadow-sm transition-all bg-white dark:bg-slate-950",
             error ? "border-red-400 dark:border-red-500/50" : "border-slate-300 dark:border-slate-700",
             open && "ring-2 ring-primary-500/50",
             disabled && "cursor-not-allowed opacity-60"
@@ -102,7 +102,7 @@ export const SearchableSelect = forwardRef<HTMLInputElement, SearchableSelectPro
               setHighlight(0);
             }}
             onKeyDown={onKeyDown}
-            className="w-full min-w-0 bg-transparent text-slate-900 placeholder:text-slate-400 focus:outline-none dark:text-white"
+            className="w-full min-w-0 truncate bg-transparent text-slate-900 placeholder:text-slate-400 focus:outline-none dark:text-white"
           />
           {selected && !disabled && (
             <button

@@ -76,23 +76,28 @@ export function LocationList({ locations }: { locations: BranchLocation[] }) {
       {deleteError && (
         <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">{deleteError}</p>
       )}
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {locations.map((location) => (
-          <Card key={location.id} padded={false} className={clsx("p-4", !location.isActive && "opacity-60")}>
+          <Card
+            key={location.id}
+            padded={false}
+            className={clsx("group p-4 transition-shadow hover:shadow-md", !location.isActive && "opacity-60")}
+          >
             <div className="flex items-start justify-between gap-2">
-              <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-50 text-primary-600">
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600">
                   <MapPin size={20} />
                 </span>
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">
-                    {location.name}
-                    {!location.isActive && <span className="ml-2 text-xs font-medium text-gray-400">(inactive)</span>}
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-gray-900">{location.name}</p>
+                  <p className="text-xs text-gray-500">
+                    {!location.isActive && <span className="font-medium text-gray-400">Inactive · </span>}
+                    {location.state ? `${location.state} · ` : ""}
+                    {location.branchCount ?? 0} branch{location.branchCount === 1 ? "" : "es"}
                   </p>
-                  {location.state && <p className="text-xs text-gray-500">{location.state}</p>}
                 </div>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
                 <button
                   className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
                   onClick={() => setEditing(location)}

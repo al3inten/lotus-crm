@@ -283,6 +283,7 @@ export interface BranchLocation {
   state?: string | null;
   code?: string | null;
   isActive: boolean;
+  branchCount?: number;
 }
 
 export interface Branch {
