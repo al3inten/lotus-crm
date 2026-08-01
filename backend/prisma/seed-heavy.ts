@@ -3,6 +3,26 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
+// Duplicated from src/config/constants.ts — this script runs via tsx directly against
+// prisma/, which the production image doesn't ship src/ alongside (see container-start.js).
+const MODULE_KEYS = [
+  "dashboard",
+  "leads",
+  "customers",
+  "follow-ups",
+  "test-drives",
+  "vehicles",
+  "social-inbox",
+  "call-campaigns",
+  "bulk-messages",
+  "templates",
+  "media-library",
+  "reports",
+  "ai-agents",
+  "branches",
+  "integrations",
+] as const;
+
 // ---------- small deterministic-ish random helpers (no faker dependency) ----------
 function pick<T>(arr: readonly T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -167,29 +187,52 @@ async function main() {
     throw new Error("Run `npm run seed` first — no branches found to attach enquiries to.");
   }
 
+  // Fallback "who did this" for EnquiryStatusHistory.changedById when an enquiry has no
+  // assigned CR — ConsultantDirectory entries aren't Users and can't fill that FK.
+  const seedUser = await prisma.user.findFirst({ where: { role: "SUPER_ADMIN" }, orderBy: { createdAt: "asc" } });
+  if (!seedUser) throw new Error("Run `npm run seed` first — no SUPER_ADMIN user found.");
+
+  // Default "CR" role definition (same one npm run seed creates) — reused here rather than
+  // duplicated so heavy-seed CRs get the same permissions shape as the base seed's CRs.
+  const crRole =
+    (await prisma.roleDefinition.findFirst({ where: { branchId: null, name: "CR" } })) ??
+    (await prisma.roleDefinition.create({
+      data: {
+        name: "CR",
+        branchId: null,
+        permissions: Object.fromEntries(
+          MODULE_KEYS.map((key) => [key, (["dashboard", "leads", "follow-ups", "test-drives"] as string[]).includes(key) ? "write" : "none"])
+        ),
+        canViewAllBranches: false,
+        restrictLeadsToOwn: true,
+        isSystemDefault: true,
+      },
+    }));
+
   // Make sure every branch has at least one CR/consultant so the branch dimension isn't
-  // lopsided (the base seed only staffs branch A).
+  // lopsided (the base seed only staffs branch A). Consultants are directory entries, not
+  // login accounts — see ConsultantDirectory in schema.prisma.
   for (const branch of branches) {
-    const existingCr = await prisma.user.findFirst({ where: { branchId: branch.id, role: "CR_TEAM" } });
+    const existingCr = await prisma.user.findFirst({ where: { branchId: branch.id, isCr: true } });
     if (!existingCr) {
       await prisma.user.create({
         data: {
           name: randomName(),
           email: `cr.${branch.code.toLowerCase()}@lotuscrm.com`,
           passwordHash,
-          role: "CR_TEAM",
+          role: "STAFF",
+          roleDefinitionId: crRole.id,
+          isCr: true,
           branchId: branch.id,
         },
       });
     }
-    const existingConsultant = await prisma.user.findFirst({ where: { branchId: branch.id, role: "CONSULTANT" } });
+    const existingConsultant = await prisma.consultantDirectory.findFirst({ where: { branchId: branch.id } });
     if (!existingConsultant) {
-      await prisma.user.create({
+      await prisma.consultantDirectory.create({
         data: {
           name: randomName(),
-          email: `consultant.${branch.code.toLowerCase()}@lotuscrm.com`,
-          passwordHash,
-          role: "CONSULTANT",
+          mobile: randomPhone(),
           branchId: branch.id,
         },
       });
@@ -199,10 +242,10 @@ async function main() {
   const crsByBranch = new Map<string, { id: string }[]>();
   const consultantsByBranch = new Map<string, { id: string }[]>();
   for (const branch of branches) {
-    crsByBranch.set(branch.id, await prisma.user.findMany({ where: { branchId: branch.id, role: "CR_TEAM" }, select: { id: true } }));
+    crsByBranch.set(branch.id, await prisma.user.findMany({ where: { branchId: branch.id, isCr: true }, select: { id: true } }));
     consultantsByBranch.set(
       branch.id,
-      await prisma.user.findMany({ where: { branchId: branch.id, role: "CONSULTANT" }, select: { id: true } })
+      await prisma.consultantDirectory.findMany({ where: { branchId: branch.id }, select: { id: true } })
     );
   }
 
@@ -266,7 +309,7 @@ async function main() {
     });
 
     let cursor = createdAt;
-    const finalStatus: EnquiryStatus = isLost ? "CLOSED" : FUNNEL_STAGES[funnelDepth];
+    const finalStatus: EnquiryStatus = isLost ? "LOST" : FUNNEL_STAGES[funnelDepth];
     const isUnderFollowUp = !isLost && funnelDepth === 0 && Math.random() < 0.5;
 
     const enquiry = await prisma.enquiry.create({
@@ -319,7 +362,7 @@ async function main() {
           enquiryId: enquiry.id,
           fromStatus: prevStatus,
           toStatus: s === 0 ? "UNDER_FOLLOW_UP" : toStatus,
-          changedById: (assignedCr ?? consultant)!.id,
+          changedById: (assignedCr ?? seedUser).id,
           createdAt: cursor,
         },
       });
@@ -331,8 +374,8 @@ async function main() {
         data: {
           enquiryId: enquiry.id,
           fromStatus: prevStatus,
-          toStatus: "CLOSED",
-          changedById: (assignedCr ?? consultant)!.id,
+          toStatus: "LOST",
+          changedById: (assignedCr ?? seedUser).id,
           note: "Recorded during seed generation",
           createdAt: cursor,
         },

@@ -73,8 +73,10 @@ async function main() {
   if (branches.length === 0) throw new Error("No branches found — run the base seed first: npm run seed");
 
   // Reps to round-robin across, per branch, so "categorise by rep" and role scoping have data.
-  const crs = await prisma.user.findMany({ where: { role: { in: ["CR_TEAM", "CONSULTANT"] }, isActive: true } });
-  if (crs.length === 0) throw new Error("No CR/consultant users found — run the base seed first: npm run seed");
+  // isCr replaces the old CR_TEAM role tier (see routing.service.ts); consultants no longer
+  // have login User accounts, so they can't be assignees here (see ConsultantDirectory).
+  const crs = await prisma.user.findMany({ where: { isCr: true, isActive: true } });
+  if (crs.length === 0) throw new Error("No CR users found — run the base seed first: npm run seed");
 
   let seq = 0;
   let created = 0;

@@ -46,7 +46,7 @@ export function Navbar() {
     >
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 sm:px-8">
         <a href="#top" className={clsx("flex items-center gap-3 rounded-lg", FOCUS_RING)}>
-          <img src="/hyundai-logo.jpg" alt="Hyundai" className="h-9 w-auto rounded-md object-contain" />
+          <img src="/lotus-group-hq.png" alt="Lotus Group of Companies" className="h-9 w-auto rounded-md object-contain" />
           <span
             className={`text-lg font-semibold tracking-wide transition-colors ${
               navSolid ? "text-slate-900 dark:text-white" : "text-white"

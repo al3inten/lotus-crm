@@ -1,6 +1,29 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
+// Duplicated from src/config/constants.ts (not vice-versa: the production image copies only
+// dist/, not src/, so this file can't import from src/ at runtime — see container-start.js).
+// Keep in sync with MODULE_KEYS there.
+const MODULE_KEYS = [
+  "dashboard",
+  "leads",
+  "customers",
+  "follow-ups",
+  "test-drives",
+  "vehicles",
+  "social-inbox",
+  "call-campaigns",
+  "bulk-messages",
+  "templates",
+  "media-library",
+  "reports",
+  "ai-agents",
+  "branches",
+  "integrations",
+] as const;
+type ModuleKey = (typeof MODULE_KEYS)[number];
+type PermissionLevel = "none" | "read" | "write";
+
 const prisma = new PrismaClient();
 
 async function main() {
@@ -29,6 +52,40 @@ async function main() {
     create: { name: "Hyundai Chennai OMR", code: "HYU-CHN-02", city: "Chennai" },
   });
 
+  // Branch Manager tier — same shape the backfill script gives legacy ADMIN/BRANCH_MANAGER
+  // users: STAFF role + a role definition with write everywhere and cross-branch visibility.
+  // (findFirst + create instead of upsert: Prisma's compound-unique `where` doesn't accept
+  // null for the nullable branchId half of @@unique([branchId, name]).)
+  const branchManagerRole =
+    (await prisma.roleDefinition.findFirst({ where: { branchId: null, name: "Branch Manager" } })) ??
+    (await prisma.roleDefinition.create({
+      data: {
+        name: "Branch Manager",
+        branchId: null,
+        permissions: Object.fromEntries(MODULE_KEYS.map((key) => [key, "write"])) as Record<ModuleKey, PermissionLevel>,
+        canViewAllBranches: true,
+        restrictLeadsToOwn: false,
+        canReassignCustomerCr: true,
+      },
+    }));
+
+  // Default "CR" role — mirrors step2_seedCrRole in backend/scripts/backfill-roles-and-consultants.ts:
+  // write on the CR's day-to-day sections, restricted to their own assigned leads.
+  const crRole =
+    (await prisma.roleDefinition.findFirst({ where: { branchId: null, name: "CR" } })) ??
+    (await prisma.roleDefinition.create({
+      data: {
+        name: "CR",
+        branchId: null,
+        permissions: Object.fromEntries(
+          MODULE_KEYS.map((key) => [key, ["dashboard", "leads", "follow-ups", "test-drives"].includes(key) ? "write" : "none"])
+        ) as Record<ModuleKey, PermissionLevel>,
+        canViewAllBranches: false,
+        restrictLeadsToOwn: true,
+        isSystemDefault: true,
+      },
+    }));
+
   const branchManager = await prisma.user.upsert({
     where: { email: "manager.central@lotuscrm.com" },
     update: {},
@@ -36,7 +93,8 @@ async function main() {
       name: "Ravi Kumar",
       email: "manager.central@lotuscrm.com",
       passwordHash,
-      role: "BRANCH_MANAGER",
+      role: "STAFF",
+      roleDefinitionId: branchManagerRole.id,
       branchId: branchA.id,
     },
   });
@@ -48,7 +106,9 @@ async function main() {
       name: "Priya S",
       email: "cr1.central@lotuscrm.com",
       passwordHash,
-      role: "CR_TEAM",
+      role: "STAFF",
+      roleDefinitionId: crRole.id,
+      isCr: true,
       branchId: branchA.id,
     },
   });
@@ -60,19 +120,21 @@ async function main() {
       name: "Arun M",
       email: "cr2.central@lotuscrm.com",
       passwordHash,
-      role: "CR_TEAM",
+      role: "STAFF",
+      roleDefinitionId: crRole.id,
+      isCr: true,
       branchId: branchA.id,
     },
   });
 
-  const consultant1 = await prisma.user.upsert({
-    where: { email: "consultant1.central@lotuscrm.com" },
+  // Consultants no longer have login accounts — see ConsultantDirectory in schema.prisma.
+  const consultant1 = await prisma.consultantDirectory.upsert({
+    where: { id: "seed-consultant-karthik-v" },
     update: {},
     create: {
+      id: "seed-consultant-karthik-v",
       name: "Karthik V",
-      email: "consultant1.central@lotuscrm.com",
-      passwordHash,
-      role: "CONSULTANT",
+      mobile: "9840000000",
       branchId: branchA.id,
     },
   });
@@ -210,7 +272,7 @@ async function main() {
     branchManager: branchManager.email,
     cr1: cr1.email,
     cr2: cr2.email,
-    consultant1: consultant1.email,
+    consultant1: consultant1.name,
     branches: [branchA.code, branchB.code],
     vehicleModels: VEHICLE_CATALOG.length,
   });

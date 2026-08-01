@@ -70,7 +70,7 @@ export function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }: SidebarProps)
         <div className="flex h-16 shrink-0 items-center px-4">
           <div className={clsx("flex w-full items-center gap-3", isCollapsed ? "justify-center" : "px-1")}>
             <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-md bg-white shadow-sm">
-              <img src="/hyundai-logo.jpg" alt="Hyundai" className="h-full w-full object-contain p-0.5" />
+              <img src="/lotus-group-hq.png" alt="Lotus Group of Companies" className="h-full w-full object-contain p-0.5" />
             </div>
             {!isCollapsed && (
               <div className="flex min-w-0 flex-1 flex-col overflow-hidden">

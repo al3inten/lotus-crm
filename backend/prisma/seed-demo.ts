@@ -2,7 +2,7 @@
  * Demo/analytics seed — adds a realistic spread of enquiries across the past 18 months
  * (so year-over-year comparison has a base period), walks a portion of them through the
  * pipeline with believable time gaps (so time-in-stage and funnel have real data), and
- * marks some ENQUIRY_CLOSED with reasons. Idempotent-ish: skips if demo leads already exist.
+ * marks some LOST with reasons. Idempotent-ish: skips if demo leads already exist.
  *
  * Run with: npx tsx prisma/seed-demo.ts
  */
@@ -15,16 +15,16 @@ const SOURCES: LeadSource[] = ["WALK_IN", "META_ADS", "WHATSAPP", "GOOGLE_SHEETS
 const LOCATIONS = ["Anna Nagar", "Adyar", "Velachery", "T Nagar", "OMR", "Porur"];
 const FIRST_NAMES = ["Arjun", "Priya", "Karthik", "Divya", "Suresh", "Meena", "Rahul", "Anita", "Vijay", "Lakshmi", "Ravi", "Sneha"];
 const LAST_NAMES = ["Kumar", "Sharma", "Iyer", "Reddy", "Nair", "Patel", "Rao", "Menon"];
-const LOSS_REASONS: LossReason[] = ["OTHER_REASON", "CO_DEALER", "OUT_OF_TERRITORY"];
+const LOSS_REASONS: LossReason[] = ["OTHER_REASON", "LOST_TO_DEALER", "OUT_OF_TERRITORY"];
 
 // The happy path an enquiry walks through, with typical hours spent in each stage.
+// NEW goes straight to APPOINTMENT_FIXED — UNDER_FOLLOW_UP is kept in the schema only so
+// enquiries already there can still progress, not as a normal first stop (see constants.ts).
 const PIPELINE: { status: EnquiryStatus; typicalHours: number }[] = [
-  { status: "FOLLOW_UP", typicalHours: 18 },
   { status: "APPOINTMENT_FIXED", typicalHours: 48 },
   { status: "TEST_DRIVE", typicalHours: 72 },
   { status: "BOOKED", typicalHours: 96 },
   { status: "RETAIL_DONE", typicalHours: 120 },
-  
 ];
 
 function pick<T>(arr: readonly T[]): T {
@@ -48,8 +48,10 @@ async function main() {
   const branches = await prisma.branch.findMany({ where: { isActive: true } });
   if (branches.length === 0) throw new Error("Run the base seed first (npm run seed)");
 
-  const crTeam = await prisma.user.findMany({ where: { role: "CR_TEAM", isActive: true } });
-  const consultants = await prisma.user.findMany({ where: { role: "CONSULTANT", isActive: true } });
+  // isCr replaces the old CR_TEAM role tier (see routing.service.ts). Consultants no longer
+  // have login User accounts — see ConsultantDirectory in schema.prisma.
+  const crTeam = await prisma.user.findMany({ where: { isCr: true, isActive: true } });
+  const consultants = await prisma.consultantDirectory.findMany({ where: { isActive: true } });
 
   const now = Date.now();
   const DEMO_COUNT = 140;
@@ -108,8 +110,8 @@ async function main() {
 
     if (isLost && cursor + 24 * 3600 * 1000 < now) {
       cursor += jitter(48) * 3600 * 1000;
-      history.push({ toStatus: "ENQUIRY_CLOSED", fromStatus: currentStatus, at: new Date(cursor) });
-      currentStatus = "ENQUIRY_CLOSED";
+      history.push({ toStatus: "LOST", fromStatus: currentStatus, at: new Date(cursor) });
+      currentStatus = "LOST";
     }
 
     await prisma.enquiryStatusHistory.createMany({
@@ -126,7 +128,7 @@ async function main() {
       where: { id: enquiry.id },
       data: {
         status: currentStatus,
-        lossReason: currentStatus === "ENQUIRY_CLOSED" ? pick(LOSS_REASONS) : undefined,
+        lossReason: currentStatus === "LOST" ? pick(LOSS_REASONS) : undefined,
         consultantId:
           consultants.length > 0 && history.some((h) => h.toStatus === "APPOINTMENT_FIXED")
             ? pick(consultants).id
